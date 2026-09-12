@@ -12,8 +12,11 @@
 //!
 //! ## Slice status
 //!
-//! - S1 (current): workspace scaffold only. `audio`/`asr`/`pipeline` land in
-//!   S3–S7.
+//! - S1: workspace scaffold
+//! - S2: CI matrix
+//! - S3 (current): `audio::mic` — cpal capture with RMS levels
+
+pub mod audio;
 
 /// Version of the shared library, taken from `Cargo.toml`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
