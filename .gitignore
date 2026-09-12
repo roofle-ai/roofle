@@ -18,3 +18,8 @@ dist-ssr/
 
 # Local model cache (downloaded on first run, never committed)
 models/
+
+# Agent tooling artifacts (not part of the project)
+.agents/
+.roo/
+skills-lock.json

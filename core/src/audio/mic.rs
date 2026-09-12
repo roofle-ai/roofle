@@ -217,7 +217,7 @@ where
 
     let data_fn = move |data: &[T], _: &cpal::InputCallbackInfo| {
         let samples: Vec<f32> = data.iter().map(|&s| s.to_sample::<f32>()).collect();
-        let samples = downmix_to_mono(&samples, channels);
+        let samples = super::processing::downmix_to_mono(&samples, channels);
         let rms = compute_rms(&samples);
         let _ = tx.send(Frame {
             samples,
@@ -228,20 +228,6 @@ where
     };
 
     device.build_input_stream(stream_cfg, data_fn, error_fn, None)
-}
-
-/// Average channels per frame into a single mono stream.
-fn downmix_to_mono(samples: &[f32], channels: usize) -> Vec<f32> {
-    if channels <= 1 {
-        return samples.to_vec();
-    }
-    let frames = samples.len() / channels;
-    let mut mono = Vec::with_capacity(frames);
-    for frame in samples.chunks_exact(channels) {
-        let sum: f32 = frame.iter().sum();
-        mono.push(sum / channels as f32);
-    }
-    mono
 }
 
 /// Root-mean-square amplitude of a mono buffer.
@@ -256,18 +242,6 @@ fn compute_rms(samples: &[f32]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn downmix_stereo_to_mono() {
-        let s = downmix_to_mono(&[0.0, 1.0, 0.5, 0.5, 0.25, -0.25], 2);
-        assert_eq!(s, vec![0.5, 0.5, 0.0]);
-    }
-
-    #[test]
-    fn downmix_passthrough_mono() {
-        let s = downmix_to_mono(&[0.1, 0.2, 0.3], 1);
-        assert_eq!(s, vec![0.1, 0.2, 0.3]);
-    }
 
     #[test]
     fn rms_of_known_buffer() {

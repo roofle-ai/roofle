@@ -17,4 +17,5 @@ path = "src/lib.rs"
 [dependencies]
 # S3: cross-platform microphone capture (CoreAudio on macOS, WASAPI on Windows)
 cpal = "0.15"
+rubato = "0.15"
 

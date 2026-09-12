@@ -14,7 +14,8 @@
 //!
 //! - S1: workspace scaffold
 //! - S2: CI matrix
-//! - S3 (current): `audio::mic` — cpal capture with RMS levels
+//! - S3: `audio::mic` — cpal capture with RMS levels
+//! - S4 (current): `audio::processing` — downmix + rubato resample to 16 kHz + gain
 
 pub mod audio;
 

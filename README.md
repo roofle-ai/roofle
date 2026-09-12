@@ -6,7 +6,7 @@ audio, run streaming on-device ASR, and show a live-updating transcript.
 - **Architecture & stack**: [design.md](design.md) (Rev 2)
 - **Gate-by-gate build plan**: [plans/implementation-plan.md](plans/implementation-plan.md)
 - **CI**: [![CI](https://github.com/<owner>/roofle/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/roofle/actions/workflows/ci.yml)
-- **Status**: S3 — mic capture via cpal (enumerate, default device, mono downmix + RMS), CLI live level meter; CI matrix (macOS + Windows) green.
+- **Status**: S4 — audio processing (`core::audio::processing`: rubato resample to 16 kHz mono + downmix + gain), unit-tested; CI matrix (macOS + Windows) green.
 
 ## Repository layout
 
