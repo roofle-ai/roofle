@@ -34,11 +34,13 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
+      # Cargo.lock is committed, so --locked enforces the exact locked
+      # dependency versions in CI (reproducible builds on both platforms).
       - name: cargo check --workspace
-        run: cargo check --workspace --all-targets
+        run: cargo check --workspace --all-targets --locked
 
       - name: cargo test --workspace
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
