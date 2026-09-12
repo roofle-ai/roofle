@@ -1,0 +1,20 @@
+# Rust
+target/
+**/*.rs.bk
+# NOTE: Cargo.lock is committed (this workspace ships binaries/apps)
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+
+# macOS
+.DS_Store
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+
+# Local model cache (downloaded on first run, never committed)
+models/

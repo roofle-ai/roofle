@@ -1,0 +1,15 @@
+# roofle-core — pure-Rust library.
+# NO Tauri dependency: audio capture + processing + streaming ASR + pipeline
+# live here so the whole pipeline can be validated headlessly and unit-tested.
+
+[package]
+name = "roofle-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Pure-Rust audio capture, processing and streaming ASR pipeline for Roofle"
+
+[lib]
+name = "roofle_core"
+path = "src/lib.rs"

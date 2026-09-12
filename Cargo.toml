@@ -1,0 +1,14 @@
+# Roofle — real-time audio transcription app
+# Architecture + stack: see design.md
+# Gate-by-gate plan: see plans/implementation-plan.md
+
+[workspace]
+members = ["core", "cli"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Priyanshu Shekhar"]
+description = "Cross-platform real-time audio transcription (mic / system audio -> streaming ASR)"
