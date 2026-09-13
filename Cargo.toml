@@ -3,7 +3,8 @@
 # Gate-by-gate plan: see plans/implementation-plan.md
 
 [workspace]
-members = ["core", "cli"]
+# S8: src-tauri is the thin Tauri 2 shell wrapping core/ (see design.md layout).
+members = ["core", "cli", "src-tauri"]
 resolver = "2"
 
 [workspace.package]

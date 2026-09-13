@@ -1,0 +1,13 @@
+# Dev-only build config.
+#
+# screencapturekit links Swift, and its build.rs derives the Swift runtime rpath
+# from `xcode-select -p`. On machines where that points at CommandLineTools
+# (which ships no Swift runtime) the debug binary cannot find
+# libswift_Concurrency.dylib at load time. Embed the Xcode.app Swift runtime
+# path so `cargo run`/`cargo test`/`tauri dev` work out of the box. Packaged
+# apps set their own rpaths, so this is dev convenience only.
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C",
+  "link-arg=-Wl,-rpath,/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx",
+]

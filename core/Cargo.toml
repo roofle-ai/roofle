@@ -18,4 +18,16 @@ path = "src/lib.rs"
 # S3: cross-platform microphone capture (CoreAudio on macOS, WASAPI on Windows)
 cpal = "0.15"
 rubato = "0.15"
+# S5: streaming ASR + VAD.
+# Official sherpa-onnx Rust bindings (`sherpa-onnx` crate, Apache-2.0). The
+# earlier `sherpa-rs` crate listed in design.md is DEPRECATED upstream in favour
+# of these official bindings, so we use the official crate instead (same
+# sherpa-onnx engine under the hood). See design.md "Revision history" and
+# plans/implementation-plan.md S5.
+sherpa-onnx = "1.13"
+# S9: Serialize segments/levels so the Tauri shell can emit them to the UI.
+serde = { version = "1", features = ["derive"] }
 
+# S11: macOS system-audio capture via ScreenCaptureKit (pure Rust, macOS 13+).
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = "1"

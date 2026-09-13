@@ -12,3 +12,5 @@ description = "Headless spike binary for the Roofle transcription pipeline"
 
 [dependencies]
 roofle-core = { path = "../core" }
+# S6: catch Ctrl-C so trailing speech is flushed to a final segment before exit.
+ctrlc = "3"

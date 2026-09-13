@@ -1,16 +1,29 @@
 //! roofle-cli — headless spike binary.
 //!
-//! S3: microphone capture via `cpal` with live RMS level output.
-//!   - default: open the system-default input device and print a level meter
-//!   - `--list`: enumerate input devices and exit
-//!   - `--device <name>`: open a specific input device
+//! Exercises the `core/` pipeline in the terminal before any Tauri/UI work.
 //!
-//! Later slices add processing (S4) and streaming ASR (S5–S6).
+//! - default: open the system-default input device and print a live level meter
+//! - `--list`: enumerate input devices and exit
+//! - `--device <name>`: open a specific input device
+//! - `transcribe --wav <file>`: offline ASR over a WAV file (S5)
+//! - `stream`: live mic -> pipeline (S6/S7), printing partial and final
+//!   segments as typed events arrive from the background ASR thread
 
-use std::io::Write;
+use std::error::Error;
+use std::io::{self, Write};
 use std::sync::mpsc;
+use std::time::Duration;
 
+use roofle_core::asr::{self, SegmentKind};
 use roofle_core::audio::mic;
+use roofle_core::pipeline;
+
+/// Default streaming Zipformer-Transducer model (English, int8), downloaded by
+/// `scripts/fetch-assets.sh`. See `design.md` Rev 2.2 for why it is the default.
+const DEFAULT_MODEL_DIR: &str = "assets/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17";
+
+/// Default amplitude gain applied to captured audio (no-op at 1.0).
+const DEFAULT_GAIN: f32 = 1.0;
 
 /// Render an RMS value (0.0..=1.0) as an ASCII meter of fixed width.
 fn meter(rms: f32) -> String {
@@ -38,8 +51,119 @@ fn print_devices() -> Result<(), mic::CaptureError> {
     Ok(())
 }
 
-fn run() -> Result<(), mic::CaptureError> {
+/// Read the value that follows `--flag` in `args`, if present.
+fn flag_value<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {
+    args.windows(2)
+        .find(|w| w[0] == flag)
+        .map(|w| w[1].as_str())
+}
+
+/// Print a labeled segment. Partials overwrite the current line in place (a
+/// growing hypothesis does not scroll); finals close the line and start a new
+/// one below.
+fn print_segment(out: &mut dyn Write, kind: SegmentKind, text: &str) -> io::Result<()> {
+    match kind {
+        SegmentKind::Partial => {
+            write!(out, "\r  ▸ {text}")?;
+        }
+        SegmentKind::Final => {
+            write!(out, "\n  ✓ {text}\n")?;
+        }
+    }
+    out.flush()
+}
+
+/// Offline ASR over a WAV file (S5 gate: correct transcript output).
+fn cmd_transcribe(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let wav = flag_value(args, "--wav").ok_or("missing --wav <path>")?;
+    let model_dir = flag_value(args, "--model-dir").unwrap_or(DEFAULT_MODEL_DIR);
+
+    let mut cfg = asr::AsrModelConfig::from_model_dir(model_dir);
+    if let Some(v) = flag_value(args, "--provider") {
+        cfg.provider = v.to_string();
+    }
+    if let Some(v) = flag_value(args, "--encoder") {
+        cfg.encoder = v.into();
+    }
+    if let Some(v) = flag_value(args, "--decoder") {
+        cfg.decoder = v.into();
+    }
+    if let Some(v) = flag_value(args, "--joiner") {
+        cfg.joiner = v.into();
+    }
+    if let Some(v) = flag_value(args, "--tokens") {
+        cfg.tokens = v.into();
+    }
+
+    println!("Loading streaming ASR model from: {model_dir}");
+    let engine = asr::AsrEngine::new(cfg)?;
+    println!("Transcribing: {wav}");
+    let transcript = engine.transcribe_wav(wav)?;
+    println!("Transcript: {transcript}");
+    for seg in &transcript.segments {
+        println!("  [{:?}] {}", seg.kind, seg.text);
+    }
+    Ok(())
+}
+
+/// Live mic -> pipeline (S7). Capture and ASR each run on their own threads,
+/// joined by a ring buffer; partial/final segments stream here as typed events.
+/// Ctrl-C ends capture gracefully so trailing speech is flushed to a final.
+fn cmd_stream(args: &[String]) -> Result<(), Box<dyn Error>> {
+    let model_dir = flag_value(args, "--model-dir").unwrap_or(DEFAULT_MODEL_DIR);
+    let named = flag_value(args, "--device").map(str::to_string);
+    let gain: f32 = flag_value(args, "--gain")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(DEFAULT_GAIN);
+
+    println!("Loading streaming ASR model from: {model_dir}");
+    let source = pipeline::MicSource::new(named, gain);
+    println!("Input device: {}", source.device_name());
+    let mut pipe = pipeline::Pipeline::new(pipeline::PipelineConfig {
+        model_dir: model_dir.into(),
+        source: Box::new(source),
+        ring_capacity: None,
+    })?;
+    println!("Transcribing — speak now, Ctrl-C to stop");
+    pipe.start()?;
+
+    // Ctrl-C ends capture gracefully so the in-flight utterance is finalized.
+    let (stop_tx, stop_rx) = mpsc::channel::<()>();
+    ctrlc::set_handler(move || {
+        let _ = stop_tx.send(());
+    })
+    .map_err(|e| format!("failed to install Ctrl-C handler: {e}"))?;
+
+    let mut stdout = io::stdout();
+    loop {
+        if stop_rx.try_recv().is_ok() {
+            break;
+        }
+        match pipe.events().recv_timeout(Duration::from_millis(50)) {
+            Ok(seg) => print_segment(&mut stdout, seg.kind, &seg.text)?,
+            Err(mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+
+    // Flush trailing speech, then print anything shutdown produced (e.g. the
+    // final segment for the in-flight utterance).
+    pipe.stop();
+    for seg in pipe.events().try_iter() {
+        print_segment(&mut stdout, seg.kind, &seg.text)?;
+    }
+    println!();
+    Ok(())
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+
+    match args.first().map(String::as_str) {
+        Some("transcribe") => return cmd_transcribe(&args[1..]),
+        Some("stream") => return cmd_stream(&args[1..]),
+        _ => {}
+    }
 
     if args.iter().any(|a| a == "--list") {
         print_devices()?;
@@ -47,12 +171,9 @@ fn run() -> Result<(), mic::CaptureError> {
     }
 
     // Optional --device <name>; otherwise the default input device.
-    let named = args
-        .windows(2)
-        .find(|w| w[0] == "--device")
-        .map(|w| w[1].clone());
+    let named = flag_value(&args, "--device").map(str::to_string);
 
-    let (tx, rx) = mpsc::channel::<mic::Frame>();
+    let (tx, rx) = std::sync::mpsc::channel::<mic::Frame>();
     let capture = match &named {
         Some(name) => {
             println!("Opening input device: {name}");
@@ -72,7 +193,7 @@ fn run() -> Result<(), mic::CaptureError> {
     );
 
     // Main thread owns the consumer: print a live level meter per frame.
-    let mut stdout = std::io::stdout();
+    let mut stdout = io::stdout();
     for frame in rx {
         let line = format!("\r|{}|  rms {:.2}   ", meter(frame.rms), frame.rms);
         if stdout.write_all(line.as_bytes()).is_err() {
@@ -87,7 +208,7 @@ fn run() -> Result<(), mic::CaptureError> {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("\n[mic] error: {e}");
+        eprintln!("\n[roofle-cli] error: {e}");
         std::process::exit(1);
     }
 }

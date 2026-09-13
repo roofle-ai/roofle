@@ -1,0 +1,627 @@
+/* ============================================================
+   Roofle — chat-interaction layout, plain & minimal (light).
+   LEFT: Roofle brand + previous transcriptions (history).
+   MAIN: "New Transcription" view + live transcript + controls.
+   RIGHT: reserved panel (25%).
+   Brand color: indigo #6366F1 → violet #4338CA (from the logo).
+   ============================================================ */
+
+:root {
+  /* Light theme only */
+  color-scheme: light;
+
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Long-form transcription font: a readable serif (Newsreader if installed,
+     then macOS Charter / Iowan Old Style, Windows Georgia). */
+  --font-serif: "Newsreader", Charter, "Iowan Old Style", "Palatino Linotype",
+    "Book Antiqua", Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Palette (light) */
+  --bg: #ffffff;
+  --ink: #1a1a1a; /* primary text */
+  --muted: #6b7280; /* secondary text */
+  --faint: #9ca3af; /* placeholders / dividers */
+  --line: #e5e7eb; /* hairline borders */
+  --surface: #f3f4f6; /* chat bubble / subtle fills */
+
+  /* Brand palette — from the Roofle meeting icon (indigo → violet) */
+  --brand: #6366f1; /* primary */
+  --brand-strong: #4338ca; /* deep */
+  --brand-soft: #a5b4fc; /* light */
+  --brand-faint: #c7d2fe; /* palest */
+  --brand-tint: #eef1fe; /* near-white wash for panels */
+
+  --accent: #dc2626; /* record red (active-recording semantic) */
+  --accent-strong: #b91c1c;
+  --amber: #d97706; /* paused */
+  --ring: var(--brand);
+  /* Horizontal gutter used inside the main panel */
+  --gutter: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ============================================================
+   Layout — left history | chat | reserved right panel (25%)
+   ============================================================ */
+
+.layout {
+  height: 100dvh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left sidebar: Roofle brand + previous transcriptions (UI only) */
+
+.history {
+  flex: 0 0 22%;
+  max-width: 22%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0.85rem;
+  border-right: 1px solid var(--line);
+  background: var(--brand-tint);
+  overflow: hidden;
+}
+
+.history-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.wordmark {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--brand-strong);
+}
+
+.wordmark-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--brand);
+}
+
+.history-new {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--brand);
+  cursor: pointer;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+
+.history-new:hover {
+  color: var(--brand-strong);
+  border-color: var(--brand-soft);
+  background: #fff;
+}
+
+.history-new:active {
+  transform: scale(0.95);
+}
+
+.history-new svg {
+  width: 15px;
+  height: 15px;
+}
+
+.history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-empty {
+  margin: 0;
+  padding: 1rem 0.25rem;
+  font-size: 0.8rem;
+  color: var(--faint);
+  text-align: center;
+}
+
+/* Chat column fills the space between the sidebars */
+
+.chat {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.sidebar {
+  flex: 0 0 25%;
+  max-width: 25%;
+  border-left: 1px solid var(--line);
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-hint {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ============================================================
+   Chat header (main panel)
+   ============================================================ */
+
+/* Full-width header band: spans the whole main panel, content padded inside */
+
+.chat-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem var(--gutter) 0.75rem;
+  /* Slight shadow lifts the header off the transcription feed below. */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.new-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--faint);
+  transition: background 200ms ease;
+}
+
+.status-dot.recording {
+  background: var(--accent);
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+.status-dot.paused,
+.status-dot.busy {
+  background: var(--amber);
+}
+
+.status-dot.error {
+  background: var(--accent);
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ============================================================
+   Chat messages — the transcription feed
+   ============================================================ */
+
+.chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem var(--gutter) 0.5rem;
+  outline: none;
+}
+
+.chat-messages:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ring);
+  border-radius: 8px;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+/* Each finalized utterance is a chat message bubble */
+
+.final {
+  align-self: flex-start;
+  max-width: 82%;
+  margin: 0;
+  padding: 0.6rem 0.95rem;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  animation: rise 200ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Empty state — a single muted line */
+
+.empty-state {
+  margin: auto;
+  padding: 1rem;
+}
+
+.empty-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--faint);
+  text-align: center;
+}
+
+/* Live in-progress text (streaming bubble) */
+
+.partial {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  max-width: 82%;
+  margin: 0 var(--gutter);
+  min-height: 1.6em;
+  padding: 0.5rem 0.9rem;
+  border-radius: 16px 16px 16px 4px;
+  background: #f9fafb;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.partial.recording::before {
+  content: "\25CF";
+  margin-right: 0.5rem;
+  font-size: 0.6rem;
+  color: var(--accent);
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Model download progress — a single thin line
+   ============================================================ */
+
+.model-progress {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 var(--gutter);
+}
+
+.model-progress-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.model-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--brand);
+  border-radius: 2px;
+  transition: width 150ms linear;
+}
+
+.model-progress-text {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Composer bar — main controls + small actions
+   ============================================================ */
+
+.composer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0 var(--gutter) 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+
+.composer-transport {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.record-btn {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  transition: background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+}
+
+.record-btn:hover {
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.45);
+  filter: brightness(1.03);
+}
+
+.record-btn:active {
+  transform: scale(0.95);
+}
+
+.record-btn.recording {
+  background: var(--accent);
+  animation: rec-pulse 1.8s ease-out infinite;
+}
+
+.record-btn.paused {
+  background: var(--amber);
+  animation: none;
+}
+
+@keyframes rec-pulse {
+  0% {
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  70% {
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), 0 0 0 12px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+.record-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.stop-btn {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--bg);
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.stop-btn:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.stop-btn:active {
+  transform: scale(0.95);
+}
+
+.stop-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.timer {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-width: 3.4em;
+}
+
+.level-meter {
+  width: 140px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.level-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--brand);
+  border-radius: 3px;
+  transition: width 80ms linear;
+}
+
+/* Small secondary actions (model + export) */
+
+.composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.select-wrap select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.4rem 1.8rem 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>')
+    no-repeat right 0.5rem center;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.select-wrap select:hover:not(:disabled) {
+  border-color: var(--brand-soft);
+}
+
+.select-wrap select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.select-wrap select:focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.composer-actions button {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+
+.composer-actions button:hover:not(:disabled) {
+  color: var(--brand-strong);
+  border-color: var(--brand-soft);
+}
+
+.composer-actions button:active:not(:disabled) {
+  background: var(--brand-tint);
+}
+
+.composer-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-path {
+  font-size: 0.75rem;
+  color: var(--faint);
+  word-break: break-all;
+  max-width: 200px;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(12px);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--brand-strong);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   Focus visibility + reduced motion
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

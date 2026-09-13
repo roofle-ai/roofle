@@ -23,3 +23,7 @@ models/
 .agents/
 .roo/
 skills-lock.json
+
+plans/*
+.vscode
+design.md

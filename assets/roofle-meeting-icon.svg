@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="roofle-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#4338CA"/>
+    </linearGradient>
+    <radialGradient id="roofle-shadow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="0.62" stop-color="#FFFFFF" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded-square app icon background -->
+  <rect x="0" y="0" width="512" height="512" rx="116" fill="url(#roofle-bg)"/>
+
+  <!-- Soft top-light sheen -->
+  <rect x="0" y="0" width="512" height="512" rx="116" fill="url(#roofle-shadow)"/>
+
+  <!-- Round conference table -->
+  <g transform="translate(256 256)">
+    <circle r="150" fill="#FFFFFF"/>
+    <circle r="150" fill="none" stroke="#C7D2FE" stroke-width="5"/>
+    <circle r="108" fill="none" stroke="#C7D2FE" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round"/>
+    <circle r="20" fill="#A5B4FC"/>
+  </g>
+
+  <!-- People seated around the round table -->
+  <g transform="translate(256 256)">
+    <!-- rotate(0) = person at top, then every 60 degrees -->
+    <g transform="rotate(0)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+    <g transform="rotate(60)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+    <g transform="rotate(120)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+    <g transform="rotate(180)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+    <g transform="rotate(240)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+    <g transform="rotate(300)">
+      <path d="M -27 -150 Q 0 -184 27 -150 A 27 27 0 0 1 -27 -150 Z" fill="#FFFFFF"/>
+      <circle cx="0" cy="-194" r="20" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

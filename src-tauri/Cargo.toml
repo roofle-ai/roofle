@@ -1,0 +1,32 @@
+# roofle-app — thin Tauri 2 shell over the roofle-core pipeline.
+# No transcription logic lives here: commands (S9+) just wrap core/ and emit
+# events. See design.md "core/ library + Tauri shell split".
+
+[package]
+name = "roofle-app"
+version = "0.1.0"
+description = "Roofle — real-time audio transcription (Tauri shell)"
+authors = ["Priyanshu Shekhar"]
+edition = "2021"
+
+[lib]
+# The `_lib` suffix keeps the lib name unique and avoids conflicting with the
+# bin name on Windows (see https://github.com/rust-lang/cargo/issues/8519).
+name = "roofle_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+roofle-core = { path = "../core" }
+# S13 model manager: HTTP download (ureq), checksum (sha2/hex), extract tar.bz2.
+ureq = "2"
+sha2 = "0.10"
+hex = "0.4"
+tar = "0.4"
+bzip2 = "0.4"
