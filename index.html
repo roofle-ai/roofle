@@ -5,15 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/roofle-meeting.svg" />
     <link rel="stylesheet" href="/src/styles.css" />
-    <title>Roofle</title>
+    <title>Roofle — Meeting Copilot</title>
     <script type="module" src="/src/main.ts" defer></script>
   </head>
 
   <body>
-    <main class="layout">
-      <!-- Left sidebar: Roofle brand + previous transcriptions (AI chat style) -->
-      <aside class="history" aria-label="Roofle">
-        <header class="history-header">
+    <main class="app">
+      <!-- ============================================================
+           Command header — session state, timer, level, model, actions
+           ============================================================ -->
+      <header class="cmdbar">
+        <div class="cmdbar-brand">
           <h1 class="wordmark">
             <svg class="wordmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="13" r="6.4" />
@@ -31,140 +33,138 @@
             </svg>
             <span>Roofle</span>
           </h1>
+        </div>
 
+        <div class="cmdbar-session">
+          <span id="session-pill" class="session-pill" role="status" aria-live="polite" aria-atomic="true">
+            <span id="status-dot" class="status-dot idle" aria-hidden="true"></span>
+            <span id="status-text">Idle</span>
+          </span>
+          <div class="level-meter" aria-label="Audio level" title="Audio level">
+            <div id="level-fill" class="level-fill"></div>
+          </div>
+        </div>
+
+        <div class="cmdbar-actions">
+          <button id="theme-toggle" type="button" class="icon-btn" aria-label="Toggle theme" title="Toggle light / dark theme">
+            <i data-lucide="moon" aria-hidden="true"></i>
+          </button>
           <button id="settings-btn" type="button" class="icon-btn" aria-label="Settings">
             <i data-lucide="settings" aria-hidden="true"></i>
           </button>
-        </header>
-
-        <!-- "New chat": the "+" action, in the style of an AI chat app -->
-        <button id="new-session-btn" type="button" class="new-chat">
-          <i data-lucide="plus" aria-hidden="true"></i>
-          <span>New Transcription</span>
-        </button>
-
-        <div class="history-label">
-          <span>Transcriptions</span>
-          <span id="history-count" class="history-count">0</span>
         </div>
-        <div class="history-list">
-          <div id="history-empty" class="history-empty">
-            <svg
-              class="history-empty-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9A1.5 1.5 0 0 1 18.5 16H8l-4 4z" />
-              <path d="M8 9h8M8 12h5" />
-            </svg>
-            <p>No previous transcriptions yet.</p>
+      </header>
+
+      <!-- ============================================================
+           Workspace — three resizable zones:
+           History | Transcript | Follow-up questions
+           ============================================================ -->
+      <div class="workspace">
+        <!-- Left: Transcription history -->
+        <aside class="panel history" id="history-panel">
+          <div class="panel-head">
+            <span class="panel-heading">Transcriptions</span>
           </div>
-        </div>
-      </aside>
 
-      <!-- Chat column: new transcription (main) + controls below -->
-      <section class="chat">
-        <header class="chat-header">
-          <h2 class="new-title">New Transcription</h2>
-          <div class="status" role="status" aria-live="polite" aria-atomic="true">
-            <span id="status-dot" class="status-dot idle" aria-hidden="true"></span>
+          <button id="new-session-btn" type="button" class="new-chat">
+            <i data-lucide="plus" aria-hidden="true"></i>
+            <span>New Transcription</span>
+          </button>
+
+          <div class="history-label">
+            <span>All sessions</span>
+            <span id="history-count" class="history-count">0</span>
           </div>
-        </header>
 
-        <!-- Transcription as chat messages -->
-        <div
-          id="transcript"
-          class="chat-messages"
-          tabindex="0"
-          aria-label="Transcribed text"
-        >
-          <div id="empty-state" class="empty-state">
-            <p id="empty-hint" class="empty-hint">
-              Start recording to transcribe your meeting.
-            </p>
+          <div class="history-list">
+            <div id="history-empty" class="history-empty">
+              <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9A1.5 1.5 0 0 1 18.5 16H8l-4 4z" />
+                <path d="M8 9h8M8 12h5" />
+              </svg>
+              <p>No previous transcriptions yet.</p>
+            </div>
           </div>
-        </div>
+        </aside>
 
-        <!-- Live in-progress text -->
-        <p id="partial" class="partial" aria-live="polite"></p>
+        <div class="resizer" data-resizer="history" role="separator" aria-orientation="vertical" aria-label="Resize history panel" tabindex="0"></div>
 
-        <!-- Model download progress -->
-        <div
-          id="model-progress"
-          class="model-progress"
-          role="status"
-          aria-live="polite"
-          hidden
-        >
-          <div class="model-progress-track" aria-hidden="true">
-            <div id="model-progress-fill" class="model-progress-fill"></div>
+        <!-- Main: transcription -->
+        <section class="panel transcript" id="transcript-panel">
+          <div class="transcript-head">
+            <h2 id="chat-title" class="new-title">New Transcription</h2>
           </div>
-          <span id="model-progress-text"></span>
-        </div>
 
-        <!-- Composer bar: main controls + small actions -->
-        <footer class="composer">
-          <div class="composer-transport">
+          <div id="transcript" class="transcript-scroll" tabindex="0" aria-label="Transcribed text">
+            <div id="empty-state" class="empty-state">
+              <p id="empty-hint" class="empty-hint">Start recording to transcribe your meeting.</p>
+            </div>
+          </div>
+
+          <!-- Live in-progress text -->
+          <p id="partial" class="partial" aria-live="polite"></p>
+
+          <!-- Model download progress -->
+          <div id="model-progress" class="model-progress" role="status" aria-live="polite" hidden>
+            <div class="model-progress-track" aria-hidden="true">
+              <div id="model-progress-fill" class="model-progress-fill"></div>
+            </div>
+            <span id="model-progress-text"></span>
+          </div>
+
+          <!-- Floating transport control: centered when idle, docks to the
+               bottom of the transcript once a session is active -->
+          <div id="floating-control" class="floating-control">
             <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
               <span class="record-btn-inner">
-                <svg
-                  id="record-icon-play"
-                  class="record-icon"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  stroke="none"
-                  aria-hidden="true"
-                >
+                <svg id="record-icon-play" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
                   <path d="M8 5.14v13.72c0 .9.98 1.45 1.75.98l10.2-6.86a1.15 1.15 0 0 0 0-1.96L9.75 4.16A1.15 1.15 0 0 0 8 5.14z" />
                 </svg>
-                <svg
-                  id="record-icon-pause"
-                  class="record-icon"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  stroke="none"
-                  aria-hidden="true"
-                  hidden
-                >
+                <svg id="record-icon-pause" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" hidden>
                   <rect x="6" y="5" width="4" height="14" rx="1" />
                   <rect x="14" y="5" width="4" height="14" rx="1" />
                 </svg>
               </span>
             </button>
-
             <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop recording" hidden>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
                 <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             </button>
-
             <span id="timer" class="timer" aria-hidden="true">00:00</span>
+          </div>
+        </section>
 
-            <div class="level-meter" aria-label="Audio level" title="Audio level">
-              <div id="level-fill" class="level-fill"></div>
+        <div class="resizer" data-resizer="questions" role="separator" aria-orientation="vertical" aria-label="Resize questions panel" tabindex="0"></div>
+
+        <!-- Right: live follow-up questions (the USP) -->
+        <aside class="panel questions" id="questions-panel">
+          <div class="panel-head">
+            <div class="panel-title">
+              <h2 class="panel-h2">Follow-up questions</h2>
+              <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
           </div>
 
-          <div class="composer-actions">
-            <div class="select-wrap">
-              <select id="model-select" aria-label="Model"></select>
+          <!-- Post-meeting analysis summary -->
+          <div id="summary-card" class="summary-card" hidden>
+            <div class="summary-head">
+              <i data-lucide="sparkles" aria-hidden="true"></i>
+              <span>Meeting insights</span>
             </div>
-            <button id="export-txt" type="button" disabled>Export .txt</button>
-            <button id="export-srt" type="button" disabled>Export .srt</button>
-            <span id="export-path" class="export-path" role="status" aria-live="polite"></span>
+            <div id="summary-stats" class="summary-stats"></div>
+            <p id="summary-note" class="summary-note"></p>
           </div>
-        </footer>
-      </section>
 
-      <!-- Reserved right panel (25% width), for future use -->
-      <aside class="sidebar" aria-hidden="true">
-        <span class="sidebar-hint">Reserved</span>
-      </aside>
+          <div id="questions-empty" class="questions-empty">
+            <i data-lucide="message-square-quote" aria-hidden="true"></i>
+            <p id="questions-empty-hint">Roofle is listening… follow-up questions will appear here as the conversation unfolds.</p>
+          </div>
+
+          <div id="questions-list" class="questions-list"></div>
+        </aside>
+      </div>
+
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
