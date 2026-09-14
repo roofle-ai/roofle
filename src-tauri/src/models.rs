@@ -151,7 +151,7 @@ impl ModelManager {
 
     /// Download the model archive to a temp file, hashing + emitting progress.
     fn download(&self, app: &AppHandle, entry: &ModelCatalogEntry) -> Result<PathBuf, String> {
-        let tmp = std::env::temp_dir().join(format!("roofle-{}.tar.bz2", entry.id));
+        let tmp = std::env::temp_dir().join(format!("Roofle-{}.tar.bz2", entry.id));
         let resp = ureq::get(entry.url)
             .call()
             .map_err(|e| format!("download failed: {e}"))?;

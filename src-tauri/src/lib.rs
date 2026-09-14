@@ -1,19 +1,9 @@
 // roofle-app — thin Tauri 2 shell over roofle-core.
-//
-// S8: placeholder `ping` command proved the IPC bridge round-trips.
-// S9: commands wrap the transcription pipeline (start/stop/source) on a
-//     dedicated engine thread and emit `transcript-update` + `level` events to
-//     the frontend. S10a/S10b render that in the web UI.
-// S11: system audio source on macOS. S13: model manager + transcript export.
-// S14: macOS menu-bar app — the app launches hidden with a tray icon in the
-//     menu bar; Start/Stop/Quit live in the tray menu, and left-clicking the
-//     icon opens the transcript popup window. Closing the popup hides it (the
-//     app keeps running); only the tray menu's Quit exits the process.
-
 mod commands;
 mod models;
 mod state;
 
+use roofle_core::storage::SqliteStorage;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{ActivationPolicy, Emitter, Manager};
@@ -67,7 +57,8 @@ fn tray_action(app: &tauri::AppHandle, action: TrayAction) {
         let result = match action {
             TrayAction::Start => {
                 let source = state.last_source.lock().unwrap().clone();
-                commands::start_recording(app.clone(), state, source)
+                // The tray always starts a fresh session (None = new).
+                commands::start_recording(app.clone(), state, source, None)
             }
             TrayAction::Stop => commands::stop_recording(app.clone(), state),
         };
@@ -93,6 +84,18 @@ fn show_popup(app: &tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        // Restore the window's size/position/maximized state on startup and
+        // save it again as the user moves or resizes. VISIBLE is excluded so
+        // the menu-bar app keeps launching hidden.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED,
+                )
+                .build(),
+        )
         .setup(|app| {
             // Menu-bar-only app: no Dock icon (LSUIElement is also set in
             // Info.plist for the packaged build).
@@ -103,7 +106,14 @@ pub fn run() {
             // control handle + model manager as managed state.
             let tx = commands::spawn_engine(app.handle().clone());
             let models = models::ModelManager::new(models::ModelManager::resolve_root());
-            app.manage(state::AppState::new(tx, models));
+
+            // Open (or create) the transcript DB in the app data dir. WAL +
+            // migrations run in `SqliteStorage::open`; a failure is fatal
+            // because every recording now persists here.
+            let app_data_dir = app.path().app_data_dir()?;
+            let storage = SqliteStorage::open(&app_data_dir.join("roofle.db"))?;
+
+            app.manage(state::AppState::new(tx, models, storage));
 
             // Tray icon in the menu bar: left-click shows the popup window;
             // right-click shows the Start/Stop/Quit menu.
@@ -162,7 +172,10 @@ pub fn run() {
             commands::list_models,
             commands::select_model,
             commands::selected_model,
-            commands::export_transcript
+            commands::export_transcript,
+            commands::list_sessions,
+            commands::get_session,
+            commands::delete_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

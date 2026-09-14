@@ -1,18 +1,4 @@
 //! Speech-to-text engine backed by the official `sherpa-onnx` Rust bindings.
-//!
-//! S5 slice: load a streaming Zipformer-Transducer model and transcribe a known
-//! test WAV to a [`Transcript`]. This isolates the sherpa-onnx integration risk
-//! before any Tauri/UI work exists (plan S5 gate: *correct transcript output*).
-//!
-//! S6 drives this same engine with live mic audio via
-//! [`AsrEngine::stream`] + [`StreamingSession`] (feed 16 kHz mono chunks, poll
-//! partial results, close out utterances on endpoint). The offline path
-//! (`transcribe_waveform`) shares the same recognizer.
-//!
-//! **Why `sherpa-onnx` and not `sherpa-rs`?** The `sherpa-rs` crate listed in
-//! `design.md` (Rev 2) is deprecated upstream — the sherpa-onnx project now
-//! ships official Rust bindings in the `sherpa-onnx` crate (same engine, same
-//! models, built-in VAD). We use the official crate. See `design.md` notes.
 
 pub mod segments;
 

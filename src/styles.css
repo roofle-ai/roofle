@@ -80,7 +80,6 @@ body {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 0.85rem;
-  border-right: 1px solid var(--line);
   background: var(--brand-tint);
   overflow: hidden;
 }
@@ -146,15 +145,125 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
+}
+
+.history-label {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.1rem 0.15rem 0.25rem;
+}
+
+.history-label > span:first-child {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.history-count {
+  min-width: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
 }
 
 .history-empty {
   margin: 0;
-  padding: 1rem 0.25rem;
-  font-size: 0.8rem;
-  color: var(--faint);
+  padding: 1.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   text-align: center;
+  color: var(--faint);
+}
+
+.history-empty p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.history-empty-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--brand-faint);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+/* Simple bullet marker for each history row. */
+.history-item::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--faint);
+  transition: background 150ms ease;
+}
+
+.history-item:hover {
+  background: var(--surface);
+}
+
+.history-item:hover::before {
+  background: var(--muted);
+}
+
+.history-item:active {
+  background: var(--line);
+}
+
+.history-item:focus-visible {
+  outline: 2px solid var(--brand-soft);
+  outline-offset: -1px;
+}
+
+/* The open session: a subtle wash, with a brand-colored bullet. */
+.history-item.is-active {
+  background: var(--brand-tint);
+}
+
+.history-item.is-active::before {
+  background: var(--brand);
+}
+
+.history-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
 }
 
 /* Chat column fills the space between the sidebars */

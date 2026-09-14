@@ -1,14 +1,7 @@
-// roofle-app — shared Tauri state.
-//
-// The transcription pipeline (roofle-core) is NOT Send: cpal streams and the
-// capture handles are not Send on macOS, so the Pipeline cannot live in Tauri's
-// managed state. Instead a dedicated engine thread owns it (see commands.rs)
-// and managed state here only carries a control channel to that thread, plus
-// app-level concerns the shell owns: the model manager (S13) and the buffered
-// transcript used by export (S13).
-
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
+
+use roofle_core::storage::SqliteStorage;
 
 use crate::commands::{Control, SourceKind};
 use crate::models::ModelManager;
@@ -41,10 +34,13 @@ pub struct AppState {
     pub last_source: Mutex<SourceKind>,
     /// Handle to the tray icon so its menu can be rebuilt on state changes.
     pub tray: Mutex<Option<tauri::tray::TrayIcon>>,
+    /// SQLite store; the engine thread writes sessions/segments in real time
+    /// and command threads read them for the UI.
+    pub storage: SqliteStorage,
 }
 
 impl AppState {
-    pub fn new(engine: Sender<Control>, models: ModelManager) -> Self {
+    pub fn new(engine: Sender<Control>, models: ModelManager, storage: SqliteStorage) -> Self {
         let default = models
             .list()
             .first()
@@ -58,6 +54,7 @@ impl AppState {
             recording: Mutex::new(false),
             last_source: Mutex::new(SourceKind::Both),
             tray: Mutex::new(None),
+            storage,
         }
     }
 }

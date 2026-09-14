@@ -16,14 +16,14 @@ Build a desktop app (macOS first, Windows later) that:
 | UI shell | Tauri 2 (Rust backend + web frontend) | Small binary, native webview, built-in JS↔Rust IPC |
 | Core logic | Rust, split into a pure `core/` library crate | Single codebase, testable, reusable, no UI-shell coupling |
 | Mic capture | `cpal` | Cross-platform audio I/O (CoreAudio on macOS, WASAPI on Windows) |
-| Transcription | `sherpa-rs` (bindings to sherpa-onnx) | **Purpose-built for streaming ASR**, official Rust bindings, built-in VAD, runs on macOS + Windows (x64/arm64); also runs Whisper models if needed |
+| Transcription | `sherpa-onnx` (official Rust bindings; the earlier `sherpa-rs` crate is deprecated) | **Purpose-built for streaming ASR**, official Rust bindings, built-in VAD, runs on macOS + Windows (x64/arm64); also runs Whisper models if needed |
 | macOS system-audio capture | `screencapturekit` crate (pure Rust) | Safe bindings for Apple's ScreenCaptureKit, `captures_audio(true)`, macOS 13+. **No Swift/Obj-C shim required** |
 | Windows system-audio capture | WASAPI loopback via `windows-rs` | Native, pure Rust, no shim |
 | Resampling / downmix | `rubato` + manual stereo→mono | Normalize capture to 16kHz mono at the pipeline boundary |
 
 ## Why these choices (rationale)
 
-- **sherpa-rs over whisper-rs**: whisper.cpp is batch-oriented; true real-time streaming would require manually reimplementing whisper.cpp's `stream`-style overlapping-window + token-diff trick. sherpa-rs exposes streaming ASR (online Zipformer-Transducer / Paraformer / CTC) as a supported API, with built-in VAD for utterance segmentation. It is a superset — it also runs Whisper models if a Whisper accuracy profile is ever wanted. This makes the hardest milestone (real-time transcription) a supported call rather than hand-rolled logic.
+- **sherpa-onnx over whisper-rs**: whisper.cpp is batch-oriented; true real-time streaming would require manually reimplementing whisper.cpp's `stream`-style overlapping-window + token-diff trick. The `sherpa-onnx` Rust crate exposes streaming ASR (online Zipformer-Transducer / Paraformer / CTC) as a supported API, with built-in VAD for utterance segmentation. It is a superset — it also runs Whisper models if a Whisper accuracy profile is ever wanted. This makes the hardest milestone (real-time transcription) a supported call rather than hand-rolled logic. *(The `sherpa-rs` crate originally chosen is deprecated upstream in favour of these official `sherpa-onnx` bindings — same engine, so no design impact.)*
 - **screencapturekit crate over a Swift/Obj-C FFI shim**: same TCC permission model (Screen Recording), same audio, but pure Rust — no Swift project, no bridging headers, no FFI glue to maintain. Directly serves the "minimal platform-specific code" goal.
 - **core/ library + Tauri shell split**: lets the audio→ASR pipeline be validated as a headless CLI before any UI exists (de-risks the hardest part), keeps the pipeline unit-testable, and leaves the option to swap the UI shell later without touching transcription logic.
 
@@ -152,7 +152,7 @@ resolver = "2"
 ```toml
 [dependencies]
 cpal = "0.15"
-sherpa-rs = "0.4"                 # streaming ASR + VAD (bindings to sherpa-onnx)
+sherpa-onnx = "1.13"              # streaming ASR + VAD (official Rust bindings; sherpa-rs deprecated)
 rubato = "0.15"                   # resampling
 crossbeam-channel = "0.5"
 serde = { version = "1", features = ["derive"] }
@@ -164,7 +164,7 @@ screencapturekit = "10"           # pure-Rust ScreenCaptureKit audio capture, ma
 windows = { version = "0.58", features = ["Win32_Media_Audio", "Win32_System_Com"] }
 ```
 
-> Versions are starting points; lock exact versions during M0/M1. `sherpa-rs` version should be verified at implementation time.
+> Versions are starting points; lock exact versions during M0/M1. The `sherpa-onnx` version is verified at implementation time (S5 uses 1.13.x, which downloads a prebuilt native library at build time).
 
 **Frontend**: Svelte recommended (lightweight, reactive, pairs well with Tauri events); plain HTML/JS is an acceptable starting point.
 
@@ -179,5 +179,49 @@ windows = { version = "0.58", features = ["Win32_Media_Audio", "Win32_System_Com
 
 ## Revision history
 
-- **Rev 2 (current)**: Replaced `whisper-rs` with `sherpa-rs` (true streaming ASR + built-in VAD); replaced the hand-rolled Swift/Obj-C shim with the pure-Rust `screencapturekit` crate; restructured into a `core/` library + Tauri shell + `cli/`; added CI matrix from day one; added VAD as a first-class component; documented the echo consideration for mic + system audio mixing.
+- **Rev 2.5 (S16)**: Naming consistency — every **user-facing** reference now
+  reads **"Roofle"**: Tauri `productName` (`roofle` → `Roofle`), exported
+  transcript filenames (`roofle-*` → `Roofle-*`), and model temp files. Internal
+  identifiers (crate names `roofle-core`/`roofle-app`, npm `name`, reverse-DNS
+  `identifier`, log tags) stay lowercase as required by Cargo/npm conventions.
+  Also includes layout + branding polish: the **"Roofle" wordmark moved into
+  the left sidebar** (with the meeting glyph), the **main panel header now reads
+  "New Transcription"** (a title field is planned for later), and the reserved
+  25% right panel is retained. The sidebar **"New transcription" (＋) button was
+  removed**; [`main.ts`](src/main.ts) now treats it as optional (`?.`). The
+  **logo palette became the app's brand color**: indigo `#6366F1` → violet
+  `#4338CA` with light `#A5B4FC`/`#C7D2FE` accents, exposed as CSS
+  `--brand*` tokens in [`src/styles.css`](src/styles.css) and applied to the
+  wordmark, record button gradient, level meter, progress bar, focus rings, and
+  toast.
+
+- **Rev 2.4 (S15)**: Brand icon — **a group of people seated around a round
+  table**, Roofle's meeting mark. New vector source
+  [`assets/roofle-meeting-icon.svg`](assets/roofle-meeting-icon.svg) (512px,
+  indigo gradient rounded-square app-icon) regenerates every bundle icon
+  (`src-tauri/icons/*.png`, `icon.icns`, `icon.ico`, Windows Store logos) via
+  `qlmanage` + PIL. The macOS menu-bar tray now uses a dedicated 64px monochrome
+  template glyph ([`src-tauri/icons/tray.png`](src-tauri/icons/tray.png),
+  round table + six seated heads, transparent background) embedded with
+  `tauri::include_image!` — the filled rounded-square app icon would have shown
+  as a solid block in the menu bar. The frontend gained the same meeting glyph
+  as a favicon ([`src/assets/roofle-meeting.svg`](src/assets/roofle-meeting.svg))
+  and as a blue icon beside the "Roofle" wordmark.
+
+- **Rev 2.3 (S14)**: Added a macOS **menu-bar mode**. The app launches hidden
+  (no Dock icon; `LSUIElement` in Info.plist + `ActivationPolicy::Accessory`),
+  shows a tray icon in the menu bar, and recording is strictly on-demand via the
+  tray menu's **Start Recording / Stop Recording / Quit Roofle** items.
+  Left-clicking the tray icon opens the existing transcript popup window
+  (`visible: false` main window shown on demand); closing it hides the window
+  (close-to-hide) so the app keeps running in the menu bar — only Quit exits.
+  Recording state is shared between the tray menu and the popup UI through a
+  `recording-state` event and an `AppState.recording` flag; the shell's
+  `start_recording`/`stop_recording` commands publish that state on success, and
+  the tray menu's Start honors the last-selected source. Tray actions run on a
+  background thread so a first-run model download never freezes the menu thread.
+
+- **Rev 2.2 (S6)**: Default model chosen empirically and locked in: `sherpa-onnx-streaming-zipformer-en-20M-2023-02-17` (streaming Zipformer-Transducer, English, int8 encoder ~43 MB). It is the smallest streaming English model that (a) reproduced the S5 test WAVs near-verbatim, (b) runs comfortably real-time on CPU, and (c) is already the `scripts/fetch-assets.sh` baseline — so the CLI's default `--model-dir` (and the future in-app default) points at it with zero extra download cost. `core::asr` gained a live streaming session (`AsrEngine::stream` → feed 16 kHz mono chunks, poll partials, close utterances on endpoint), driven headlessly by `roofle-cli stream` (S6). Revisit if a latency/accuracy benchmark on target hardware says otherwise (open decision: "Default model size").
+- **Rev 2.1 (S5)**: Switched from the deprecated `sherpa-rs` crate to the official `sherpa-onnx` Rust bindings (same sherpa-onnx engine — no design impact). S5 verified `core::asr` offline: loads `sherpa-onnx-streaming-zipformer-en-20M-2023-02-17` (streaming Zipformer-Transducer, English) and transcribes the bundled test WAV `1.wav` correctly. Default model size for S6 is still decided empirically, but this 20M streaming model is the S5/dev baseline (download via `scripts/fetch-assets.sh`).
+- **Rev 2 (previous)**: Replaced `whisper-rs` with streaming ASR via sherpa-onnx (true streaming + built-in VAD); replaced the hand-rolled Swift/Obj-C shim with the pure-Rust `screencapturekit` crate; restructured into a `core/` library + Tauri shell + `cli/`; added CI matrix from day one; added VAD as a first-class component; documented the echo consideration for mic + system audio mixing.
 - **Rev 1 (original)**: Tauri + cpal + whisper-rs + custom Swift shim + WASAPI loopback.

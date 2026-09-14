@@ -1,11 +1,5 @@
 // roofle-app — Tauri commands wrapping the roofle-core transcription pipeline.
 //
-// S9 (M4 shell integration): commands start/stop a recording on a chosen source
-// and emit typed transcription + level events to the frontend. This is a thin
-// shell — all audio/ASR logic lives in `roofle-core`.
-// S13 (M8 polish): model manager commands (list/select, download-on-first-run
-// with progress events) and `.txt`/`.srt` transcript export.
-//
 // ## Why a dedicated engine thread?
 //
 // roofle-core's `Pipeline` is deliberately NOT `Send` (cpal streams and capture
@@ -19,8 +13,12 @@ use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::{Duration, Instant};
 
+use chrono::Utc;
 use roofle_core::pipeline::{
     BothSource, MicSource, Pipeline, PipelineConfig, Source, DEFAULT_RING_CAPACITY,
+};
+use roofle_core::storage::{
+    NewSegment, NewSession, SessionDetail, SessionRepository, SessionSummary,
 };
 #[cfg(target_os = "macos")]
 use roofle_core::pipeline::SystemSource;
@@ -63,9 +61,12 @@ fn source_is_implemented(source: SourceKind) -> bool {
 
 /// Messages the frontend sends to the engine thread.
 pub enum Control {
-    /// Start a recording on the given source; replies via `reply`.
+    /// Start a recording on the given source; replies via `reply`. When
+    /// `session_id` is set, the recording continues that stored session
+    /// instead of opening a new one.
     Start {
         source: SourceKind,
+        session_id: Option<i64>,
         reply: Sender<Result<(), String>>,
     },
     /// Stop the current recording; replies via `reply`.
@@ -86,12 +87,17 @@ pub fn start_recording(
     app: AppHandle,
     state: tauri::State<AppState>,
     source: SourceKind,
+    session_id: Option<i64>,
 ) -> Result<(), String> {
     if !source_is_implemented(source) {
         return Err(format!("source {source:?} is not implemented yet"));
     }
     *state.last_source.lock().unwrap() = source;
-    let result = request(state, |reply| Control::Start { source, reply });
+    let result = request(state, |reply| Control::Start {
+        source,
+        session_id,
+        reply,
+    });
     if result.is_ok() {
         crate::set_recording_state(&app, true);
     }
@@ -201,7 +207,7 @@ pub fn export_transcript(
         ExportFormat::Txt => "txt",
         ExportFormat::Srt => "srt",
     };
-    let path = exports_dir.join(format!("roofle-{stamp}.{ext}"));
+    let path = exports_dir.join(format!("Roofle-{stamp}.{ext}"));
     std::fs::write(&path, content).map_err(|e| format!("write export: {e}"))?;
     Ok(path.display().to_string())
 }
@@ -259,6 +265,29 @@ fn chrono_like_timestamp() -> String {
     format!("{days:08}-{rem:05}")
 }
 
+// --- Session storage -----------------------------------------------------
+
+/// List recorded sessions, newest first, with a first-words preview.
+#[tauri::command]
+pub fn list_sessions(state: tauri::State<AppState>) -> Result<Vec<SessionSummary>, String> {
+    state.storage.list_sessions(None).map_err(|e| e.to_string())
+}
+
+/// One session with its ordered segments and rendered paragraph transcript.
+#[tauri::command]
+pub fn get_session(
+    state: tauri::State<AppState>,
+    id: i64,
+) -> Result<Option<SessionDetail>, String> {
+    state.storage.get_session(id).map_err(|e| e.to_string())
+}
+
+/// Delete a session; its segments cascade.
+#[tauri::command]
+pub fn delete_session(state: tauri::State<AppState>, id: i64) -> Result<(), String> {
+    state.storage.delete_session(id).map_err(|e| e.to_string())
+}
+
 // --- Engine thread ------------------------------------------------------
 
 /// Spawn the pipeline engine thread and return its control channel. The thread
@@ -278,23 +307,58 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
     // offsets stay true to the spoken audio even across pause/resume.
     let mut paused_total = Duration::ZERO;
     let mut pause_started: Option<Instant> = None;
+    // Open DB session for the live recording; finalized after the flush
+    // segments of the stopping poll are drained.
+    let mut active_session: Option<i64> = None;
+    let mut pending_finalize: Option<(i64, f64)> = None;
+    let mut segment_seq: i64 = 0;
+    // Timestamp offset for a continued session (prior accumulated duration).
+    let mut timestamp_offset: f64 = 0.0;
 
     loop {
         match rx.recv_timeout(POLL_INTERVAL) {
-            Ok(Control::Start { source, reply }) => {
-                let result = start_pipeline(&app, &mut pipeline, source);
-                if result.is_ok() {
-                    // Fresh recording: buffer cues from zero, discard the old.
-                    recording_started = Some(Instant::now());
-                    paused_total = Duration::ZERO;
-                    pause_started = None;
-                    app.state::<AppState>().transcript.lock().unwrap().clear();
+            Ok(Control::Start {
+                source,
+                session_id,
+                reply,
+            }) => {
+                if let Err(e) = start_pipeline(&app, &mut pipeline, source) {
+                    let _ = reply.send(Err(e));
+                    continue;
                 }
-                let _ = reply.send(result);
+                // Fresh recording: buffer cues from zero, discard the old.
+                recording_started = Some(Instant::now());
+                paused_total = Duration::ZERO;
+                pause_started = None;
+                app.state::<AppState>().transcript.lock().unwrap().clear();
+
+                // Open a fresh session or reopen a stored one; on failure abort
+                // the recording so a live meeting is never left with no row to
+                // stream into.
+                match prepare_session(&app, source, session_id) {
+                    Ok((id, offset, last_seq)) => {
+                        active_session = Some(id);
+                        timestamp_offset = offset;
+                        segment_seq = last_seq;
+                    }
+                    Err(e) => {
+                        let _ = stop_pipeline(&mut pipeline);
+                        recording_started = None;
+                        let _ = reply.send(Err(e));
+                        continue;
+                    }
+                }
+                let _ = reply.send(Ok(()));
             }
             Ok(Control::Stop { reply }) => {
                 let result = stop_pipeline(&mut pipeline);
                 if result.is_ok() {
+                    // Defer finalize until forward_events drains the flush
+                    // segments, so trailing speech lands in the session first.
+                    let duration = recording_started
+                        .map(|s| s.elapsed().saturating_sub(paused_total).as_secs_f64())
+                        .unwrap_or(0.0);
+                    pending_finalize = active_session.map(|id| (id, duration));
                     recording_started = None;
                     paused_total = Duration::ZERO;
                     pause_started = None;
@@ -334,11 +398,30 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         }
 
-        forward_events(&app, &pipeline, recording_started, paused_total);
+        forward_events(
+            &app,
+            &pipeline,
+            recording_started,
+            paused_total,
+            active_session,
+            &mut segment_seq,
+            timestamp_offset,
+        );
+
+        if let Some((id, duration)) = pending_finalize.take() {
+            close_session(&app, id, duration);
+            active_session = None;
+        }
     }
 
     // App is exiting: stop capture gracefully so trailing speech is flushed.
     let _ = stop_pipeline(&mut pipeline);
+    if let Some(id) = active_session.take() {
+        let duration = recording_started
+            .map(|s| s.elapsed().saturating_sub(paused_total).as_secs_f64())
+            .unwrap_or(0.0);
+        close_session(&app, id, duration);
+    }
 }
 
 /// Build and start a pipeline for `source`, replacing any running one. Ensures
@@ -405,28 +488,106 @@ fn stop_pipeline(slot: &mut Option<Pipeline>) -> Result<(), String> {
     }
 }
 
+/// Open a fresh session, or reopen a stored one for continuation. Returns the
+/// session id, the timestamp offset (accumulated duration for a continue, 0
+/// for a fresh session) and the last segment sequence.
+fn prepare_session(
+    app: &AppHandle,
+    source: SourceKind,
+    session_id: Option<i64>,
+) -> Result<(i64, f64, i64), String> {
+    let storage = &app.state::<AppState>().storage;
+    match session_id {
+        Some(id) => {
+            let offset = storage
+                .continue_session(id)
+                .map_err(|e| format!("continue session: {e}"))?;
+            let last_seq = storage
+                .last_seq(id)
+                .map_err(|e| format!("continue session: {e}"))?;
+            Ok((id, offset, last_seq))
+        }
+        None => {
+            let id = open_session(app, source)?;
+            Ok((id, 0.0, 0))
+        }
+    }
+}
+
+/// Open the DB session row for a just-started recording.
+fn open_session(app: &AppHandle, source: SourceKind) -> Result<i64, String> {
+    let state = app.state::<AppState>();
+    let model_id = state.selected_model.lock().unwrap().clone();
+    let source = match source {
+        SourceKind::Mic => "mic",
+        SourceKind::System => "system",
+        SourceKind::Both => "both",
+    };
+    state
+        .storage
+        .create_session(NewSession {
+            source: source.to_string(),
+            model_id,
+            started_at: Utc::now(),
+        })
+        .map(|s| s.id)
+        .map_err(|e| format!("start session: {e}"))
+}
+
+/// Close a live session: set ended_at, duration and completed status.
+fn close_session(app: &AppHandle, session_id: i64, duration_secs: f64) {
+    if let Err(e) = app
+        .state::<AppState>()
+        .storage
+        .finalize_session(session_id, Utc::now(), duration_secs)
+    {
+        eprintln!("[roofle] finalize session {session_id}: {e}");
+    }
+}
+
 /// Drain any pending segments/levels from a live pipeline into the frontend,
-/// buffering finalized segments (with timestamps) for export. `paused_total`
-/// is wall time spent paused, subtracted so exported timestamps stay aligned
-/// with the spoken audio.
+/// buffering finalized segments (with timestamps) for export and writing them
+/// to the open DB session. `paused_total` is wall time spent paused,
+/// subtracted so exported timestamps stay aligned with the spoken audio.
 fn forward_events(
     app: &AppHandle,
     pipeline: &Option<Pipeline>,
     started: Option<Instant>,
     paused_total: Duration,
+    session_id: Option<i64>,
+    seq: &mut i64,
+    offset: f64,
 ) {
     let Some(p) = pipeline else {
         return;
     };
     let start = started.unwrap_or_else(Instant::now);
+
+    // Batch the poll's finalized utterances into one write transaction.
+    let mut pending: Vec<NewSegment> = Vec::new();
     for segment in p.events().try_iter() {
         let _ = app.emit(EVENT_TRANSCRIPT, segment.clone());
         if segment.kind == roofle_core::asr::SegmentKind::Final {
-            let start_secs = start.elapsed().saturating_sub(paused_total).as_secs_f64();
+            let start_secs = offset + start.elapsed().saturating_sub(paused_total).as_secs_f64();
             app.state::<AppState>().transcript.lock().unwrap().push(TranscriptCue {
                 start_secs,
-                text: segment.text,
+                text: segment.text.clone(),
             });
+            if let Some(sid) = session_id {
+                *seq += 1;
+                pending.push(NewSegment {
+                    session_id: sid,
+                    seq: *seq,
+                    start_secs,
+                    text: segment.text,
+                    created_at: Utc::now(),
+                });
+            }
+        }
+    }
+    if !pending.is_empty() {
+        if let Err(e) = app.state::<AppState>().storage.append_segments(&pending) {
+            eprintln!("[roofle] persist segments: {e}");
         }
     }
     for level in p.levels().try_iter() {

@@ -8,6 +8,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getSession, listSessions } from "./transcripts";
 
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
 interface Segment {
@@ -51,12 +52,19 @@ const modelProgressText = document.querySelector<HTMLSpanElement>("#model-progre
 const toastEl = document.querySelector<HTMLDivElement>("#toast")!;
 // "New transcription" button is optional (not rendered in the current layout).
 const newSessionBtn = document.querySelector<HTMLButtonElement>("#new-session-btn");
+const historyList = document.querySelector<HTMLDivElement>(".history-list")!;
+const historyCount = document.querySelector<HTMLSpanElement>("#history-count")!;
+const historyEmpty = document.querySelector<HTMLDivElement>("#history-empty")!;
+const chatTitle = document.querySelector<HTMLHeadingElement>(".new-title")!;
 
 type SessionState = "idle" | "recording" | "paused";
 let sessionState: SessionState = "idle";
 let timerInterval: number | undefined;
 let elapsedSec = 0;
 let toastTimer: number | undefined;
+/// Stored session shown in the chat; the continue-recording target. Null when
+/// the chat is on the live/new feed.
+let viewedSessionId: number | null = null;
 
 function setStatus(
   state: "idle" | "recording" | "paused" | "busy" | "error",
@@ -196,6 +204,70 @@ function clearTranscriptUI(): void {
   exportPathEl.textContent = "";
 }
 
+/// Render the stored sessions in the left history list: a single-line
+/// first-words preview per session. The open session is highlighted.
+async function loadHistory(): Promise<void> {
+  const sessions = await listSessions();
+  historyList.querySelectorAll(".history-item").forEach((el) => el.remove());
+  historyCount.textContent = String(sessions.length);
+
+  historyEmpty.hidden = sessions.length !== 0;
+  if (sessions.length === 0) {
+    return;
+  }
+
+  for (const s of sessions) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "history-item";
+    item.dataset.id = String(s.id);
+    if (s.id === viewedSessionId) {
+      item.classList.add("is-active");
+    }
+
+    const preview = document.createElement("span");
+    preview.className = "history-preview";
+    preview.textContent = s.preview || "(no text)";
+
+    item.appendChild(preview);
+    item.addEventListener("click", () => openSession(s.id));
+    historyList.appendChild(item);
+  }
+}
+
+/// Show a stored session's paragraph transcript in the chat pane.
+async function openSession(id: number): Promise<void> {
+  try {
+    const detail = await getSession(id);
+    if (!detail) return;
+
+    viewedSessionId = id;
+    chatTitle.textContent = "Transcription";
+    messagesEl.querySelectorAll(".final").forEach((el) => el.remove());
+    partialEl.textContent = "";
+    emptyState.hidden = true;
+
+    for (const para of detail.transcript.split("\n\n")) {
+      if (!para.trim()) continue;
+      const p = document.createElement("p");
+      p.className = "final";
+      p.textContent = para;
+      messagesEl.appendChild(p);
+    }
+
+    // Export targets the live buffer, not a stored session.
+    exportTxtBtn.disabled = true;
+    exportSrtBtn.disabled = true;
+    exportPathEl.textContent = "";
+    scrollToLatest();
+
+    // Re-render the list so the open session is highlighted as active.
+    await loadHistory();
+  } catch (err) {
+    setStatus("error", String(err));
+  }
+}
+
 /// "New transcription": stop any active session, then reset the transcript.
 async function newSession(): Promise<void> {
   if (sessionState !== "idle") {
@@ -217,8 +289,16 @@ async function onMainControl(): Promise<void> {
 
 async function start(): Promise<void> {
   try {
-    // One session captures both mic + system audio (backend `Both` source).
-    await invoke("start_recording", { source: "both" });
+    // Continuing a selected stored session appends to it; otherwise a fresh
+    // recording is started. `sessionId: null` = new session.
+    const continueId = viewedSessionId;
+    await invoke("start_recording", { source: "both", sessionId: continueId });
+    // On continue the selected session stays highlighted; a fresh recording
+    // had no selection, so nothing to clear.
+    chatTitle.textContent = continueId ? "Transcription" : "New Transcription";
+    if (continueId === null) {
+      clearTranscriptUI();
+    }
     setSessionState("recording");
   } catch (err) {
     setStatus("error", describeError(err));
@@ -292,6 +372,7 @@ async function init(): Promise<void> {
   exportSrtBtn.addEventListener("click", () => exportTranscript("srt"));
 
   await loadModels();
+  await loadHistory();
 
   await listen<Segment>("transcript-update", (event) => {
     const { kind, text } = event.payload;
@@ -326,9 +407,13 @@ async function init(): Promise<void> {
     }
   });
 
-  // S14: stay in sync with recordings started/stopped from the tray menu.
-  await listen<boolean>("recording-state", (event) => {
+  // S14: stay in sync with recordings started/stopped from the tray menu, and
+  // refresh the history list (a session is opened/finalized on Start/Stop).
+  // S14: stay in sync with recordings started/stopped from the tray menu, and
+  // refresh the history list (a session is opened/finalized on Start/Stop).
+  await listen<boolean>("recording-state", async (event) => {
     setSessionState(event.payload ? "recording" : "idle");
+    await loadHistory();
   });
 
   // S14: transient tray status/errors (e.g. first-run model download failure).

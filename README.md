@@ -50,3 +50,36 @@ captured until you choose Start.
 
 > The CI badge URL above needs `<owner>` replaced with the actual GitHub owner
 > once the repository is pushed to GitHub.
+
+## Storage (SQLite)
+
+Every recording persists to a local SQLite database in the app data directory:
+
+- macOS: `~/Library/Application Support/com.roofle.app/roofle.db`
+- Windows: `%APPDATA%\com.roofle.app\roofle.db`
+
+Schema (v2, migrated on startup via `PRAGMA user_version`):
+
+```
+sessions   one row per recording
+           id, title (default empty), source (mic/system/both), model_id,
+           started_at, ended_at, duration_secs, status (recording/completed),
+           updated_at (last activity; advances when a session is continued)
+segments   one row per finalized utterance, written in real time
+           id, session_id, seq, start_secs, text, created_at
+```
+
+Finalized utterances stream into the DB as they are recognized (one write
+transaction per engine poll), so a long meeting survives a crash. The essay
+paragraph view is derived at read time by `render_paragraph` in
+`roofle_core::storage`; paragraphs are not stored separately.
+
+Selecting a stored transcription and pressing Play continues that session:
+new speech is appended to it, its duration accumulates, and its date/time
+(`updated_at`) refreshes.
+
+Architecture: models + repository trait + `SqliteStorage` live in
+`core/src/storage/` (Tauri-free, unit-tested against in-memory SQLite). The
+Tauri shell opens the DB at the app data dir during setup and exposes
+`list_sessions` / `get_session` / `delete_session` commands. The frontend
+consumes them through the typed wrapper `src/transcripts.ts`.
