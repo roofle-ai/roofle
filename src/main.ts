@@ -26,7 +26,9 @@ import {
   Sun,
   Trash,
 } from "lucide";
+import { openSettings } from "./settings";
 import { deleteSession, getSession, listSessions } from "./transcripts";
+import "./ui";
 
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
 interface Segment {
@@ -868,7 +870,7 @@ async function init(): Promise<void> {
   recordBtn.addEventListener("click", onMainControl);
   stopBtn.addEventListener("click", () => void stop());
   newSessionBtn?.addEventListener("click", () => void newSession());
-  settingsBtn?.addEventListener("click", () => showToast("Settings"));
+  settingsBtn?.addEventListener("click", () => openSettings());
   themeToggle.addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
     applyTheme(cur === "dark" ? "light" : "dark");

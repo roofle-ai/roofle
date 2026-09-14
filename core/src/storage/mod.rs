@@ -16,10 +16,12 @@
 mod tests;
 
 mod paragraph;
+mod paragraph_store;
 mod repository;
 mod sqlite;
 
 pub use paragraph::render_paragraph;
+pub use paragraph_store::{NewParagraph, Paragraph, ParagraphStore};
 pub use repository::{SessionRepository, StorageError};
 pub use sqlite::SqliteStorage;
 

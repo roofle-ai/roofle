@@ -1,0 +1,11 @@
+[package]
+name = "live-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Live meeting analysis: paragraph watcher + (future) AI follow-up question agent"
+
+[dependencies]
+roofle-core = { path = "../core" }
+chrono = { version = "0.4", features = ["serde"] }

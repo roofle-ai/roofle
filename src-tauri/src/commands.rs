@@ -14,6 +14,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::{Duration, Instant};
 
 use chrono::Utc;
+use live_agent::{persist_boundary, ParagraphWatcher, DEFAULT_CHAR_LIMIT};
 use roofle_core::pipeline::{
     BothSource, MicSource, Pipeline, PipelineConfig, Source, DEFAULT_RING_CAPACITY,
 };
@@ -312,6 +313,10 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
     let mut active_session: Option<i64> = None;
     let mut pending_finalize: Option<(i64, f64)> = None;
     let mut segment_seq: i64 = 0;
+    // Paragraph watcher for the live session (Slice 1: logs + persists
+    // character-threshold paragraph boundaries; the AI agent consumes these
+    // later). Recreated per session; flushed on stop.
+    let mut watcher: Option<ParagraphWatcher> = None;
     // Timestamp offset for a continued session (prior accumulated duration).
     let mut timestamp_offset: f64 = 0.0;
 
@@ -340,6 +345,8 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
                         active_session = Some(id);
                         timestamp_offset = offset;
                         segment_seq = last_seq;
+                        // Start a paragraph watcher for this session.
+                        watcher = Some(ParagraphWatcher::new(id, DEFAULT_CHAR_LIMIT));
                     }
                     Err(e) => {
                         let _ = stop_pipeline(&mut pipeline);
@@ -363,6 +370,8 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
                     paused_total = Duration::ZERO;
                     pause_started = None;
                 }
+                // Stop feeding the watcher and persist any full final paragraph.
+                flush_watcher(&app, &mut watcher);
                 let _ = reply.send(result);
             }
             Ok(Control::Pause { reply }) => {
@@ -406,6 +415,7 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
             active_session,
             &mut segment_seq,
             timestamp_offset,
+            &mut watcher,
         );
 
         if let Some((id, duration)) = pending_finalize.take() {
@@ -422,6 +432,8 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
             .unwrap_or(0.0);
         close_session(&app, id, duration);
     }
+    // Persist any final paragraph still buffered at exit.
+    flush_watcher(&app, &mut watcher);
 }
 
 /// Build and start a pipeline for `source`, replacing any running one. Ensures
@@ -557,6 +569,7 @@ fn forward_events(
     session_id: Option<i64>,
     seq: &mut i64,
     offset: f64,
+    watcher: &mut Option<ParagraphWatcher>,
 ) {
     let Some(p) = pipeline else {
         return;
@@ -573,6 +586,20 @@ fn forward_events(
                 start_secs,
                 text: segment.text.clone(),
             });
+            // Feed the paragraph watcher; persist + log any boundary crossed.
+            if let Some(w) = watcher.as_mut() {
+                for boundary in w.push(&segment.text) {
+                    match persist_boundary(&app.state::<AppState>().storage, &boundary) {
+                        Ok(()) => eprintln!(
+                            "[roofle] paragraph #{} (new={} chars) session={}",
+                            boundary.seq,
+                            boundary.new_text.chars().count(),
+                            boundary.session_id,
+                        ),
+                        Err(e) => eprintln!("[roofle] persist paragraph: {e}"),
+                    }
+                }
+            }
             if let Some(sid) = session_id {
                 *seq += 1;
                 pending.push(NewSegment {
@@ -592,6 +619,25 @@ fn forward_events(
     }
     for level in p.levels().try_iter() {
         let _ = app.emit(EVENT_LEVEL, level);
+    }
+}
+
+/// Flush the live session's paragraph watcher, persisting the full final
+/// paragraph (even below the char limit) once transcription stops.
+fn flush_watcher(app: &AppHandle, watcher: &mut Option<ParagraphWatcher>) {
+    let Some(mut w) = watcher.take() else {
+        return;
+    };
+    if let Some(boundary) = w.flush() {
+        match persist_boundary(&app.state::<AppState>().storage, &boundary) {
+            Ok(()) => eprintln!(
+                "[roofle] flushed paragraph #{} (new={} chars) session={}",
+                boundary.seq,
+                boundary.new_text.chars().count(),
+                boundary.session_id,
+            ),
+            Err(e) => eprintln!("[roofle] persist final paragraph: {e}"),
+        }
     }
 }
 

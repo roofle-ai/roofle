@@ -3,7 +3,8 @@
 use chrono::{Duration, Utc};
 
 use crate::storage::{
-    NewSegment, NewSession, SessionRepository, SessionStatus, SqliteStorage,
+    NewParagraph, NewSegment, NewSession, ParagraphStore, SessionRepository, SessionStatus,
+    SqliteStorage,
 };
 
 fn store() -> SqliteStorage {
@@ -21,7 +22,7 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_migrates_schema() {
     let storage = store();
-    assert_eq!(storage.schema_version().unwrap(), 2);
+    assert_eq!(storage.schema_version().unwrap(), 3);
 }
 
 #[test]
@@ -196,4 +197,77 @@ fn list_preview_shows_first_words() {
 
     let list = storage.list_sessions(None).unwrap();
     assert_eq!(list[0].preview, "one two three four five six seven eight nine ten");
+}
+
+// --- Paragraph store (live-agent paragraph watcher) -------------------------
+
+#[test]
+fn create_and_list_paragraphs_in_order() {
+    let storage = store();
+    let session = storage.create_session(new_session("both", Utc::now())).unwrap();
+
+    storage
+        .create_paragraph(NewParagraph {
+            session_id: session.id,
+            seq: 1,
+            prev_text: "".to_string(),
+            new_text: "first chunk".to_string(),
+            created_at: Utc::now(),
+        })
+        .unwrap();
+    storage
+        .create_paragraph(NewParagraph {
+            session_id: session.id,
+            seq: 2,
+            prev_text: "first chunk".to_string(),
+            new_text: "second chunk".to_string(),
+            created_at: Utc::now(),
+        })
+        .unwrap();
+
+    let paragraphs = storage.list_paragraphs(session.id).unwrap();
+    assert_eq!(paragraphs.len(), 2);
+    assert_eq!(paragraphs[0].seq, 1);
+    assert_eq!(paragraphs[0].prev_text, "");
+    assert_eq!(paragraphs[0].new_text, "first chunk");
+    assert_eq!(paragraphs[1].seq, 2);
+    assert_eq!(paragraphs[1].prev_text, "first chunk");
+}
+
+#[test]
+fn paragraphs_are_per_session() {
+    let storage = store();
+    let a = storage.create_session(new_session("mic", Utc::now())).unwrap();
+    let b = storage.create_session(new_session("mic", Utc::now())).unwrap();
+
+    storage
+        .create_paragraph(NewParagraph {
+            session_id: a.id,
+            seq: 1,
+            prev_text: String::new(),
+            new_text: "only in a".to_string(),
+            created_at: Utc::now(),
+        })
+        .unwrap();
+
+    assert_eq!(storage.list_paragraphs(a.id).unwrap().len(), 1);
+    assert!(storage.list_paragraphs(b.id).unwrap().is_empty());
+}
+
+#[test]
+fn delete_session_cascades_paragraphs() {
+    let storage = store();
+    let session = storage.create_session(new_session("mic", Utc::now())).unwrap();
+    storage
+        .create_paragraph(NewParagraph {
+            session_id: session.id,
+            seq: 1,
+            prev_text: String::new(),
+            new_text: "doomed".to_string(),
+            created_at: Utc::now(),
+        })
+        .unwrap();
+
+    storage.delete_session(session.id).unwrap();
+    assert!(storage.list_paragraphs(session.id).unwrap().is_empty());
 }

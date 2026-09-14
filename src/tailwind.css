@@ -1,0 +1,9 @@
+/* Tailwind v4 entry. We import only theme + utilities (not preflight) so the
+   existing hand-rolled app CSS in styles.css is left untouched; the new UI
+   (settings modal) uses Tailwind utilities. */
+
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
+/* Match the app's theme switch: dark: activates under data-theme="dark". */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

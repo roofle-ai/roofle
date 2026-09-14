@@ -1,0 +1,25 @@
+<aside class="panel questions" id="questions-panel">
+  <div class="panel-head">
+    <div class="panel-title">
+      <h2 class="panel-h2">Follow-up questions</h2>
+      <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
+    </div>
+  </div>
+
+  <!-- Post-meeting analysis summary -->
+  <div id="summary-card" class="summary-card" hidden>
+    <div class="summary-head">
+      <i data-lucide="sparkles" aria-hidden="true"></i>
+      <span>Meeting insights</span>
+    </div>
+    <div id="summary-stats" class="summary-stats"></div>
+    <p id="summary-note" class="summary-note"></p>
+  </div>
+
+  <div id="questions-empty" class="questions-empty">
+    <i data-lucide="message-square-quote" aria-hidden="true"></i>
+    <p id="questions-empty-hint">Roofle is listening… follow-up questions will appear here as the conversation unfolds.</p>
+  </div>
+
+  <div id="questions-list" class="questions-list"></div>
+</aside>

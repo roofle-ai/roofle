@@ -1,0 +1,46 @@
+<section class="panel transcript" id="transcript-panel">
+  <div class="transcript-head">
+    <h2 id="chat-title" class="new-title">New Transcription</h2>
+  </div>
+
+  <div id="transcript" class="transcript-scroll" tabindex="0" aria-label="Transcribed text">
+    <div id="empty-state" class="empty-state">
+      <p id="empty-hint" class="empty-hint">Start recording to transcribe your meeting.</p>
+    </div>
+  </div>
+
+  <!-- Live in-progress text -->
+  <p id="partial" class="partial" aria-live="polite"></p>
+
+  <!-- Model download progress -->
+  <div id="model-progress" class="model-progress" role="status" aria-live="polite" hidden>
+    <div class="model-progress-track" aria-hidden="true">
+      <div id="model-progress-fill" class="model-progress-fill"></div>
+    </div>
+    <span id="model-progress-text"></span>
+  </div>
+
+  <!-- Floating transport control: centered when idle, docks to the
+       bottom of the transcript once a session is active -->
+  <div id="floating-control" class="floating-control">
+    <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
+      <span class="record-btn-inner">
+        <svg id="record-icon-play" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+          <path d="M8 5.14v13.72c0 .9.98 1.45 1.75.98l10.2-6.86a1.15 1.15 0 0 0 0-1.96L9.75 4.16A1.15 1.15 0 0 0 8 5.14z" />
+        </svg>
+        <svg id="record-icon-pause" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" hidden>
+          <rect x="6" y="5" width="4" height="14" rx="1" />
+          <rect x="14" y="5" width="4" height="14" rx="1" />
+        </svg>
+      </span>
+    </button>
+    <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop recording" hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+        <rect x="6" y="6" width="12" height="12" rx="2" />
+      </svg>
+    </button>
+    <span id="timer" class="timer" aria-hidden="true">00:00</span>
+  </div>
+</section>
+
+<div class="resizer" data-resizer="questions" role="separator" aria-orientation="vertical" aria-label="Resize questions panel" tabindex="0"></div>
