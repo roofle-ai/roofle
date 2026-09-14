@@ -8,6 +8,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { createIcons, Plus, Settings } from "lucide";
 import { getSession, listSessions } from "./transcripts";
 
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
@@ -50,8 +51,9 @@ const modelProgressEl = document.querySelector<HTMLElement>("#model-progress")!;
 const modelProgressFill = document.querySelector<HTMLDivElement>("#model-progress-fill")!;
 const modelProgressText = document.querySelector<HTMLSpanElement>("#model-progress-text")!;
 const toastEl = document.querySelector<HTMLDivElement>("#toast")!;
-// "New transcription" button is optional (not rendered in the current layout).
+// "New chat" (+) button in the sidebar; always present.
 const newSessionBtn = document.querySelector<HTMLButtonElement>("#new-session-btn");
+const settingsBtn = document.querySelector<HTMLButtonElement>("#settings-btn");
 const historyList = document.querySelector<HTMLDivElement>(".history-list")!;
 const historyCount = document.querySelector<HTMLSpanElement>("#history-count")!;
 const historyEmpty = document.querySelector<HTMLDivElement>("#history-empty")!;
@@ -205,7 +207,8 @@ function clearTranscriptUI(): void {
 }
 
 /// Render the stored sessions in the left history list: a single-line
-/// first-words preview per session. The open session is highlighted.
+/// first-words preview per session, chat-app style. The open session is
+/// highlighted.
 async function loadHistory(): Promise<void> {
   const sessions = await listSessions();
   historyList.querySelectorAll(".history-item").forEach((el) => el.remove());
@@ -364,9 +367,14 @@ async function exportTranscript(format: "txt" | "srt"): Promise<void> {
 }
 
 async function init(): Promise<void> {
+  // Replace <i data-lucide> placeholders with the real SVG icons.
+  createIcons({ icons: { Plus, Settings } });
   recordBtn.addEventListener("click", onMainControl);
   stopBtn.addEventListener("click", stop);
   newSessionBtn?.addEventListener("click", newSession);
+  // No settings backend yet — surface a lightweight placeholder so the icon
+  // isn't a dead control.
+  settingsBtn?.addEventListener("click", () => showToast("Settings"));
   modelSelect.addEventListener("change", onModelChange);
   exportTxtBtn.addEventListener("click", () => exportTranscript("txt"));
   exportSrtBtn.addEventListener("click", () => exportTranscript("srt"));

@@ -70,7 +70,8 @@ body {
   overflow: hidden;
 }
 
-/* Left sidebar: Roofle brand + previous transcriptions (UI only) */
+/* Left sidebar: Roofle brand + previous transcriptions (AI chat style).
+   Compact + minimal; all colors from the existing brand tokens. */
 
 .history {
   flex: 0 0 22%;
@@ -78,8 +79,8 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 0.85rem;
+  gap: 0.5rem;
+  padding: 0.7rem 0.55rem 0.75rem;
   background: var(--brand-tint);
   overflow: hidden;
 }
@@ -90,53 +91,101 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  padding: 0 0.05rem;
 }
 
 .wordmark {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 1.05rem;
-  font-weight: 600;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--brand-strong);
 }
 
 .wordmark-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   color: var(--brand);
 }
 
-.history-new {
+/* Compact ghost icon button (settings) */
+.icon-btn {
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 8px;
-  background: var(--bg);
-  color: var(--brand);
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
-  transition: color 200ms ease, border-color 200ms ease, background 200ms ease;
+  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
-.history-new:hover {
+.icon-btn [data-lucide] {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.7;
+}
+
+.icon-btn:hover {
+  background: var(--surface);
   color: var(--brand-strong);
-  border-color: var(--brand-soft);
-  background: #fff;
 }
 
-.history-new:active {
-  transform: scale(0.95);
+.icon-btn:active {
+  transform: scale(0.94);
 }
 
-.history-new svg {
+.icon-btn:focus-visible {
+  outline: 2px solid var(--brand-soft);
+  outline-offset: -1px;
+}
+
+/* "New chat" — the "+" action, hallmark of an AI chat app */
+.new-chat {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.48rem 0.6rem;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.25);
+  transition: filter 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.new-chat [data-lucide] {
   width: 15px;
   height: 15px;
+  flex: 0 0 auto;
+}
+
+.new-chat:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.32);
+}
+
+.new-chat:active {
+  transform: scale(0.98);
+}
+
+.new-chat:focus-visible {
+  outline: 2px solid var(--brand-soft);
+  outline-offset: 2px;
 }
 
 .history-list {
@@ -145,7 +194,7 @@ body {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 1px;
 }
 
 .history-label {
@@ -153,59 +202,60 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.1rem 0.15rem 0.25rem;
+  padding: 0.1rem 0.15rem 0.15rem;
 }
 
 .history-label > span:first-child {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--faint);
 }
 
 .history-count {
-  min-width: 1.25rem;
-  padding: 0 0.35rem;
+  min-width: 1.1rem;
+  padding: 0 0.3rem;
   border-radius: 999px;
   background: var(--surface);
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: 1.1rem;
   text-align: center;
 }
 
 .history-empty {
   margin: 0;
-  padding: 1.5rem 0.5rem;
+  padding: 1.25rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   text-align: center;
   color: var(--faint);
 }
 
 .history-empty p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .history-empty-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   color: var(--brand-faint);
 }
 
+/* A chat-conversation row */
 .history-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   width: 100%;
-  padding: 0.35rem 0.4rem;
+  padding: 0.32rem 0.4rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   background: transparent;
   appearance: none;
   -webkit-appearance: none;
@@ -217,7 +267,7 @@ body {
   transition: background 150ms ease;
 }
 
-/* Simple bullet marker for each history row. */
+/* Simple bullet marker for each chat-conversation row. */
 .history-item::before {
   content: "";
   width: 5px;
@@ -245,7 +295,7 @@ body {
   outline-offset: -1px;
 }
 
-/* The open session: a subtle wash, with a brand-colored bullet. */
+/* The open conversation: a brand wash + brand bullet. */
 .history-item.is-active {
   background: var(--brand-tint);
 }
@@ -260,7 +310,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
   line-height: 1.3;
   color: var(--ink);
