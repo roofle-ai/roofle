@@ -2,7 +2,10 @@
 //
 // A single transport control (Start / Pause / Resume / Stop) drives ONE
 // recording session that captures both the microphone and system audio mixed
-// into a single transcript, rendered as speaker-timestamped document blocks.
+// into a single transcript. The main panel is an editable "Notes" page: live
+// transcription auto-appends as plain text (only when the caret is at the end),
+// the user can edit/overwrite freely, and the final notes (seed/transcript +
+// user edits) are persisted per session via `save_notes`.
 //
 // The right panel is the product USP: LIVE follow-up questions derived from the
 // transcript. Until the Rust analysis pipeline ships a real endpoint, questions
@@ -27,7 +30,7 @@ import {
   Trash,
 } from "lucide";
 import { openSettings } from "./settings";
-import { deleteSession, getSession, listSessions } from "./transcripts";
+import { deleteSession, getSession, listSessions, saveNotes } from "./transcripts";
 import "./ui";
 
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
@@ -56,15 +59,6 @@ interface FollowUp {
   resolved: boolean;
 }
 
-/// A rendered transcript block (speaker + timestamp + text).
-interface Block {
-  id: number;
-  speaker: string;
-  timestamp: string;
-  text: string;
-  el: HTMLElement;
-}
-
 // ---- DOM refs --------------------------------------------------------------
 const recordBtn = document.querySelector<HTMLButtonElement>("#record-btn")!;
 const recordIconPlay = document.querySelector<SVGElement>("#record-icon-play")!;
@@ -75,10 +69,7 @@ const sessionPill = document.querySelector<HTMLSpanElement>("#session-pill")!;
 const statusDot = document.querySelector<HTMLSpanElement>("#status-dot")!;
 const statusText = document.querySelector<HTMLSpanElement>("#status-text")!;
 const levelFill = document.querySelector<HTMLDivElement>("#level-fill")!;
-const messagesEl = document.querySelector<HTMLDivElement>("#transcript")!;
-const emptyState = document.querySelector<HTMLDivElement>("#empty-state")!;
-const emptyHint = document.querySelector<HTMLParagraphElement>("#empty-hint")!;
-const partialEl = document.querySelector<HTMLParagraphElement>("#partial")!;
+const notesInput = document.querySelector<HTMLTextAreaElement>("#notes-input")!;
 const modelProgressEl = document.querySelector<HTMLElement>("#model-progress")!;
 const modelProgressFill = document.querySelector<HTMLDivElement>("#model-progress-fill")!;
 const modelProgressText = document.querySelector<HTMLSpanElement>("#model-progress-text")!;
@@ -144,15 +135,13 @@ let elapsedSec = 0;
 let toastTimer: number | undefined;
 let viewedSessionId: number | null = null;
 
-let blocks: Block[] = [];
-let nextBlockId = 0;
-let currentSpeaker: "Speaker A" | "Speaker B" = "Speaker A";
+let pendingAppend: string[] = [];
+let nextNoteId = 0;
+let notesSaveTimer: number | undefined;
 
 let questions: FollowUp[] = [];
 let nextQuestionId = 0;
 let analysisMode = false;
-
-const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---- Theme (light / dark, defaults to system) ------------------------------
 function applyTheme(theme: "light" | "dark"): void {
@@ -209,57 +198,61 @@ function stopTimer(): void {
   }
 }
 
-// ---- Transcript rendering ---------------------------------------------------
-/// Always follow the latest text: keep the transcript pinned to the bottom.
-function scrollToLatest(): void {
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+// ---- Notes rendering -------------------------------------------------------
+/// Whether the caret sits at the very end of the notes — the only safe time to
+/// auto-append live text without disturbing the user's edits.
+function isCaretAtEnd(): boolean {
+  return (
+    notesInput.selectionStart === notesInput.selectionEnd &&
+    notesInput.selectionStart === notesInput.value.length
+  );
 }
 
-function appendBlock(text: string, timestamp: string): Block {
-  // Speaker heuristic (placeholder until the backend provides diarization):
-  // a question mark or a turn-taking interjection suggests the speaker changes.
-  const t = text.trim();
-  if (blocks.length > 0) {
-    const last = blocks[blocks.length - 1];
-    if (
-      last.text.trimEnd().endsWith("?") ||
-      /^(okay|alright|thanks|right|sure|yes|yeah|so,?)/i.test(t)
-    ) {
-      currentSpeaker = currentSpeaker === "Speaker A" ? "Speaker B" : "Speaker A";
-    }
+/// Keep the notes pinned to the bottom (follows live transcription).
+function notesScrollToEnd(): void {
+  notesInput.scrollTop = notesInput.scrollHeight;
+}
+
+/// The streaming ASR engine emits ALL-CAPS text; convert it back to normal
+/// sentence case ("like we write") before it lands in the notes. The stored
+/// segments are left unchanged; this only affects what the user sees/edits.
+function toSentenceCase(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/(^|[.!?]\s+)([a-z])/g, (_m, pre, ch) => pre + ch.toUpperCase())
+    .replace(/\bi\b/g, "I");
+}
+
+/// The main panel title: "Notes / <date> / <time>".
+function notesTitle(date: Date = new Date()): string {
+  const d = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  const t = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `Notes / ${d} / ${t}`;
+}
+
+/// Append live transcription as plain text into the editable notes. Appends
+/// immediately when the caret is at the end; otherwise buffers the text and
+/// flushes it later (when the caret returns to the end or on session stop) so
+/// editing is never disrupted.
+function commitNotesText(text: string): void {
+  if (!text) return;
+  const normalized = toSentenceCase(text);
+  if (isCaretAtEnd()) {
+    notesInput.value = notesInput.value ? notesInput.value + "\n" + normalized : normalized;
+    notesScrollToEnd();
+  } else {
+    pendingAppend.push(normalized);
   }
-  const blockId = nextBlockId++;
-  const blockEl = document.createElement("div");
-  blockEl.className = "tblock";
-  blockEl.dataset.block = String(blockId);
-  const head = document.createElement("div");
-  head.className = "tblock-head";
-  const speaker = document.createElement("span");
-  speaker.className = "speaker";
-  speaker.textContent = currentSpeaker;
-  const ts = document.createElement("span");
-  ts.className = "timestamp";
-  ts.textContent = timestamp;
-  head.appendChild(speaker);
-  head.appendChild(ts);
-  const p = document.createElement("p");
-  p.className = "ttext";
-  p.textContent = t;
-  blockEl.appendChild(head);
-  blockEl.appendChild(p);
-  messagesEl.appendChild(blockEl);
-  const block: Block = { id: blockId, speaker: currentSpeaker, timestamp, text: t, el: blockEl };
-  blocks.push(block);
-  return block;
 }
 
-/// Append a finalized utterance, then run it through the question heuristic.
-function appendFinal(text: string): void {
-  appendBlock(text, formatTime(elapsedSec));
-  partialEl.textContent = "";
-  emptyState.hidden = true;
-  maybeGenerateQuestion(text, elapsedSec, blocks[blocks.length - 1].id);
-  scrollToLatest();
+/// Append any buffered final text once the caret is back at the end.
+function flushPending(): void {
+  if (pendingAppend.length === 0) return;
+  if (!isCaretAtEnd()) return;
+  const tail = pendingAppend.join("\n");
+  pendingAppend = [];
+  notesInput.value = notesInput.value ? notesInput.value + "\n" + tail : tail;
+  notesScrollToEnd();
 }
 
 // ---- Follow-up question heuristic (client-side stand-in) --------------------
@@ -397,13 +390,11 @@ function renderQuestion(q: FollowUp): void {
   updateLiveBadge();
 }
 
-function jumpToBlock(id: number): void {
-  const block = blocks.find((b) => b.id === id);
-  if (!block) return;
-  blocks.forEach((b) => b.el.classList.remove("flash"));
-  block.el.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "center" });
-  block.el.classList.add("flash");
-  window.setTimeout(() => block.el.classList.remove("flash"), 1800);
+function jumpToBlock(_id: number): void {
+  // The notes are a single editable document, so "jump to context" focuses the
+  // editor and scrolls to the live append point.
+  notesInput.focus();
+  notesScrollToEnd();
 }
 
 function resetQuestions(): void {
@@ -489,7 +480,6 @@ function setSessionState(state: SessionState): void {
   recordIconPlay.toggleAttribute("hidden", state === "recording");
   recordIconPause.toggleAttribute("hidden", state !== "recording");
   stopBtn.hidden = !active;
-  partialEl.classList.toggle("recording", state === "recording");
 
   if (state === "recording") {
     startTimer();
@@ -501,13 +491,6 @@ function setSessionState(state: SessionState): void {
     stopTimer();
     setStatus("idle", "Idle");
   }
-
-  emptyHint.textContent =
-    state === "idle"
-      ? "" // the centered record button is the CTA when idle
-      : state === "recording"
-        ? "Listening…"
-        : "Paused — press Resume to continue.";
 
   questionsEmptyHint.textContent =
     state === "recording"
@@ -588,14 +571,52 @@ function initFloatingControl(): void {
 }
 
 function clearTranscriptUI(): void {
-  blocks = [];
-  nextBlockId = 0;
-  currentSpeaker = "Speaker A";
-  messagesEl.querySelectorAll(".tblock").forEach((el) => el.remove());
-  partialEl.textContent = "";
-  emptyState.hidden = false;
+  if (notesSaveTimer !== undefined) {
+    window.clearTimeout(notesSaveTimer);
+    notesSaveTimer = undefined;
+  }
+  pendingAppend = [];
+  nextNoteId = 0;
+  notesInput.value = "";
   resetQuestions();
   setAnalysisMode(false);
+}
+
+// ---- Notes persistence ------------------------------------------------------
+/// Resolve the active session id for autosave without changing the start
+/// command: when a fresh recording starts, the engine creates the session
+/// backend-side without returning its id, so we adopt the newest recording
+/// session from the list. For a continued session the id is already known.
+async function resolveActiveSession(): Promise<void> {
+  if (viewedSessionId !== null) return;
+  try {
+    const sessions = await listSessions();
+    const recording = sessions.find((s) => s.status === "recording");
+    const target = recording ?? sessions[0];
+    if (target) viewedSessionId = target.id;
+  } catch {
+    // Non-fatal: autosave simply waits until a session id is known.
+  }
+}
+
+/// Debounced autosave of the editable notes while a session is viewed.
+function scheduleNotesSave(): void {
+  if (notesSaveTimer !== undefined) window.clearTimeout(notesSaveTimer);
+  notesSaveTimer = window.setTimeout(() => {
+    notesSaveTimer = undefined;
+    void finalSaveNotes();
+  }, 800);
+}
+
+/// Persist the current notes editor content (the final notes = seed/transcript
+/// + user edits) to the currently viewed session.
+async function finalSaveNotes(): Promise<void> {
+  if (viewedSessionId === null) return;
+  try {
+    await saveNotes(viewedSessionId, notesInput.value);
+  } catch (err) {
+    setStatus("error", String(err));
+  }
 }
 
 // ---- History ----------------------------------------------------------------
@@ -668,7 +689,7 @@ async function loadHistory(): Promise<void> {
         .then(() => {
           if (viewedSessionId === s.id) {
             viewedSessionId = null;
-            chatTitle.textContent = "New Transcription";
+            chatTitle.textContent = notesTitle();
             clearTranscriptUI();
           }
           void loadHistory();
@@ -687,32 +708,26 @@ async function openSession(id: number): Promise<void> {
     if (!detail) return;
 
     viewedSessionId = id;
-    chatTitle.textContent = "Transcription";
+    chatTitle.textContent = notesTitle(new Date(detail.session.started_at));
 
-    // Clear the live transcript + questions, then rebuild from the stored run.
+    // Clear the live notes + questions, then load the stored notes document.
     clearTranscriptUI();
-    emptyState.hidden = true;
-    blocks = [];
-    nextBlockId = 0;
-    currentSpeaker = "Speaker A";
+    notesInput.value = detail.notes ?? "";
 
+    // Regenerate follow-up questions from the stored segments (right panel).
     if (detail.segments && detail.segments.length) {
       for (const seg of detail.segments) {
         if (!seg.text.trim()) continue;
-        const block = appendBlock(seg.text, formatTime(seg.start_secs));
-        maybeGenerateQuestion(seg.text, seg.start_secs, block.id);
+        maybeGenerateQuestion(seg.text, seg.start_secs, nextNoteId++);
       }
     } else {
       for (const para of detail.transcript.split("\n\n")) {
         if (!para.trim()) continue;
-        const block = appendBlock(para.trim(), "00:00");
-        maybeGenerateQuestion(para.trim(), 0, block.id);
+        maybeGenerateQuestion(para.trim(), 0, nextNoteId++);
       }
     }
 
-    scrollToLatest();
     setAnalysisMode(true);
-
     await loadHistory();
   } catch (err) {
     setStatus("error", String(err));
@@ -725,9 +740,9 @@ async function newSession(): Promise<void> {
     await stop();
   }
   viewedSessionId = null;
-  chatTitle.textContent = "New Transcription";
+  chatTitle.textContent = notesTitle();
   clearTranscriptUI();
-  showToast("New transcription");
+  showToast("New Meeting Notes");
 }
 
 async function onMainControl(): Promise<void> {
@@ -744,13 +759,16 @@ async function start(): Promise<void> {
   try {
     const continueId = viewedSessionId;
     if (continueId === null) {
-      chatTitle.textContent = "New Transcription";
+      chatTitle.textContent = notesTitle();
       clearTranscriptUI();
     }
     resetQuestions();
     setAnalysisMode(false);
     await invoke("start_recording", { source: "both", sessionId: continueId });
-    if (continueId) chatTitle.textContent = "Transcription";
+    if (continueId === null) {
+      await resolveActiveSession();
+    }
+    if (continueId) chatTitle.textContent = notesTitle();
     setSessionState("recording");
   } catch (err) {
     setStatus("error", describeError(err));
@@ -780,6 +798,10 @@ async function stop(): Promise<void> {
     await invoke("stop_recording");
   } finally {
     setSessionState("idle");
+    // Capture any buffered final words, then persist the final notes document
+    // (seed/transcript + any user edits) to the current session.
+    flushPending();
+    await finalSaveNotes();
     setAnalysisMode(true);
     await loadHistory();
   }
@@ -880,14 +902,22 @@ async function init(): Promise<void> {
   initFloatingControl();
   setupShortcuts();
 
+  notesInput.addEventListener("input", scheduleNotesSave);
+  notesInput.addEventListener("focus", flushPending);
+  notesInput.addEventListener("click", flushPending);
+  notesInput.addEventListener("keyup", () => {
+    if (isCaretAtEnd()) flushPending();
+  });
+
   await loadHistory();
 
   await listen<Segment>("transcript-update", (event) => {
     const { kind, text } = event.payload;
+    // Only finalized utterances become notes; partial live text is not shown
+    // (this is a notes app, not a live transcript view).
     if (kind === "Final") {
-      appendFinal(text);
-    } else {
-      partialEl.textContent = text;
+      commitNotesText(text);
+      maybeGenerateQuestion(text, elapsedSec, nextNoteId++);
     }
   });
 
@@ -919,6 +949,7 @@ async function init(): Promise<void> {
   await listen<boolean>("recording-state", async (event) => {
     if (event.payload) {
       setSessionState("recording");
+      await resolveActiveSession();
     } else {
       setSessionState("idle");
       setAnalysisMode(true);

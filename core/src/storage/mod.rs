@@ -77,6 +77,8 @@ pub struct SessionDetail {
     pub segments: Vec<TranscriptSegment>,
     /// [`render_paragraph`] over `segments`.
     pub transcript: String,
+    /// The editable notes document (seed/transcript + user edits).
+    pub notes: String,
 }
 
 /// A session as shown in the history list: metadata plus a first-words preview.

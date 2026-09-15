@@ -53,6 +53,12 @@ CREATE TABLE IF NOT EXISTS paragraphs (
 CREATE INDEX IF NOT EXISTS idx_paragraphs_session ON paragraphs (session_id, seq);
 "#;
 
+/// v4: the editable notes document per session (seed/transcript + user edits).
+/// Defaults to empty; transcription itself remains in `segments` (unchanged).
+pub(super) const SCHEMA_V4: &str = r#"
+ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT '';
+"#;
+
 // --- sessions -------------------------------------------------------------
 
 /// Insert a session row; the id comes back via `last_insert_rowid`.
@@ -87,12 +93,16 @@ ORDER BY s.updated_at DESC
 LIMIT ?1
 "#;
 
-/// One session row by id.
+/// One session row by id (includes the editable notes document).
 pub(super) const SELECT_SESSION: &str = r#"
-SELECT id, title, source, model_id, started_at, ended_at, duration_secs, status, updated_at
+SELECT id, title, source, model_id, started_at, ended_at, duration_secs, status, updated_at, notes
 FROM sessions
 WHERE id = ?1
 "#;
+
+/// Persist the editable notes document for a session.
+pub(super) const UPDATE_SESSION_NOTES: &str =
+    "UPDATE sessions SET notes = ?1 WHERE id = ?2";
 
 /// Delete a session; children cascade.
 pub(super) const DELETE_SESSION: &str = "DELETE FROM sessions WHERE id = ?1";

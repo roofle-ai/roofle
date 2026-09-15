@@ -35,6 +35,7 @@ export interface SessionDetail {
   session: Session;
   segments: TranscriptSegment[];
   transcript: string; // essay-paragraph rendering of the segments
+  notes: string; // the editable notes document (seed + user edits)
 }
 
 /** Recorded sessions, newest first, each with a first-words preview. */
@@ -45,6 +46,11 @@ export function listSessions(): Promise<SessionSummary[]> {
 /** One session with its segments and rendered paragraph transcript. */
 export function getSession(id: number): Promise<SessionDetail | null> {
   return invoke<SessionDetail | null>("get_session", { id });
+}
+
+/** Persist the editable notes document for a session. */
+export function saveNotes(id: number, notes: string): Promise<void> {
+  return invoke<void>("save_notes", { id, notes });
 }
 
 /** Delete a session; its segments cascade. */

@@ -283,6 +283,18 @@ pub fn get_session(
     state.storage.get_session(id).map_err(|e| e.to_string())
 }
 
+/// Persist the editable notes document for a session (seed/transcript + user
+/// edits). The notes column is independent of the segment transcript, which
+/// continues to be written as-is during recording.
+#[tauri::command]
+pub fn save_notes(
+    state: tauri::State<AppState>,
+    id: i64,
+    notes: String,
+) -> Result<(), String> {
+    state.storage.save_notes(id, &notes).map_err(|e| e.to_string())
+}
+
 /// Delete a session; its segments cascade.
 #[tauri::command]
 pub fn delete_session(state: tauri::State<AppState>, id: i64) -> Result<(), String> {

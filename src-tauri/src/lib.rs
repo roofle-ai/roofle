@@ -175,7 +175,8 @@ pub fn run() {
             commands::export_transcript,
             commands::list_sessions,
             commands::get_session,
-            commands::delete_session
+            commands::delete_session,
+            commands::save_notes
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

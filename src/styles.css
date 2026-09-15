@@ -685,122 +685,77 @@ body {
   color: var(--ink);
 }
 
-.transcript-scroll {
+/* Editable notes "page": a note-taking-app look — a white sheet floating on a
+   subtle "desk" background, with a soft layered shadow and clean typography. */
+.notes-page {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding: 0.9rem var(--gutter) 0.75rem;
+  overflow: hidden;
+  display: flex;
+  padding: 1.1rem var(--gutter) 0.9rem;
+  background: var(--surface);
+}
+
+.notes-input {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 780px;
+  min-height: 0;
+  margin: 0 auto;
+  resize: none;
+  border: none;
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    0 18px 44px rgba(0, 0, 0, 0.1);
+  padding: 1.75rem 2.1rem;
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--ink);
   outline: none;
+  overflow-y: auto;
+  transition: box-shadow 250ms ease, transform 250ms ease;
 }
 
-.transcript-scroll:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--ring);
-  border-radius: 8px;
+.notes-input::placeholder {
+  color: var(--faint);
+  font-style: italic;
 }
 
-.transcript-scroll::-webkit-scrollbar {
+.notes-input:focus-visible {
+  /* No focus border — just a gentle lift + a soft glow animation. */
+  transform: translateY(-1px);
+  animation: notes-focus-glow 900ms ease-out;
+}
+
+@keyframes notes-focus-glow {
+  0% {
+    box-shadow: 0 0 0 0 transparent, 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.04), 0 18px 44px rgba(0, 0, 0, 0.1);
+  }
+  35% {
+    box-shadow: 0 0 0 5px var(--brand-faint), 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.04), 0 18px 44px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent, 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.04), 0 18px 44px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.notes-input::-webkit-scrollbar {
   width: 8px;
 }
 
-.transcript-scroll::-webkit-scrollbar-thumb {
+.notes-input::-webkit-scrollbar-thumb {
   background: var(--line);
   border-radius: 4px;
-}
-
-/* Document-style transcript blocks (not chat bubbles) */
-.tblock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.15rem 0 0.55rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 0.55rem;
-  animation: rise 200ms ease-out;
-}
-
-.tblock.flash {
-  animation: flash 1.6s ease;
-  border-radius: 8px;
-}
-
-.tblock-head {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.speaker {
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  color: var(--brand-strong);
 }
 
 .timestamp {
   font-size: 0.7rem;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
-}
-
-.ttext {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--ink);
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes flash {
-  0%,
-  100% {
-    background: transparent;
-  }
-  30%,
-  60% {
-    background: var(--insight-soft);
-  }
-}
-
-.empty-state {
-  margin: auto;
-  padding: 1rem;
-}
-
-.empty-hint {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--faint);
-  text-align: center;
-}
-
-.partial {
-  flex: 0 0 auto;
-  margin: 0 var(--gutter);
-  min-height: 1.6em;
-  padding: 0.5rem 0.1rem 0.3rem;
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  font-style: italic;
-  color: var(--muted);
-}
-
-.partial.recording::before {
-  content: "\25CF";
-  margin-right: 0.5rem;
-  font-size: 0.6rem;
-  color: var(--record);
-  animation: blink 1.2s ease-in-out infinite;
 }
 
 .model-progress {

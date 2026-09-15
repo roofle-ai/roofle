@@ -83,6 +83,9 @@ pub trait SessionRepository {
     /// One session with its ordered segments and rendered paragraph text.
     fn get_session(&self, id: i64) -> Result<Option<SessionDetail>, StorageError>;
 
+    /// Persist the editable notes document for a session.
+    fn save_notes(&self, id: i64, notes: &str) -> Result<(), StorageError>;
+
     /// Delete a session; its segments cascade.
     fn delete_session(&self, id: i64) -> Result<(), StorageError>;
 }

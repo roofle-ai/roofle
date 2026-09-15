@@ -13,7 +13,7 @@ use crate::storage::{
 use super::sql::{
     DELETE_SESSION, INSERT_SEGMENT, INSERT_SESSION, SELECT_LAST_SEG_SEQ, SELECT_SEGMENTS,
     SELECT_SESSION, SELECT_SESSIONS, SELECT_SESSION_DURATION, UPDATE_SESSION_FINALIZE,
-    UPDATE_SESSION_RESUME,
+    UPDATE_SESSION_NOTES, UPDATE_SESSION_RESUME,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
@@ -164,6 +164,15 @@ impl SessionRepository for SqliteStorage {
         .collect()
     }
 
+    fn save_notes(&self, id: i64, notes: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().unwrap();
+        let n = conn.execute(UPDATE_SESSION_NOTES, params![notes, id])?;
+        if n == 0 {
+            return Err(StorageError::NotFound(id));
+        }
+        Ok(())
+    }
+
     fn get_session(&self, id: i64) -> Result<Option<SessionDetail>, StorageError> {
         let conn = self.conn.lock().unwrap();
 
@@ -172,7 +181,7 @@ impl SessionRepository for SqliteStorage {
         let Some(raw) = rows.next() else {
             return Ok(None);
         };
-        let session = build_session(raw?)?;
+        let (session, notes) = build_session(raw?)?;
 
         let mut stmt = conn.prepare(SELECT_SEGMENTS)?;
         let segments = stmt
@@ -203,6 +212,7 @@ impl SessionRepository for SqliteStorage {
             transcript: render_paragraph(&segments),
             session,
             segments,
+            notes,
         }))
     }
 
@@ -230,6 +240,7 @@ fn read_session(
     f64,
     String,
     String,
+    String,
 )> {
     Ok((
         r.get(0)?,
@@ -241,11 +252,13 @@ fn read_session(
         r.get(6)?,
         r.get(7)?,
         r.get(8)?,
+        r.get(9)?,
     ))
 }
 
+/// Build the session plus its editable notes document from a raw row.
 fn build_session(
-    (id, title, source, model_id, started, ended, duration_secs, status, updated): (
+    (id, title, source, model_id, started, ended, duration_secs, status, updated, notes): (
         i64,
         String,
         String,
@@ -255,19 +268,23 @@ fn build_session(
         f64,
         String,
         String,
+        String,
     ),
-) -> Result<Session, StorageError> {
-    Ok(Session {
-        id,
-        title,
-        source,
-        model_id,
-        started_at: parse_utc(&started)?,
-        ended_at: ended.as_deref().map(parse_utc).transpose()?,
-        duration_secs,
-        status: parse_status(&status),
-        updated_at: parse_utc(&updated)?,
-    })
+) -> Result<(Session, String), StorageError> {
+    Ok((
+        Session {
+            id,
+            title,
+            source,
+            model_id,
+            started_at: parse_utc(&started)?,
+            ended_at: ended.as_deref().map(parse_utc).transpose()?,
+            duration_secs,
+            status: parse_status(&status),
+            updated_at: parse_utc(&updated)?,
+        },
+        notes,
+    ))
 }
 
 /// First `max` whitespace-separated words of `text`.

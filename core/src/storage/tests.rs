@@ -22,7 +22,32 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_migrates_schema() {
     let storage = store();
-    assert_eq!(storage.schema_version().unwrap(), 3);
+    assert_eq!(storage.schema_version().unwrap(), 4);
+}
+
+#[test]
+fn save_and_load_notes_round_trip() {
+    let storage = store();
+    let session = storage
+        .create_session(new_session("mic", Utc::now()))
+        .unwrap();
+
+    // Default notes are empty.
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.notes, "");
+
+    // Persist an editable notes document, then read it back via get_session.
+    storage.save_notes(session.id, "Decision: ship v2 on Friday.\nOwner: Alex.").unwrap();
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.notes, "Decision: ship v2 on Friday.\nOwner: Alex.");
+
+    // Overwriting replaces the whole document.
+    storage.save_notes(session.id, "Revised notes after review.").unwrap();
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.notes, "Revised notes after review.");
+
+    // Saving to a missing session is an error.
+    assert!(storage.save_notes(999, "nope").is_err());
 }
 
 #[test]

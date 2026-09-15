@@ -1,16 +1,20 @@
 <section class="panel transcript" id="transcript-panel">
   <div class="transcript-head">
-    <h2 id="chat-title" class="new-title">New Transcription</h2>
+    <h2 id="chat-title" class="new-title">Notes</h2>
   </div>
 
-  <div id="transcript" class="transcript-scroll" tabindex="0" aria-label="Transcribed text">
-    <div id="empty-state" class="empty-state">
-      <p id="empty-hint" class="empty-hint">Start recording to transcribe your meeting.</p>
-    </div>
+  <!-- Editable notes page: live transcription auto-appends here; the user can
+       edit/overwrite freely. The textarea holds the final notes (seed +
+       user edits) and is what gets persisted per session. -->
+  <div id="notes-page" class="notes-page">
+    <textarea
+      id="notes-input"
+      class="notes-input"
+      spellcheck="true"
+      aria-label="Meeting notes"
+      placeholder="Start recording or type your meeting notes here…"
+    ></textarea>
   </div>
-
-  <!-- Live in-progress text -->
-  <p id="partial" class="partial" aria-live="polite"></p>
 
   <!-- Model download progress -->
   <div id="model-progress" class="model-progress" role="status" aria-live="polite" hidden>
@@ -21,7 +25,7 @@
   </div>
 
   <!-- Floating transport control: centered when idle, docks to the
-       bottom of the transcript once a session is active -->
+       bottom of the notes once a session is active -->
   <div id="floating-control" class="floating-control">
     <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
       <span class="record-btn-inner">

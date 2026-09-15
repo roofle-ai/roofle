@@ -13,7 +13,7 @@ use std::sync::Mutex;
 
 use crate::storage::StorageError;
 
-use sql::{SCHEMA_V1, SCHEMA_V2, SCHEMA_V3};
+use sql::{SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4};
 
 /// Thread-safe SQLite store. Wrap in `app.manage` once, share everywhere.
 pub struct SqliteStorage {
@@ -66,6 +66,9 @@ impl SqliteStorage {
         }
         if version < 3 {
             apply(&mut conn, SCHEMA_V3, 3)?;
+        }
+        if version < 4 {
+            apply(&mut conn, SCHEMA_V4, 4)?;
         }
         Ok(())
     }
