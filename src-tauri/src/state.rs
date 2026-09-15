@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
@@ -12,6 +13,15 @@ use crate::models::ModelManager;
 pub struct TranscriptCue {
     /// Seconds since recording start when the utterance was finalized.
     pub start_secs: f64,
+    pub text: String,
+}
+
+/// Payload of a `notes-update` event (AI-generated meeting notes).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct NotesUpdate {
+    /// Paragraph number this note was generated from.
+    pub seq: i64,
+    /// The generated note text.
     pub text: String,
 }
 
@@ -37,6 +47,9 @@ pub struct AppState {
     /// SQLite store; the engine thread writes sessions/segments in real time
     /// and command threads read them for the UI.
     pub storage: SqliteStorage,
+    /// The running AI notes document per session (the agent merges each new
+    /// paragraph into this, replacing it wholesale on every `notes-update`).
+    pub notes: Mutex<HashMap<i64, String>>,
 }
 
 impl AppState {
@@ -55,6 +68,7 @@ impl AppState {
             last_source: Mutex::new(SourceKind::Both),
             tray: Mutex::new(None),
             storage,
+            notes: Mutex::new(HashMap::new()),
         }
     }
 }

@@ -9,9 +9,12 @@
 // back to the frontend as Tauri events. The engine thread is the only owner of
 // the Pipeline, so it never has to cross a thread boundary.
 
-use std::path::Path;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::time::{Duration, Instant};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use chrono::Utc;
 use live_agent::{persist_boundary, ParagraphWatcher, DEFAULT_CHAR_LIMIT};
@@ -25,8 +28,10 @@ use roofle_core::storage::{
 use roofle_core::pipeline::SystemSource;
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::ai::{self, AiClient, AiConfig, AiConfigView, ChatMessage, ProviderKind};
 use crate::models::ModelInfo;
 use crate::state::{AppState, TranscriptCue};
+use live_agent::notes::{agent_notes, log_step, logging_enabled, CompletionClient};
 
 /// Default amplitude gain applied to captured audio (no-op at 1.0).
 const DEFAULT_GAIN: f32 = 1.0;
@@ -299,6 +304,220 @@ pub fn save_notes(
 #[tauri::command]
 pub fn delete_session(state: tauri::State<AppState>, id: i64) -> Result<(), String> {
     state.storage.delete_session(id).map_err(|e| e.to_string())
+}
+
+// --- AI client (Slice 1) ------------------------------------------------
+
+/// Resolve the app data dir for AI config persistence.
+fn ai_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| format!("app data dir: {e}"))
+}
+
+/// Load the AI config view (base URL, model, whether a key is set). The API
+/// key itself is never returned to the renderer.
+#[tauri::command]
+pub fn load_ai_config(app: AppHandle) -> Result<AiConfigView, String> {
+    let config = ai::load_config(&ai_data_dir(&app)?);
+    Ok(AiConfigView {
+        kind: config.kind,
+        base_url: config.base_url,
+        model: config.model,
+        has_api_key: ai::has_api_key(),
+    })
+}
+
+/// Persist the AI config (non-secret) and store the API key in the keychain.
+/// Passing an empty `api_key` clears the stored key.
+#[tauri::command]
+pub fn save_ai_config(
+    app: AppHandle,
+    base_url: String,
+    model: String,
+    api_key: String,
+) -> Result<(), String> {
+    let config = AiConfig {
+        kind: ProviderKind::OpenAiCompat,
+        base_url,
+        model,
+    };
+    let dir = ai_data_dir(&app)?;
+    ai::save_config(&dir, &config)?;
+    ai::save_api_key(&api_key)
+}
+
+/// Send a trivial prompt through the configured client to verify the settings
+/// end to end. Returns the model's reply text. Runs off the main thread so a
+/// slow provider never freezes the UI.
+#[tauri::command]
+pub async fn test_ai_connection(app: AppHandle) -> Result<String, String> {
+    let config = ai::load_config(&ai_data_dir(&app)?);
+    let api_key = ai::load_api_key()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = AiClient::new();
+        client.chat(
+            &config,
+            &api_key,
+            vec![ChatMessage {
+                role: "user".to_string(),
+                content: "Reply with the single word OK.".to_string(),
+            }],
+        )
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))?
+}
+
+/// A `CompletionClient` backed by the configured OpenAI-compatible AI client,
+/// so live-agent's note logic can call the LLM through the app's abstraction.
+struct NotesClient {
+    config: AiConfig,
+    api_key: String,
+}
+
+impl CompletionClient for NotesClient {
+    fn complete(&self, system: &str, user: &str) -> Result<String, String> {
+        let result = AiClient::new().chat(
+            &self.config,
+            &self.api_key,
+            vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: system.to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: user.to_string(),
+                },
+            ],
+        );
+        log_llm_exchange(system, user, &result);
+        result
+    }
+}
+
+/// Disposable dev aid: when `ROOFLE_LOG_AI` is on, append the exact request
+/// (system + user) and the LLM response to a timestamped text file in the
+/// project root. Remove this together with its caller when no longer needed.
+fn log_llm_exchange(system: &str, user: &str, result: &Result<String, String>) {
+    if !logging_enabled() {
+        return;
+    }
+    // One log file per run, named by the millisecond timestamp of the first call.
+    static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
+    let file = LOG_FILE.get_or_init(|| {
+        // Project root = parent of the src-tauri crate dir (compile-time).
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap_or(Path::new("."));
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        root.join(format!("ai-llm-{stamp}.log"))
+    });
+
+    let stamp = Utc::now().to_rfc3339();
+    let block = match result {
+        Ok(reply) => format!(
+            "== {stamp} ==\n--- SYSTEM ---\n{system}\n--- USER ---\n{user}\n--- REPLY ---\n{reply}\n\n"
+        ),
+        Err(err) => format!(
+            "== {stamp} ==\n--- SYSTEM ---\n{system}\n--- USER ---\n{user}\n--- ERROR ---\n{err}\n\n"
+        ),
+    };
+    let _ = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(file)
+        .and_then(|mut f| f.write_all(block.as_bytes()));
+}
+
+/// Run the two-agent notes update for one paragraph boundary and emit the
+/// resulting notes document to the UI. Runs on a detached worker thread so a
+/// slow provider never blocks the engine loop. Every step is logged to stderr
+/// when `ROOFLE_LOG_AI` is set (`1`/`true`/`on`).
+fn generate_notes(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
+    let new_chars = new_text.chars().count();
+    std::thread::spawn(move || {
+        let log = logging_enabled();
+        // No AI configured → skip entirely. The notes panel is notes-only;
+        // never surface raw transcription there.
+        let client = match ai_data_dir(&app) {
+            Ok(dir) => {
+                let config = ai::load_config(&dir);
+                if config.model.trim().is_empty() || !ai::has_api_key() {
+                    log_step(
+                        log,
+                        &format!("notes #{seq} session={session_id}"),
+                        &format!(
+                            "AI not configured (model={:?}, key={}); skipping (new={new_chars} chars)",
+                            config.model, ai::has_api_key(),
+                        ),
+                    );
+                    return;
+                }
+                match ai::load_api_key() {
+                    Ok(api_key) => {
+                        log_step(
+                            log,
+                            &format!("notes #{seq} session={session_id}"),
+                            &format!("agent start (model={}, new={new_chars} chars)", config.model),
+                        );
+                        Some(NotesClient { config, api_key })
+                    }
+                    Err(e) => {
+                        log_step(log, &format!("notes #{seq} session={session_id}"), &e);
+                        return;
+                    }
+                }
+            }
+            Err(e) => {
+                log_step(log, &format!("notes #{seq} session={session_id}"), &e);
+                return;
+            }
+        };
+
+        // The notes produced so far for this session (empty on first run); the
+        // agent merges the new paragraph into this and returns the full doc.
+        let existing = app
+            .state::<AppState>()
+            .notes
+            .lock()
+            .unwrap()
+            .get(&session_id)
+            .cloned()
+            .unwrap_or_default();
+
+        let result = agent_notes(
+            client.as_ref().map(|c| c as &dyn CompletionClient).unwrap(),
+            &new_text,
+            &existing,
+            log,
+        );
+        match result {
+            Ok(text) => {
+                log_step(
+                    log,
+                    &format!("notes #{seq} session={session_id}"),
+                    &format!("final notes = {} chars", text.chars().count()),
+                );
+                // Replace the running notes for this session and publish the
+                // full document so the UI shows the merged/validated result.
+                app.state::<AppState>()
+                    .notes
+                    .lock()
+                    .unwrap()
+                    .insert(session_id, text.clone());
+                let _ = app.emit(
+                    "notes-update",
+                    crate::state::NotesUpdate { seq, text },
+                );
+            }
+            Err(e) => log_step(log, &format!("notes #{seq} session={session_id}"), &e),
+        }
+    });
 }
 
 // --- Engine thread ------------------------------------------------------
@@ -598,7 +817,8 @@ fn forward_events(
                 start_secs,
                 text: segment.text.clone(),
             });
-            // Feed the paragraph watcher; persist + log any boundary crossed.
+            // Feed the paragraph watcher; persist + log + turn each boundary into
+            // an AI note for the UI.
             if let Some(w) = watcher.as_mut() {
                 for boundary in w.push(&segment.text) {
                     match persist_boundary(&app.state::<AppState>().storage, &boundary) {
@@ -610,6 +830,12 @@ fn forward_events(
                         ),
                         Err(e) => eprintln!("[roofle] persist paragraph: {e}"),
                     }
+                    generate_notes(
+                        app.clone(),
+                        boundary.session_id,
+                        boundary.seq,
+                        boundary.new_text,
+                    );
                 }
             }
             if let Some(sid) = session_id {
@@ -650,6 +876,12 @@ fn flush_watcher(app: &AppHandle, watcher: &mut Option<ParagraphWatcher>) {
             ),
             Err(e) => eprintln!("[roofle] persist final paragraph: {e}"),
         }
+        generate_notes(
+            app.clone(),
+            boundary.session_id,
+            boundary.seq,
+            boundary.new_text,
+        );
     }
 }
 

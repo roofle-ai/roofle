@@ -46,6 +46,12 @@ interface ModelProgress {
   total: number;
 }
 
+/// Payload of a `notes-update` event (AI-generated meeting notes).
+interface NotesUpdate {
+  seq: number;
+  text: string;
+}
+
 /// Category of a follow-up question.
 type QuestionType = "Clarification" | "Action" | "Risk" | "Decision" | "Open";
 
@@ -213,36 +219,11 @@ function notesScrollToEnd(): void {
   notesInput.scrollTop = notesInput.scrollHeight;
 }
 
-/// The streaming ASR engine emits ALL-CAPS text; convert it back to normal
-/// sentence case ("like we write") before it lands in the notes. The stored
-/// segments are left unchanged; this only affects what the user sees/edits.
-function toSentenceCase(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/(^|[.!?]\s+)([a-z])/g, (_m, pre, ch) => pre + ch.toUpperCase())
-    .replace(/\bi\b/g, "I");
-}
-
 /// The main panel title: "Notes / <date> / <time>".
 function notesTitle(date: Date = new Date()): string {
   const d = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
   const t = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return `Notes / ${d} / ${t}`;
-}
-
-/// Append live transcription as plain text into the editable notes. Appends
-/// immediately when the caret is at the end; otherwise buffers the text and
-/// flushes it later (when the caret returns to the end or on session stop) so
-/// editing is never disrupted.
-function commitNotesText(text: string): void {
-  if (!text) return;
-  const normalized = toSentenceCase(text);
-  if (isCaretAtEnd()) {
-    notesInput.value = notesInput.value ? notesInput.value + "\n" + normalized : normalized;
-    notesScrollToEnd();
-  } else {
-    pendingAppend.push(normalized);
-  }
 }
 
 /// Append any buffered final text once the caret is back at the end.
@@ -913,12 +894,25 @@ async function init(): Promise<void> {
 
   await listen<Segment>("transcript-update", (event) => {
     const { kind, text } = event.payload;
-    // Only finalized utterances become notes; partial live text is not shown
-    // (this is a notes app, not a live transcript view).
+    // The main panel is notes-only: never write raw transcription here. The
+    // transcript still feeds follow-up question detection.
     if (kind === "Final") {
-      commitNotesText(text);
       maybeGenerateQuestion(text, elapsedSec, nextNoteId++);
     }
+  });
+
+  // AI-generated meeting notes replace the raw transcript in the notes panel.
+  // The backend agent merges each new paragraph into the running notes document
+  // and returns the FULL updated doc, so we replace the editor content rather
+  // than append a block.
+  await listen<NotesUpdate>("notes-update", (event) => {
+    const notes = event.payload.text.trim();
+    if (!notes) return;
+    notesInput.value = notes;
+    notesScrollToEnd();
+    // Programmatic value writes don't fire the `input` event, so autosave the
+    // updated notes explicitly.
+    scheduleNotesSave();
   });
 
   await listen<number>("level", (event) => {

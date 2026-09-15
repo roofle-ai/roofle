@@ -1,4 +1,5 @@
 // roofle-app — thin Tauri 2 shell over roofle-core.
+mod ai;
 mod commands;
 mod models;
 mod state;
@@ -176,7 +177,10 @@ pub fn run() {
             commands::list_sessions,
             commands::get_session,
             commands::delete_session,
-            commands::save_notes
+            commands::save_notes,
+            commands::load_ai_config,
+            commands::save_ai_config,
+            commands::test_ai_connection
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

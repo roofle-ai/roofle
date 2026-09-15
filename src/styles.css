@@ -1370,6 +1370,21 @@ body {
   color: var(--faint);
 }
 
+.ai-settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.ai-test-result {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .settings-actions {
   display: flex;
   justify-content: flex-end;

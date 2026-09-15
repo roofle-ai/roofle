@@ -22,6 +22,38 @@
       </div>
     </section>
 
+    <section class="settings-section">
+      <h3 class="settings-section-title">AI (OpenAI-compatible)</h3>
+
+      <div class="settings-field">
+        <span class="settings-field-label">Base URL</span>
+        <label for="ai-base-url" class="settings-field-desc">
+          Any OpenAI-compatible endpoint (OpenAI, OpenRouter, Groq, Ollama…)
+        </label>
+        <input id="ai-base-url" type="text" class="settings-input" placeholder="https://api.openai.com/v1" />
+      </div>
+
+      <div class="settings-field">
+        <span class="settings-field-label">Model</span>
+        <label for="ai-model" class="settings-field-desc">e.g. gpt-4o, llama3.1</label>
+        <input id="ai-model" type="text" class="settings-input" placeholder="gpt-4o" />
+      </div>
+
+      <div class="settings-field">
+        <span class="settings-field-label">API key</span>
+        <label for="ai-api-key" class="settings-field-desc">
+          Stored in the OS keychain, never on disk
+        </label>
+        <input id="ai-api-key" type="password" class="settings-input" placeholder="sk-…" autocomplete="off" />
+        <p id="ai-key-state" class="settings-field-hint"></p>
+      </div>
+
+      <div class="ai-settings-actions">
+        <span id="ai-test-result" class="ai-test-result" role="status" aria-live="polite"></span>
+        <button id="ai-test" type="button" class="btn-ghost">Test connection</button>
+      </div>
+    </section>
+
     <div class="settings-actions">
       <button id="settings-cancel" type="button" class="btn-ghost">Cancel</button>
       <button id="settings-save" type="button" class="btn-primary">Save</button>
