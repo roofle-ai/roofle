@@ -59,9 +59,16 @@ fn tray_action(app: &tauri::AppHandle, action: TrayAction) {
             TrayAction::Start => {
                 let source = state.last_source.lock().unwrap().clone();
                 // The tray always starts a fresh session (None = new).
-                commands::start_recording(app.clone(), state, source, None)
+                tauri::async_runtime::block_on(commands::start_recording(
+                    app.clone(),
+                    state,
+                    source,
+                    None,
+                ))
             }
-            TrayAction::Stop => commands::stop_recording(app.clone(), state),
+            TrayAction::Stop => {
+                tauri::async_runtime::block_on(commands::stop_recording(app.clone(), state))
+            }
         };
         if let Err(e) = result {
             let _ = app.emit("app-status", format!("tray: {e}"));
@@ -106,12 +113,24 @@ pub fn run() {
             // Spawn the engine thread (owns the non-Send Pipeline) and expose a
             // control handle + model manager as managed state.
             let tx = commands::spawn_engine(app.handle().clone());
-            let models = models::ModelManager::new(models::ModelManager::resolve_root());
+
+            // Resolve the writable app-data dir. Models are stored here (not
+            // relative to the working directory, which is read-only in a
+            // packaged .app), and the transcript DB lives alongside.
+            let app_data_dir = app.path().app_data_dir()?;
+            // Prefer models bundled inside the app resources (no runtime
+            // download when present); fall back to the writable app-data dir.
+            let bundled_models = app
+                .path()
+                .resource_dir()
+                .ok()
+                .map(|rd| rd.join("models"));
+            let models =
+                models::ModelManager::with_bundled(app_data_dir.join("models"), bundled_models);
 
             // Open (or create) the transcript DB in the app data dir. WAL +
             // migrations run in `SqliteStorage::open`; a failure is fatal
             // because every recording now persists here.
-            let app_data_dir = app.path().app_data_dir()?;
             let storage = SqliteStorage::open(&app_data_dir.join("roofle.db"))?;
 
             app.manage(state::AppState::new(tx, models, storage));

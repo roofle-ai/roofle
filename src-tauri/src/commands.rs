@@ -88,10 +88,13 @@ pub enum Control {
 
 /// Start recording on `source`. Returns an error string on failure. On success
 /// the recording state is published (tray menu + `recording-state` event).
+///
+/// Async so the (potentially slow) first-run model download + load on the
+/// engine thread does not block the main/UI thread.
 #[tauri::command]
-pub fn start_recording(
+pub async fn start_recording(
     app: AppHandle,
-    state: tauri::State<AppState>,
+    state: tauri::State<'_, AppState>,
     source: SourceKind,
     session_id: Option<i64>,
 ) -> Result<(), String> {
@@ -113,7 +116,10 @@ pub fn start_recording(
 /// Stop the current recording, if any. On success the recording state is
 /// cleared (tray menu + `recording-state` event).
 #[tauri::command]
-pub fn stop_recording(app: AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+pub async fn stop_recording(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
     let result = request(state, |reply| Control::Stop { reply });
     if result.is_ok() {
         crate::set_recording_state(&app, false);
@@ -125,13 +131,13 @@ pub fn stop_recording(app: AppHandle, state: tauri::State<AppState>) -> Result<(
 /// session, so transcription pauses without flushing the transcript or ending
 /// the session.
 #[tauri::command]
-pub fn pause_recording(state: tauri::State<AppState>) -> Result<(), String> {
+pub async fn pause_recording(state: tauri::State<'_, AppState>) -> Result<(), String> {
     request(state, |reply| Control::Pause { reply })
 }
 
 /// Resume a paused recording, continuing the same ASR session and transcript.
 #[tauri::command]
-pub fn resume_recording(state: tauri::State<AppState>) -> Result<(), String> {
+pub async fn resume_recording(state: tauri::State<'_, AppState>) -> Result<(), String> {
     request(state, |reply| Control::Resume { reply })
 }
 
@@ -434,6 +440,37 @@ fn log_llm_exchange(system: &str, user: &str, result: &Result<String, String>) {
         .and_then(|mut f| f.write_all(block.as_bytes()));
 }
 
+/// Disposable dev aid: when `ROOFLE_LOG_AI` is on, append each finalized
+/// transcription line to a timestamped text file in the project root, so ASR
+/// quality can be inspected offline. Remove together with its caller when no
+/// longer needed.
+fn log_transcription(text: &str) {
+    if !logging_enabled() {
+        return;
+    }
+    // One log file per run, named by the millisecond timestamp of the first line.
+    static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
+    let file = LOG_FILE.get_or_init(|| {
+        // Project root = parent of the src-tauri crate dir (compile-time).
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap_or(Path::new("."));
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        root.join(format!("roofle-transcript-{stamp}.log"))
+    });
+
+    let stamp = Utc::now().to_rfc3339();
+    let line = format!("[{stamp}] {text}\n");
+    let _ = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(file)
+        .and_then(|mut f| f.write_all(line.as_bytes()));
+}
+
 /// Run the two-agent notes update for one paragraph boundary and emit the
 /// resulting notes document to the UI. Runs on a detached worker thread so a
 /// slow provider never blocks the engine loop. Every step is logged to stderr
@@ -709,10 +746,15 @@ fn start_pipeline(
         }
     };
 
+    // The offline Whisper default needs the Silero VAD to segment the stream
+    // into clean utterances before decoding.
+    let vad_model = state.models.ensure_vad(app)?;
+
     let mut pipeline = Pipeline::new(PipelineConfig {
         model_dir,
         source,
         ring_capacity: Some(ring_capacity),
+        vad_model: Some(vad_model),
     })
     .map_err(|e| e.to_string())?;
     pipeline.start().map_err(|e| e.to_string())?;
@@ -812,6 +854,9 @@ fn forward_events(
     for segment in p.events().try_iter() {
         let _ = app.emit(EVENT_TRANSCRIPT, segment.clone());
         if segment.kind == roofle_core::asr::SegmentKind::Final {
+            // Debug aid: mirror each finalized utterance to a local text file
+            // when ROOFLE_LOG_AI=1 (never in production).
+            log_transcription(&segment.text);
             let start_secs = offset + start.elapsed().saturating_sub(paused_total).as_secs_f64();
             app.state::<AppState>().transcript.lock().unwrap().push(TranscriptCue {
                 start_secs,

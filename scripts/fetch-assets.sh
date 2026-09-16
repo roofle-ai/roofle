@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# Download the S5/S6 development model and its bundled test WAVs.
+# Download the development ASR model and its bundled test WAVs.
 #
-# The model is a streaming Zipformer-Transducer for English:
-#   sherpa-onnx-streaming-zipformer-en-20M-2023-02-17
-# (int8 encoder ~43 MB + small decoder/joiner + tokens.txt + test WAVs).
+# The model is an exported (offline) Whisper `base.en`:
+#   sherpa-onnx-whisper-base.en
+# (encoder + decoder + tokens.txt + test WAVs). Whisper gives much higher
+# accuracy than the earlier streaming Zipformer-Transducer models, at the cost
+# of being offline: core::asr buffers ~28 s windows and decodes each one.
 # Source: the official k2-fsa/sherpa-onnx pretrained-model releases.
 #
 # Artifacts land under ./assets/ (gitignored — never committed):
-#   assets/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17/
+#   assets/models/sherpa-onnx-whisper-base.en/
 #   assets/wavs/0.wav  assets/wavs/1.wav  assets/wavs/8k.wav
 #
 # Idempotent: skips the download if the model directory already exists.
 #
-# Verify S5 afterwards with:
+# Verify afterwards with:
 #   cargo run -p roofle-cli -- transcribe --wav assets/wavs/0.wav
 set -euo pipefail
 
-MODEL="sherpa-onnx-streaming-zipformer-en-20M-2023-02-17"
+MODEL="sherpa-onnx-whisper-base.en"
 URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/${MODEL}.tar.bz2"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -31,6 +33,17 @@ else
   curl -L --fail -o "/tmp/${MODEL}.tar.bz2" "$URL"
   tar -xjf "/tmp/${MODEL}.tar.bz2" -C "$ROOT/assets/models"
   echo "Extracted to $MODEL_DIR"
+fi
+
+# The offline Whisper engine routes audio through a Silero VAD (segmenting the
+# stream into clean speech utterances) before decoding, so fetch it too.
+VAD="$ROOT/assets/models/silero_vad.onnx"
+if [[ -f "$VAD" ]]; then
+  echo "VAD already present: $VAD"
+else
+  echo "Downloading silero_vad.onnx ..."
+  curl -L --fail -o "$VAD" \
+    "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx"
 fi
 
 mkdir -p "$WAV_DIR"

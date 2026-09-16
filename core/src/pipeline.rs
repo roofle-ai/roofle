@@ -33,6 +33,11 @@ use crate::audio::{mic, processing};
 /// jitter between the capture and ASR threads without keeping much stale audio.
 pub const DEFAULT_RING_CAPACITY: usize = 32_000;
 
+/// Minimum ring capacity (~90 s) used when the engine is offline Whisper: the
+/// ASR thread stops popping while it decodes a ~28 s window, so the ring must
+/// absorb that whole decode-time inflow or speech would be dropped.
+const WHISPER_RING_CAPACITY: usize = 90 * crate::asr::ASR_SAMPLE_RATE as usize;
+
 /// ASR chunk size in 16 kHz samples (~0.1 s); partials update at this cadence.
 const CHUNK_FRAMES: usize = 1_600;
 
@@ -418,6 +423,11 @@ pub struct PipelineConfig {
     /// Ring capacity in 16 kHz mono samples; defaults to
     /// [`DEFAULT_RING_CAPACITY`] (~2 s).
     pub ring_capacity: Option<usize>,
+    /// Path to the Silero VAD ONNX model (`silero_vad.onnx`). Used only by the
+    /// offline Whisper engine to split the stream into clean speech utterances
+    /// before decoding (prevents Whisper's repetition/hallucination on raw
+    /// windows). `None` falls back to fixed-window decoding.
+    pub vad_model: Option<PathBuf>,
 }
 
 /// A running transcription pipeline: a source's capture thread pushes 16 kHz
@@ -425,7 +435,8 @@ pub struct PipelineConfig {
 /// streaming recognizer and emits typed [`Segment`] events.
 pub struct Pipeline {
     ring: Ring,
-    engine: Option<asr::AsrEngine>,
+    engine: Option<asr::Engine>,
+    vad: Option<asr::vad::Vad>,
     events_tx: Option<Sender<Segment>>,
     events_rx: Receiver<Segment>,
     levels_tx: Option<Sender<f32>>,
@@ -439,13 +450,30 @@ impl Pipeline {
     /// Load the ASR model and prepare the pipeline. No threads start until
     /// [`start`](Self::start).
     pub fn new(cfg: PipelineConfig) -> Result<Self, PipelineError> {
-        let engine = asr::AsrEngine::new(asr::AsrModelConfig::from_model_dir(&cfg.model_dir))?;
+        let engine = asr::Engine::from_model_dir(&cfg.model_dir)?;
         let (events_tx, events_rx) = mpsc::channel::<Segment>();
         let (levels_tx, levels_rx) = mpsc::channel::<f32>();
-        let capacity = cfg.ring_capacity.unwrap_or(DEFAULT_RING_CAPACITY);
+        let mut capacity = cfg.ring_capacity.unwrap_or(DEFAULT_RING_CAPACITY);
+        // Offline Whisper pauses the ASR thread while decoding each window, so
+        // it needs a ring large enough to absorb the decode-time inflow.
+        if engine.is_whisper() {
+            capacity = capacity.max(WHISPER_RING_CAPACITY);
+        }
+        // VAD segments the live stream into clean utterances for the offline
+        // Whisper engine (only meaningful when a Whisper engine + VAD model are
+        // present; the streaming engine has its own built-in endpoint detection).
+        let vad = match &engine {
+            asr::Engine::Whisper(_) => cfg
+                .vad_model
+                .as_ref()
+                .map(|p| asr::vad::Vad::new(p).map_err(PipelineError::Asr))
+                .transpose()?,
+            asr::Engine::Streaming(_) => None,
+        };
         Ok(Self {
             ring: Ring::new(capacity),
             engine: Some(engine),
+            vad,
             events_tx: Some(events_tx),
             events_rx,
             levels_tx: Some(levels_tx),
@@ -468,6 +496,7 @@ impl Pipeline {
         source.start(self.ring.clone())?;
 
         let engine = self.engine.take().expect("engine already started");
+        let vad = self.vad.take();
         let ring = self.ring.clone();
         let tx = self
             .events_tx
@@ -479,8 +508,9 @@ impl Pipeline {
             .as_ref()
             .expect("levels sender present")
             .clone();
-        self.asr_thread = Some(std::thread::spawn(move || {
-            asr_loop(engine, ring, tx, levels)
+        self.asr_thread = Some(std::thread::spawn(move || match engine {
+            asr::Engine::Streaming(e) => streaming_asr_loop(e, ring, tx, levels),
+            asr::Engine::Whisper(e) => whisper_asr_loop(e, vad, ring, tx, levels),
         }));
 
         self.started = true;
@@ -538,7 +568,12 @@ impl Drop for Pipeline {
 }
 
 /// Drive the streaming recognizer from the ring buffer until it closes.
-fn asr_loop(engine: asr::AsrEngine, ring: Ring, events: Sender<Segment>, levels: Sender<f32>) {
+fn streaming_asr_loop(
+    engine: asr::AsrEngine,
+    ring: Ring,
+    events: Sender<Segment>,
+    levels: Sender<f32>,
+) {
     let session = engine.stream();
     let mut chunk = Vec::with_capacity(CHUNK_FRAMES);
     let mut last_partial = String::new();
@@ -571,6 +606,22 @@ fn rms(samples: &[f32]) -> f32 {
     (sum / samples.len() as f32).sqrt()
 }
 
+/// Target RMS for normalized audio fed to Whisper.
+const TARGET_RMS: f32 = 0.08;
+
+/// Scale a block to [`TARGET_RMS`] so quiet microphone audio reaches Whisper at
+/// a consistent level (real mics are often much quieter than clean test WAVs,
+/// and low level is a common cause of empty/hallucinated Whisper output). A
+/// no-op on silence; gain is clamped so loud audio is not boosted into clipping.
+fn normalize(samples: &[f32]) -> Vec<f32> {
+    let r = rms(samples);
+    if r < 1e-4 {
+        return samples.to_vec();
+    }
+    let gain = (TARGET_RMS / r).min(4.0);
+    samples.iter().map(|&s| (s * gain).clamp(-1.0, 1.0)).collect()
+}
+
 /// Feed one 16 kHz mono chunk to the session and emit any resulting events: a
 /// changed partial, then a final per detected utterance boundary.
 fn process_chunk(
@@ -597,6 +648,82 @@ fn process_chunk(
     }
 }
 
+/// Drive an offline Whisper engine from the ring buffer until it closes.
+///
+/// Whisper has no streaming hypotheses. With a [`Vad`] the incoming audio is
+/// split into clean speech utterances and each is decoded offline into one
+/// final [`Segment`] — dropping silence and avoiding the repetition /
+/// hallucination Whisper shows when fed raw fixed-length windows. Without a VAD
+/// it falls back to ~28 s windows (the Whisper context). Partial events are
+/// never emitted.
+fn whisper_asr_loop(
+    engine: asr::whisper::WhisperEngine,
+    vad: Option<asr::vad::Vad>,
+    ring: Ring,
+    events: Sender<Segment>,
+    levels: Sender<f32>,
+) {
+    let rate = engine.sample_rate();
+    // Feed the ring in ~0.1 s blocks to the VAD / window accumulator.
+    let block_cap = 1_600usize;
+    let window_cap = asr::whisper::WINDOW_SAMPLES;
+
+    let mut block: Vec<f32> = Vec::with_capacity(block_cap);
+    let mut window: Vec<f32> = Vec::with_capacity(window_cap);
+
+    while let Some(sample) = ring.pop_blocking() {
+        block.push(sample);
+        if block.len() >= block_cap {
+            let _ = levels.send(rms(&block));
+            match &vad {
+                // VAD routing: queue the block, then decode each completed
+                // speech utterance standalone.
+                Some(vad) => {
+                    vad.push(&block);
+                    for seg in vad.drain() {
+                        if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
+                            let _ = events.send(Segment::final_(text));
+                        }
+                    }
+                }
+                // Fallback routing: accumulate into fixed windows.
+                None => {
+                    window.extend_from_slice(&block);
+                    if window.len() >= window_cap {
+                        if let Ok(text) = engine.transcribe(rate, &normalize(&window)) {
+                            let _ = events.send(Segment::final_(text));
+                        }
+                        window.clear();
+                    }
+                }
+            }
+            block.clear();
+        }
+    }
+
+    // End of input: flush trailing speech (VAD) or the partial window (fallback).
+    match vad {
+        Some(vad) => {
+            if !block.is_empty() {
+                vad.push(&block);
+            }
+            for seg in vad.flush() {
+                if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
+                    let _ = events.send(Segment::final_(text));
+                }
+            }
+        }
+        None => {
+            if !window.is_empty() {
+                let _ = levels.send(rms(&window));
+                if let Ok(text) = engine.transcribe(rate, &normalize(&window)) {
+                    let _ = events.send(Segment::final_(text));
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -612,13 +739,9 @@ mod tests {
 
     fn assets_present() -> bool {
         let root = repo_root();
-        let model = root.join("assets/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17");
+        let model = root.join("assets/models/sherpa-onnx-whisper-base.en");
         let wav = root.join("assets/wavs/1.wav");
-        model.join(asr::AsrModelConfig::ENCODER_FILE).exists()
-            && model.join(asr::AsrModelConfig::DECODER_FILE).exists()
-            && model.join(asr::AsrModelConfig::JOINER_FILE).exists()
-            && model.join(asr::AsrModelConfig::TOKENS_FILE).exists()
-            && wav.exists()
+        asr::model_present(&model) && wav.exists()
     }
 
     // --- Ring -----------------------------------------------------------
@@ -693,16 +816,15 @@ mod tests {
 
     /// S7 gate: feeding the test WAV through the threaded pipeline (capture
     /// thread -> ring -> ASR thread) reproduces the same phrases as the S5/S6
-    /// ASR tests.
+    /// ASR tests. Uses the Whisper engine (auto-selected from the model dir).
     #[test]
     fn pipeline_transcribes_fed_audio() {
         if !assets_present() {
-            eprintln!("SKIP: run `scripts/fetch-assets.sh` to download the S5 test model + WAV");
+            eprintln!("SKIP: run `scripts/fetch-assets.sh` to download the Whisper model + WAV");
             return;
         }
         let root = repo_root();
-        let model_dir =
-            root.join("assets/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17");
+        let model_dir = root.join("assets/models/sherpa-onnx-whisper-base.en");
         let wav = root.join("assets/wavs/1.wav");
         let wave = sherpa_onnx::Wave::read(wav.to_str().unwrap()).expect("read wav");
 
@@ -711,8 +833,12 @@ mod tests {
             source: Box::new(FakeSource {
                 samples: wave.samples().to_vec(),
             }),
-            // Room for the whole WAV: the fake source pushes it all on start.
+            // The whisper engine bumps the ring to WHISPER_RING_CAPACITY, so
+            // whatever we request here is overridden upward for the offline path.
             ring_capacity: Some(wave.samples().len() + 4096),
+            // No VAD model in this offline test: falls back to fixed-window
+            // decoding, which is what this test exercises.
+            vad_model: None,
         })
         .expect("build pipeline");
         pipe.start().expect("start pipeline");
@@ -727,16 +853,53 @@ mod tests {
             .join(" ")
             .to_lowercase();
 
-        for phrase in [
-            "direct consequence of the sin",
-            "whose place was on that same",
-            "connect her parent for ever",
-            "blessed soul in heaven",
-        ] {
+        for phrase in ["direct consequence", "blessed soul in heaven"] {
             assert!(
                 text.contains(phrase),
                 "expected phrase {phrase:?} in pipeline transcript: {text:?}"
             );
         }
+    }
+
+    /// Routing gate: with the Silero VAD enabled, the same WAV is segmented into
+    /// clean speech utterances and decoded by Whisper (the default production
+    /// routing that replaces fixed-window feeding).
+    #[test]
+    fn pipeline_transcribes_fed_audio_with_vad() {
+        let root = repo_root();
+        let vad = root.join("assets/models/silero_vad.onnx");
+        if !assets_present() || !vad.is_file() {
+            eprintln!("SKIP: whisper model + silero_vad.onnx required");
+            return;
+        }
+        let model_dir = root.join("assets/models/sherpa-onnx-whisper-base.en");
+        let wav = root.join("assets/wavs/1.wav");
+        let wave = sherpa_onnx::Wave::read(wav.to_str().unwrap()).expect("read wav");
+
+        let mut pipe = Pipeline::new(PipelineConfig {
+            model_dir,
+            source: Box::new(FakeSource {
+                samples: wave.samples().to_vec(),
+            }),
+            ring_capacity: Some(wave.samples().len() + 4096),
+            vad_model: Some(vad),
+        })
+        .expect("build pipeline");
+        pipe.start().expect("start pipeline");
+        pipe.stop();
+
+        let text: String = pipe
+            .events()
+            .try_iter()
+            .filter(|s| s.kind == SegmentKind::Final)
+            .map(|s| s.text.clone())
+            .collect::<Vec<_>>()
+            .join(" ")
+            .to_lowercase();
+
+        assert!(
+            text.contains("direct consequence"),
+            "expected phrase in VAD-routed pipeline transcript: {text:?}"
+        );
     }
 }

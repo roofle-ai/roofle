@@ -20,7 +20,7 @@ use roofle_core::pipeline;
 
 /// Default streaming Zipformer-Transducer model (English, int8), downloaded by
 /// `scripts/fetch-assets.sh`. See `design.md` Rev 2.2 for why it is the default.
-const DEFAULT_MODEL_DIR: &str = "assets/models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17";
+const DEFAULT_MODEL_DIR: &str = "assets/models/sherpa-onnx-whisper-base.en";
 
 /// Default amplitude gain applied to captured audio (no-op at 1.0).
 const DEFAULT_GAIN: f32 = 1.0;
@@ -73,30 +73,14 @@ fn print_segment(out: &mut dyn Write, kind: SegmentKind, text: &str) -> io::Resu
     out.flush()
 }
 
-/// Offline ASR over a WAV file (S5 gate: correct transcript output).
+/// Offline ASR over a WAV file. The engine (Whisper or streaming) is selected
+/// automatically from the model directory's file layout.
 fn cmd_transcribe(args: &[String]) -> Result<(), Box<dyn Error>> {
     let wav = flag_value(args, "--wav").ok_or("missing --wav <path>")?;
     let model_dir = flag_value(args, "--model-dir").unwrap_or(DEFAULT_MODEL_DIR);
 
-    let mut cfg = asr::AsrModelConfig::from_model_dir(model_dir);
-    if let Some(v) = flag_value(args, "--provider") {
-        cfg.provider = v.to_string();
-    }
-    if let Some(v) = flag_value(args, "--encoder") {
-        cfg.encoder = v.into();
-    }
-    if let Some(v) = flag_value(args, "--decoder") {
-        cfg.decoder = v.into();
-    }
-    if let Some(v) = flag_value(args, "--joiner") {
-        cfg.joiner = v.into();
-    }
-    if let Some(v) = flag_value(args, "--tokens") {
-        cfg.tokens = v.into();
-    }
-
-    println!("Loading streaming ASR model from: {model_dir}");
-    let engine = asr::AsrEngine::new(cfg)?;
+    println!("Loading ASR model from: {model_dir}");
+    let engine = asr::Engine::from_model_dir(model_dir)?;
     println!("Transcribing: {wav}");
     let transcript = engine.transcribe_wav(wav)?;
     println!("Transcript: {transcript}");
@@ -123,6 +107,10 @@ fn cmd_stream(args: &[String]) -> Result<(), Box<dyn Error>> {
         model_dir: model_dir.into(),
         source: Box::new(source),
         ring_capacity: None,
+        // Silero VAD segments the stream into clean utterances before the
+        // offline Whisper engine decodes them (same routing the original
+        // Roofle used). Required for the default Whisper model.
+        vad_model: Some("assets/models/silero_vad.onnx".into()),
     })?;
     println!("Transcribing — speak now, Ctrl-C to stop");
     pipe.start()?;

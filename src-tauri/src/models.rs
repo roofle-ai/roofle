@@ -16,7 +16,7 @@ use bzip2::read::BzDecoder;
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
-use roofle_core::asr::AsrModelConfig;
+use roofle_core::asr;
 
 /// Event emitted with [`ModelProgress`] while a model downloads.
 pub const EVENT_MODEL_PROGRESS: &str = "model-progress";
@@ -38,9 +38,9 @@ pub struct ModelCatalogEntry {
 /// The catalog. S13 ships the S6-selected default; add entries here (with a
 /// pinned `sha256`) to offer more models in the UI.
 pub const CATALOG: &[ModelCatalogEntry] = &[ModelCatalogEntry {
-    id: "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
-    label: "Streaming Zipformer EN 20M (default, fastest)",
-    url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
+    id: "sherpa-onnx-whisper-base.en",
+    label: "Whisper base.en (offline, higher accuracy)",
+    url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2",
     sha256: None,
 }];
 
@@ -64,39 +64,35 @@ pub struct ModelProgress {
 /// Tauri managed state.
 pub struct ModelManager {
     root: PathBuf,
+    /// Read-only bundled model root inside the app resources (macOS
+    /// `Contents/Resources/models`). When a model is present here it is used
+    /// directly and never downloaded.
+    bundled: Option<PathBuf>,
 }
 
 impl ModelManager {
-    /// `models_root` is the `assets/models` directory.
-    pub fn new(models_root: PathBuf) -> Self {
-        Self { root: models_root }
-    }
-
-    /// Resolve `assets/models` by walking up from the working directory (the
-    /// repo root during `tauri dev`), creating it if missing.
-    pub fn resolve_root() -> PathBuf {
-        let mut dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        loop {
-            let candidate = dir.join("assets").join("models");
-            if candidate.is_dir() {
-                return candidate;
-            }
-            if !dir.pop() {
-                break;
-            }
+    /// `models_root` is the writable directory the app stores (and downloads)
+    /// models in; `bundled` is an optional read-only resource root to prefer.
+    pub fn with_bundled(models_root: PathBuf, bundled: Option<PathBuf>) -> Self {
+        Self {
+            root: models_root,
+            bundled,
         }
-        std::env::current_dir()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .join("assets")
-            .join("models")
     }
 
     pub fn root(&self) -> &Path {
         &self.root
     }
 
-    /// Directory a model is (or will be) unpacked into.
+    /// Directory a model lives in, preferring the bundled resource copy when it
+    /// is present on disk (read-only); otherwise the writable download root.
     pub fn model_dir(&self, id: &str) -> PathBuf {
+        if let Some(b) = &self.bundled {
+            let bundled = b.join(id);
+            if asr::model_present(&bundled) {
+                return bundled;
+            }
+        }
         self.root.join(id)
     }
 
@@ -112,17 +108,10 @@ impl ModelManager {
             .collect()
     }
 
-    /// Whether all files of a model are present on disk.
+    /// Whether all files of a model are present on disk (Whisper or streaming).
     pub fn present(&self, id: &str) -> bool {
         let dir = self.model_dir(id);
-        [
-            AsrModelConfig::ENCODER_FILE,
-            AsrModelConfig::DECODER_FILE,
-            AsrModelConfig::JOINER_FILE,
-            AsrModelConfig::TOKENS_FILE,
-        ]
-        .iter()
-        .all(|f| dir.join(f).is_file())
+        asr::model_present(&dir)
     }
 
     /// Ensure a model is downloaded, verified and unpacked. Emits
@@ -147,6 +136,60 @@ impl ModelManager {
             return Err("model extracted but files are incomplete".to_string());
         }
         Ok(dir)
+    }
+
+    /// Ensure the shared Silero VAD model (`silero_vad.onnx`) is present,
+    /// downloading it to the models root if missing. Returns its path.
+    ///
+    /// The offline Whisper engine uses VAD to split the stream into clean
+    /// speech utterances before decoding (prevents Whisper hallucination on
+    /// raw windows), so this is required for the Whisper default model.
+    pub fn ensure_vad(&self, app: &AppHandle) -> Result<PathBuf, String> {
+        // Prefer the bundled VAD shipped inside the app resources.
+        if let Some(b) = &self.bundled {
+            let bundled = b.join("silero_vad.onnx");
+            if bundled.is_file() {
+                return Ok(bundled);
+            }
+        }
+        let path = self.root.join("silero_vad.onnx");
+        if path.is_file() {
+            return Ok(path);
+        }
+        std::fs::create_dir_all(&self.root).map_err(|e| format!("create models dir: {e}"))?;
+
+        let url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx";
+        let resp = ureq::get(url)
+            .call()
+            .map_err(|e| format!("VAD download failed: {e}"))?;
+        let total = resp
+            .header("Content-Length")
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(0);
+
+        let mut reader = resp.into_reader();
+        let mut file = std::fs::File::create(&path).map_err(|e| format!("VAD file: {e}"))?;
+        let mut buf = [0u8; 64 * 1024];
+        let mut downloaded: u64 = 0;
+        loop {
+            let n = reader.read(&mut buf).map_err(|e| format!("VAD read: {e}"))?;
+            if n == 0 {
+                break;
+            }
+            file.write_all(&buf[..n]).map_err(|e| format!("VAD write: {e}"))?;
+            downloaded += n as u64;
+            if total > 0 {
+                let _ = app.emit(
+                    EVENT_MODEL_PROGRESS,
+                    ModelProgress {
+                        id: "silero_vad.onnx".to_string(),
+                        downloaded,
+                        total,
+                    },
+                );
+            }
+        }
+        Ok(path)
     }
 
     /// Download the model archive to a temp file, hashing + emitting progress.
@@ -223,7 +266,60 @@ impl ModelManager {
         std::fs::create_dir_all(dir).map_err(|e| format!("create model dir: {e}"))?;
         let file = std::fs::File::open(archive).map_err(|e| format!("open archive: {e}"))?;
         let mut tar = tar::Archive::new(BzDecoder::new(file));
-        tar.unpack(dir).map_err(|e| format!("extract: {e}"))
+        tar.unpack(dir).map_err(|e| format!("extract: {e}"))?;
+        // Most sherpa-onnx releases wrap the files in a single top-level folder
+        // named after the model (e.g. `sherpa-onnx-whisper-base.en/`). Flatten
+        // it so the model files land directly under `dir`, which is what
+        // `present()` and the ASR engine expect.
+        flatten_single_subdir(dir);
+        Ok(())
+    }
+}
+
+/// If `dir` contains exactly one entry and it is a directory, move that
+/// directory's contents up into `dir` and remove the now-empty subdirectory.
+fn flatten_single_subdir(dir: &Path) {
+    let entries: Vec<PathBuf> = std::fs::read_dir(dir)
+        .map(|rd| rd.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default();
+    if entries.len() != 1 {
+        return;
+    }
+    let sub = match entries.first() {
+        Some(p) if p.is_dir() => p.clone(),
+        _ => return,
+    };
+    if let Ok(child_entries) = std::fs::read_dir(&sub) {
+        for child in child_entries.flatten() {
+            let dest = dir.join(child.file_name());
+            // Prefer a cheap rename; fall back to copy+remove for cross-device.
+            if std::fs::rename(child.path(), &dest).is_err() {
+                if let Ok(meta) = std::fs::metadata(child.path()) {
+                    if meta.is_dir() {
+                        copy_dir(child.path().as_path(), &dest);
+                    } else if let Ok(data) = std::fs::read(child.path()) {
+                        let _ = std::fs::write(&dest, data);
+                    }
+                }
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&sub);
+}
+
+/// Recursively copy a directory tree.
+fn copy_dir(src: &Path, dst: &Path) {
+    let _ = std::fs::create_dir_all(dst);
+    if let Ok(entries) = std::fs::read_dir(src) {
+        for entry in entries.flatten() {
+            let from = entry.path();
+            let to = dst.join(entry.file_name());
+            if from.is_dir() {
+                copy_dir(&from, &to);
+            } else if let Ok(data) = std::fs::read(&from) {
+                let _ = std::fs::write(&to, data);
+            }
+        }
     }
 }
 
@@ -234,7 +330,7 @@ mod tests {
     /// The catalog always has a default model and `list` reports its state.
     #[test]
     fn catalog_lists_default_model() {
-        let manager = ModelManager::new(PathBuf::from("/nonexistent"));
+        let manager = ModelManager::with_bundled(PathBuf::from("/nonexistent"), None);
         let models = manager.list();
         assert!(!models.is_empty());
         assert_eq!(models[0].id, CATALOG[0].id);
