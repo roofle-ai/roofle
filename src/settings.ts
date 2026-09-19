@@ -1,7 +1,7 @@
 // Settings — Live Session Settings (glossary) + AI client configuration.
-// Owns its modal HTML partial, persists the char-limit to localStorage, and
-// routes the AI config to the Rust-side keychain-backed store.
-import { loadAiConfig, saveAiConfig, testAiConnection } from "./ai";
+// Owns its modal HTML partial, persists the char-limit and the AI API key to
+// localStorage, and routes the non-secret AI config to the Rust-side store.
+import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import settingsHtml from "./ui/partials/settings.html?raw";
 
 export interface LiveSessionSettings {
@@ -67,7 +67,7 @@ async function runAiTest(): Promise<void> {
   aiTestResult.textContent = "Testing…";
   try {
     await saveAiConfigFields();
-    const reply = await testAiConnection();
+    const reply = await testAiConnection(loadStoredApiKey());
     aiTestResult.textContent = `OK — model replied: ${reply}`;
   } catch (err) {
     aiTestResult.textContent = `Failed: ${String(err)}`;

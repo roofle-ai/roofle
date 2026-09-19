@@ -29,6 +29,7 @@ import {
   Sun,
   Trash,
 } from "lucide";
+import { loadStoredApiKey } from "./ai";
 import { openSettings } from "./settings";
 import { deleteSession, getSession, listSessions, saveNotes } from "./transcripts";
 import "./ui";
@@ -141,6 +142,10 @@ let elapsedSec = 0;
 let toastTimer: number | undefined;
 let viewedSessionId: number | null = null;
 
+/// First words of the live transcription, used for the main-panel title once
+/// speech arrives. Cleared whenever the viewed session changes.
+let titleFromTranscript: string | undefined;
+
 let pendingAppend: string[] = [];
 let nextNoteId = 0;
 let notesSaveTimer: number | undefined;
@@ -219,8 +224,20 @@ function notesScrollToEnd(): void {
   notesInput.scrollTop = notesInput.scrollHeight;
 }
 
-/// The main panel title: "Notes / <date> / <time>".
+/// Number of leading words to show in the main-panel title (mirrors the
+/// history-list preview length).
+const TITLE_WORDS = 10;
+
+/// First `max` whitespace-separated words of `text`.
+function previewWords(text: string, max: number = TITLE_WORDS): string {
+  return text.split(/\s+/).filter(Boolean).slice(0, max).join(" ");
+}
+
+/// The main-panel title. Once live transcription arrives it shows the first few
+/// words of the transcript (same signal as the history preview); before any
+/// speech it falls back to "Notes / <date> / <time>".
 function notesTitle(date: Date = new Date()): string {
+  if (titleFromTranscript) return titleFromTranscript;
   const d = date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
   const t = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return `Notes / ${d} / ${t}`;
@@ -559,6 +576,7 @@ function clearTranscriptUI(): void {
   pendingAppend = [];
   nextNoteId = 0;
   notesInput.value = "";
+  titleFromTranscript = undefined;
   resetQuestions();
   setAnalysisMode(false);
 }
@@ -689,10 +707,15 @@ async function openSession(id: number): Promise<void> {
     if (!detail) return;
 
     viewedSessionId = id;
-    chatTitle.textContent = notesTitle(new Date(detail.session.started_at));
 
     // Clear the live notes + questions, then load the stored notes document.
     clearTranscriptUI();
+    // Title: for a session with existing transcription, show its first words
+    // (same as the history preview); otherwise fall back to the placeholder.
+    titleFromTranscript = detail.transcript?.trim()
+      ? previewWords(detail.transcript)
+      : undefined;
+    chatTitle.textContent = notesTitle(new Date(detail.session.started_at));
     notesInput.value = detail.notes ?? "";
 
     // Regenerate follow-up questions from the stored segments (right panel).
@@ -745,7 +768,11 @@ async function start(): Promise<void> {
     }
     resetQuestions();
     setAnalysisMode(false);
-    await invoke("start_recording", { source: "both", sessionId: continueId });
+    await invoke("start_recording", {
+      source: "both",
+      sessionId: continueId,
+      apiKey: loadStoredApiKey(),
+    });
     if (continueId === null) {
       await resolveActiveSession();
     }
@@ -898,6 +925,12 @@ async function init(): Promise<void> {
     // transcript still feeds follow-up question detection.
     if (kind === "Final") {
       maybeGenerateQuestion(text, elapsedSec, nextNoteId++);
+      // Title: once speech arrives, show the first words of the transcription
+      // (same signal as the history preview) instead of the blank placeholder.
+      if (!titleFromTranscript && text.trim()) {
+        titleFromTranscript = previewWords(text);
+        chatTitle.textContent = titleFromTranscript;
+      }
     }
   });
 

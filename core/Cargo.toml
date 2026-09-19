@@ -21,4 +21,13 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+# Pure-Rust bindings to the Apple Objective-C runtime and frameworks. These
+# drive AVAudioEngine (mic) directly from Rust, replacing the cpal mic backend
+# (which returns silence on this machine). System audio keeps the
+# screencapturekit crate, which already works.
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-avf-audio = "0.3"
+objc2-core-audio-types = "0.3"
+block2 = "0.6"
 screencapturekit = "1"

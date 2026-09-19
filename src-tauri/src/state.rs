@@ -50,6 +50,10 @@ pub struct AppState {
     /// The running AI notes document per session (the agent merges each new
     /// paragraph into this, replacing it wholesale on every `notes-update`).
     pub notes: Mutex<HashMap<i64, String>>,
+    /// The effective API key for live notes, supplied by the renderer (from
+    /// its localStorage) when a recording starts; the `ROOFLE_LOCAL_KEY` env
+    /// var overrides it. Rust never persists this.
+    pub api_key: Mutex<String>,
 }
 
 impl AppState {
@@ -68,6 +72,7 @@ impl AppState {
             last_source: Mutex::new(SourceKind::Both),
             tray: Mutex::new(None),
             storage,
+            api_key: Mutex::new(String::new()),
             notes: Mutex::new(HashMap::new()),
         }
     }

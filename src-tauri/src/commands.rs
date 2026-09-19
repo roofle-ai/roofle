@@ -97,11 +97,19 @@ pub async fn start_recording(
     state: tauri::State<'_, AppState>,
     source: SourceKind,
     session_id: Option<i64>,
+    api_key: String,
 ) -> Result<(), String> {
     if !source_is_implemented(source) {
         return Err(format!("source {source:?} is not implemented yet"));
     }
     *state.last_source.lock().unwrap() = source;
+    // Capture the renderer-supplied API key (from localStorage) for live notes.
+    // Only overwrite when a key is actually available, so a tray start (which
+    // cannot read localStorage) reuses the last key a popup recording set.
+    let resolved = ai::resolve_api_key(&api_key);
+    if !resolved.is_empty() {
+        *state.api_key.lock().unwrap() = resolved;
+    }
     let result = request(state, |reply| Control::Start {
         source,
         session_id,
@@ -321,8 +329,9 @@ fn ai_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
         .map_err(|e| format!("app data dir: {e}"))
 }
 
-/// Load the AI config view (base URL, model, whether a key is set). The API
-/// key itself is never returned to the renderer.
+/// Load the AI config view (base URL, model). The API key itself lives in the
+/// renderer's localStorage and is never returned by Rust; `has_api_key` only
+/// reflects the `ROOFLE_LOCAL_KEY` env var.
 #[tauri::command]
 pub fn load_ai_config(app: AppHandle) -> Result<AiConfigView, String> {
     let config = ai::load_config(&ai_data_dir(&app)?);
@@ -330,18 +339,17 @@ pub fn load_ai_config(app: AppHandle) -> Result<AiConfigView, String> {
         kind: config.kind,
         base_url: config.base_url,
         model: config.model,
-        has_api_key: ai::has_api_key(),
+        has_api_key: ai::env_api_key().is_some(),
     })
 }
 
-/// Persist the AI config (non-secret) and store the API key in the keychain.
-/// Passing an empty `api_key` clears the stored key.
+/// Persist the non-secret AI config (base URL, model). The API key is stored by
+/// the renderer in localStorage and supplied per call; Rust never persists it.
 #[tauri::command]
 pub fn save_ai_config(
     app: AppHandle,
     base_url: String,
     model: String,
-    api_key: String,
 ) -> Result<(), String> {
     let config = AiConfig {
         kind: ProviderKind::OpenAiCompat,
@@ -349,17 +357,17 @@ pub fn save_ai_config(
         model,
     };
     let dir = ai_data_dir(&app)?;
-    ai::save_config(&dir, &config)?;
-    ai::save_api_key(&api_key)
+    ai::save_config(&dir, &config)
 }
 
 /// Send a trivial prompt through the configured client to verify the settings
-/// end to end. Returns the model's reply text. Runs off the main thread so a
-/// slow provider never freezes the UI.
+/// end to end. Returns the model's reply text. The API key is supplied by the
+/// renderer (from localStorage); the `ROOFLE_LOCAL_KEY` env var overrides it.
+/// Runs off the main thread so a slow provider never freezes the UI.
 #[tauri::command]
-pub async fn test_ai_connection(app: AppHandle) -> Result<String, String> {
+pub async fn test_ai_connection(app: AppHandle, api_key: String) -> Result<String, String> {
     let config = ai::load_config(&ai_data_dir(&app)?);
-    let api_key = ai::load_api_key()?;
+    let api_key = ai::resolve_api_key(&api_key);
     tauri::async_runtime::spawn_blocking(move || {
         let client = AiClient::new();
         client.chat(
@@ -479,36 +487,31 @@ fn generate_notes(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
     let new_chars = new_text.chars().count();
     std::thread::spawn(move || {
         let log = logging_enabled();
+        // The API key was captured into AppState when the recording started
+        // (from the renderer's localStorage; `ROOFLE_LOCAL_KEY` overrides it).
+        let api_key = app.state::<AppState>().api_key.lock().unwrap().clone();
         // No AI configured → skip entirely. The notes panel is notes-only;
         // never surface raw transcription there.
         let client = match ai_data_dir(&app) {
             Ok(dir) => {
                 let config = ai::load_config(&dir);
-                if config.model.trim().is_empty() || !ai::has_api_key() {
+                if config.model.trim().is_empty() || api_key.trim().is_empty() {
                     log_step(
                         log,
                         &format!("notes #{seq} session={session_id}"),
                         &format!(
                             "AI not configured (model={:?}, key={}); skipping (new={new_chars} chars)",
-                            config.model, ai::has_api_key(),
+                            config.model, !api_key.trim().is_empty(),
                         ),
                     );
                     return;
                 }
-                match ai::load_api_key() {
-                    Ok(api_key) => {
-                        log_step(
-                            log,
-                            &format!("notes #{seq} session={session_id}"),
-                            &format!("agent start (model={}, new={new_chars} chars)", config.model),
-                        );
-                        Some(NotesClient { config, api_key })
-                    }
-                    Err(e) => {
-                        log_step(log, &format!("notes #{seq} session={session_id}"), &e);
-                        return;
-                    }
-                }
+                log_step(
+                    log,
+                    &format!("notes #{seq} session={session_id}"),
+                    &format!("agent start (model={}, new={new_chars} chars)", config.model),
+                );
+                Some(NotesClient { config, api_key })
             }
             Err(e) => {
                 log_step(log, &format!("notes #{seq} session={session_id}"), &e);

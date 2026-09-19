@@ -58,12 +58,16 @@ fn tray_action(app: &tauri::AppHandle, action: TrayAction) {
         let result = match action {
             TrayAction::Start => {
                 let source = state.last_source.lock().unwrap().clone();
-                // The tray always starts a fresh session (None = new).
+                // The tray always starts a fresh session (None = new). It passes
+                // no API key (a native menu can't read the renderer's
+                // localStorage), so start_recording reuses the last key a popup
+                // recording supplied (or the `ROOFLE_LOCAL_KEY` env var).
                 tauri::async_runtime::block_on(commands::start_recording(
                     app.clone(),
                     state,
                     source,
                     None,
+                    String::new(),
                 ))
             }
             TrayAction::Stop => {

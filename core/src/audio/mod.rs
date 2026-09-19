@@ -8,4 +8,6 @@ pub mod mic;
 pub mod processing;
 
 #[cfg(target_os = "macos")]
+pub mod mic_macos;
+#[cfg(target_os = "macos")]
 pub mod system_macos;
