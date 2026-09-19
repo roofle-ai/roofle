@@ -53,6 +53,12 @@ interface NotesUpdate {
   text: string;
 }
 
+/// Payload of a `challenge-update` event (AI-generated follow-up questions).
+interface ChallengeUpdate {
+  seq: number;
+  text: string;
+}
+
 /// Category of a follow-up question.
 type QuestionType = "Clarification" | "Action" | "Risk" | "Decision" | "Open";
 
@@ -147,7 +153,6 @@ let viewedSessionId: number | null = null;
 let titleFromTranscript: string | undefined;
 
 let pendingAppend: string[] = [];
-let nextNoteId = 0;
 let notesSaveTimer: number | undefined;
 
 let questions: FollowUp[] = [];
@@ -253,69 +258,33 @@ function flushPending(): void {
   notesScrollToEnd();
 }
 
-// ---- Follow-up question heuristic (client-side stand-in) --------------------
-function makeQuestion(
-  type: QuestionType,
-  text: string,
-  timestamp: number,
-  blockIndex: number,
-): FollowUp | null {
+// ---- Follow-up questions (agent-driven) ------------------------------------
+// Follow-up questions come from the live challenge agent via the
+// `challenge-update` event — the agent returns the full question list as plain
+// text (one question per line). We ingest it into the right panel, deduping
+// against what's already shown so the feed grows rather than repeats.
+function ingestChallenges(text: string, timestamp: number): void {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(/^[-*•\d.)\s]+/, ""))
+    .filter((l) => l.length > 0);
+  if (lines.length === 0) return;
+
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").replace(/[?.!]+$/, "").trim();
-  const key = norm(text);
-  if (questions.some((q) => norm(q.text) === key)) return null;
-  const q: FollowUp = { id: nextQuestionId++, type, text, timestamp, blockIndex, resolved: false };
-  questions.push(q);
-  renderQuestion(q);
-  return q;
-}
-
-function extractSubject(text: string): string {
-  const words = text.split(/\s+/).slice(0, 8);
-  while (
-    words.length &&
-    /^(so|okay|ok|alright|well|um|uh|and|but|now|right|yeah|yes|also|anyway|first|basically)$/i.test(
-      words[0],
-    )
-  ) {
-    words.shift();
+  for (const line of lines) {
+    const key = norm(line);
+    if (questions.some((q) => norm(q.text) === key)) continue;
+    const q: FollowUp = {
+      id: nextQuestionId++,
+      type: "Open",
+      text: line,
+      timestamp,
+      blockIndex: 0,
+      resolved: false,
+    };
+    questions.push(q);
+    renderQuestion(q);
   }
-  let s = words.join(" ").replace(/[.,;:!?]+$/, "").trim();
-  if (s.length > 42) s = s.slice(0, 42).trimEnd() + "…";
-  return s || "this item";
-}
-
-function maybeGenerateQuestion(text: string, timestamp: number, blockIndex: number): void {
-  const t = text.trim();
-  if (!t) return;
-
-  // Explicit question in the meeting → surface it directly.
-  if (t.endsWith("?")) {
-    makeQuestion("Clarification", t, timestamp, blockIndex);
-    return;
-  }
-
-  const lower = t.toLowerCase();
-  let type: QuestionType | null = null;
-  if (
-    /(who|we|i)\s+(own|owns|need|needs|should|will|must|have to|has to|gonna)/.test(lower) ||
-    /\b(follow[- ]?up|next step|to[- ]?do|owner|deadline|due|assign|by (mon|tue|wed|thu|fri|tomorrow|eod|eow|end of (day|week)))\b/.test(lower)
-  ) {
-    type = "Action";
-  } else if (/\b(risk|blocker|concern|issue|problem|danger|worried|critical|at stake)\b/.test(lower)) {
-    type = "Risk";
-  } else if (
-    /\b(decide|decision|confirm|finalize|agree|approve|sign[- ]?off|we should|let'?s go with|go with)\b/.test(lower)
-  ) {
-    type = "Decision";
-  }
-  if (!type) return;
-
-  const subject = extractSubject(t);
-  let question: string;
-  if (type === "Action") question = `Who is owning "${subject}" and by when?`;
-  else if (type === "Risk") question = `What is the plan to de-risk "${subject}"?`;
-  else question = `Is the decision on "${subject}" confirmed?`;
-  makeQuestion(type, question, timestamp, blockIndex);
 }
 
 function renderQuestion(q: FollowUp): void {
@@ -574,7 +543,6 @@ function clearTranscriptUI(): void {
     notesSaveTimer = undefined;
   }
   pendingAppend = [];
-  nextNoteId = 0;
   notesInput.value = "";
   titleFromTranscript = undefined;
   resetQuestions();
@@ -718,19 +686,9 @@ async function openSession(id: number): Promise<void> {
     chatTitle.textContent = notesTitle(new Date(detail.session.started_at));
     notesInput.value = detail.notes ?? "";
 
-    // Regenerate follow-up questions from the stored segments (right panel).
-    if (detail.segments && detail.segments.length) {
-      for (const seg of detail.segments) {
-        if (!seg.text.trim()) continue;
-        maybeGenerateQuestion(seg.text, seg.start_secs, nextNoteId++);
-      }
-    } else {
-      for (const para of detail.transcript.split("\n\n")) {
-        if (!para.trim()) continue;
-        maybeGenerateQuestion(para.trim(), 0, nextNoteId++);
-      }
-    }
-
+    // Follow-up questions are produced live by the challenge agent and arrive
+    // via `challenge-update`; re-opening a session shows whatever was captured
+    // for it during the live run.
     setAnalysisMode(true);
     await loadHistory();
   } catch (err) {
@@ -922,9 +880,8 @@ async function init(): Promise<void> {
   await listen<Segment>("transcript-update", (event) => {
     const { kind, text } = event.payload;
     // The main panel is notes-only: never write raw transcription here. The
-    // transcript still feeds follow-up question detection.
+    // follow-up questions arrive via the separate `challenge-update` event.
     if (kind === "Final") {
-      maybeGenerateQuestion(text, elapsedSec, nextNoteId++);
       // Title: once speech arrives, show the first words of the transcription
       // (same signal as the history preview) instead of the blank placeholder.
       if (!titleFromTranscript && text.trim()) {
@@ -932,6 +889,13 @@ async function init(): Promise<void> {
         chatTitle.textContent = titleFromTranscript;
       }
     }
+  });
+
+  // AI-generated follow-up questions, driven by the live challenge agent. The
+  // agent returns the full accumulated question list (one per line), so we
+  // ingest it into the right panel, deduping as we go.
+  await listen<ChallengeUpdate>("challenge-update", (event) => {
+    ingestChallenges(event.payload.text, elapsedSec);
   });
 
   // AI-generated meeting notes replace the raw transcript in the notes panel.

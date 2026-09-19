@@ -25,6 +25,15 @@ pub struct NotesUpdate {
     pub text: String,
 }
 
+/// Payload of a `challenge-update` event (AI-generated follow-up questions).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ChallengeUpdate {
+    /// Paragraph number these questions were generated from.
+    pub seq: i64,
+    /// The generated follow-up questions text.
+    pub text: String,
+}
+
 /// App-wide state.
 pub struct AppState {
     /// Control channel to the engine thread (None once it has shut down).
@@ -50,6 +59,9 @@ pub struct AppState {
     /// The running AI notes document per session (the agent merges each new
     /// paragraph into this, replacing it wholesale on every `notes-update`).
     pub notes: Mutex<HashMap<i64, String>>,
+    /// The running follow-up-question list per session (the challenge agent
+    /// merges each new paragraph into this on every `challenge-update`).
+    pub challenges: Mutex<HashMap<i64, String>>,
     /// The effective API key for live notes, supplied by the renderer (from
     /// its localStorage) when a recording starts; the `ROOFLE_LOCAL_KEY` env
     /// var overrides it. Rust never persists this.
@@ -74,6 +86,7 @@ impl AppState {
             storage,
             api_key: Mutex::new(String::new()),
             notes: Mutex::new(HashMap::new()),
+            challenges: Mutex::new(HashMap::new()),
         }
     }
 }

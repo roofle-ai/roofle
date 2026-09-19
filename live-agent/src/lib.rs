@@ -12,8 +12,10 @@
 //! core owns the one DB connection. When transcription stops, [`flush`] persists
 //! the full remaining paragraph even if it is below `char_limit`.
 
+pub mod challenge;
 pub mod notes;
 pub mod watcher;
 
+pub use challenge::agent_challenges;
 pub use notes::{agent_notes, log_step, logging_enabled, CompletionClient};
 pub use watcher::{persist_boundary, ParagraphBoundary, ParagraphWatcher, DEFAULT_CHAR_LIMIT};
