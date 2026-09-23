@@ -235,10 +235,15 @@ pub fn export_transcript(
     Ok(path.display().to_string())
 }
 
-/// Plain-text transcript: one finalized utterance per line.
+/// Plain-text transcript: one source-tagged utterance per line.
 fn render_txt(cues: &[TranscriptCue]) -> String {
     let mut out = String::new();
     for cue in cues {
+        let tag = match cue.source {
+            AudioSource::Mic => "[Mic] ",
+            AudioSource::System => "[System] ",
+        };
+        out.push_str(tag);
         out.push_str(cue.text.trim());
         out.push('\n');
     }
@@ -579,7 +584,7 @@ fn log_llm_exchange(system: &str, user: &str, result: &Result<String, String>) {
 /// transcription line to a timestamped text file in the project root, so ASR
 /// quality can be inspected offline. Remove together with its caller when no
 /// longer needed.
-fn log_transcription(text: &str) {
+fn log_transcription(source: AudioSource, text: &str) {
     if !logging_enabled() {
         return;
     }
@@ -597,8 +602,12 @@ fn log_transcription(text: &str) {
         root.join(format!("roofle-transcript-{stamp}.log"))
     });
 
+    let tag = match source {
+        AudioSource::Mic => "Mic",
+        AudioSource::System => "System",
+    };
     let stamp = Utc::now().to_rfc3339();
-    let line = format!("[{stamp}] {text}\n");
+    let line = format!("[{stamp}] [{tag}] {text}\n");
     let _ = OpenOptions::new()
         .create(true)
         .append(true)
@@ -960,8 +969,9 @@ fn start_pipeline(
         .ensure(app, &model_id)
         .map_err(|e| format!("model {model_id}: {e}"))?;
 
-    // Both sources push into the ring simultaneously (~2x real-time inflow), so
-    // give the ring double the default capacity to absorb scheduling jitter.
+    // Both mode feeds two separate source-labelled rings (mic + system), so each
+    // ring sees ~1x real-time inflow. Keep a generous capacity for both-source
+    // scheduling jitter regardless.
     let ring_capacity = if source == SourceKind::Both {
         DEFAULT_RING_CAPACITY * 2
     } else {
@@ -1092,12 +1102,13 @@ fn forward_events(
     for segment in p.events().try_iter() {
         let _ = app.emit(EVENT_TRANSCRIPT, segment.clone());
         if segment.kind == roofle_core::asr::SegmentKind::Final {
-            // Debug aid: mirror each finalized utterance to a local text file
-            // when ROOFLE_LOG_AI=1 (never in production).
-            log_transcription(&segment.text);
+            // Debug aid: mirror each finalized utterance (with its capture
+            // source) to a local text file when ROOFLE_LOG_AI=1 (never prod).
+            log_transcription(segment.source, &segment.text);
             let start_secs = offset + start.elapsed().saturating_sub(paused_total).as_secs_f64();
             app.state::<AppState>().transcript.lock().unwrap().push(TranscriptCue {
                 start_secs,
+                source: segment.source,
                 text: segment.text.clone(),
             });
             if let Some(sid) = session_id {
@@ -1111,8 +1122,16 @@ fn forward_events(
                 });
                 // db-persist path: fold the segment into a source-tagged
                 // paragraph and, on a boundary, finalize + append it to the
-                // merged transcript log (the input to the AI agents).
-                ingest_segment(app, sid, &segment.text, start_secs, watcher);
+                // merged transcript log (the input to the AI agents). The
+                // segment carries the capture source (mic vs system/speaker).
+                ingest_segment(
+                    app,
+                    sid,
+                    segment.source,
+                    &segment.text,
+                    start_secs,
+                    watcher,
+                );
             }
         }
     }
@@ -1131,21 +1150,20 @@ fn forward_events(
 fn ingest_segment(
     app: &AppHandle,
     session_id: i64,
+    source: AudioSource,
     text: &str,
     start_secs: f64,
     watcher: &mut Option<ParagraphWatcher>,
 ) {
     let storage = &app.state::<AppState>().storage;
-    // ponytail: every unit is tagged 'system' until the mic split lands.
-    let source = AudioSource::System;
     let start_ms = (start_secs * 1000.0) as i64;
     if let Err(e) = storage.add_segment(&NewAudioSegment {
         session_id,
         source,
         text: text.to_string(),
         start_ms,
-        // ponytail: the ASR stream yields no per-segment duration yet, so the
-        // span is a point; `end_ms >= start_ms` still holds.
+        // The ASR stream yields no per-segment duration yet, so the span is a
+        // point; `end_ms >= start_ms` still holds.
         end_ms: start_ms,
         confidence: None,
         created_at: Utc::now(),
@@ -1230,15 +1248,25 @@ mod tests {
     fn cue(secs: f64, text: &str) -> TranscriptCue {
         TranscriptCue {
             start_secs: secs,
+            source: AudioSource::Mic,
             text: text.to_string(),
         }
     }
 
-    /// .txt export: one finalized utterance per line.
+    /// .txt export: one source-tagged utterance per line.
     #[test]
     fn txt_renders_one_line_per_cue() {
         let out = render_txt(&[cue(1.0, "hello world"), cue(4.0, "second line")]);
-        assert_eq!(out, "hello world\nsecond line\n");
+        assert_eq!(out, "[Mic] hello world\n[Mic] second line\n");
+    }
+
+    /// .txt export: each utterance carries its capture source (mic vs system).
+    #[test]
+    fn txt_labels_utterances_with_their_source() {
+        let mut system = cue(1.0, "speaker audio");
+        system.source = AudioSource::System;
+        let out = render_txt(&[cue(1.0, "user speech"), system]);
+        assert_eq!(out, "[Mic] user speech\n[System] speaker audio\n");
     }
 
     /// .srt export: numbered cues with HH:MM:SS,mmm timestamps.

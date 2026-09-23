@@ -28,6 +28,7 @@ use std::time::Duration;
 
 use crate::asr::{self, Segment, StreamingSession};
 use crate::audio::{mic, processing};
+use crate::storage::AudioSource;
 
 /// Default ring capacity in 16 kHz mono samples (~2 s). Absorbs scheduling
 /// jitter between the capture and ASR threads without keeping much stale audio.
@@ -122,6 +123,38 @@ impl Ring {
         Some(s)
     }
 
+    /// Pop the oldest sample, waiting up to `max` while the ring is empty.
+    /// Returns `None` on timeout, or when the ring is closed and drained.
+    /// Enables a single ASR thread to multiplex several labelled rings without
+    /// blocking indefinitely on any one of them.
+    pub fn pop_timeout(&self, max: Duration) -> Option<f32> {
+        let mut inner = self.inner.lock().unwrap();
+        let deadline = std::time::Instant::now() + max;
+        while inner.len == 0 && !inner.closed {
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                return None;
+            }
+            let (guard, timeout) = self.wake.wait_timeout(inner, deadline - now).unwrap();
+            inner = guard;
+            if timeout.timed_out() {
+                return None;
+            }
+        }
+        if inner.len == 0 {
+            return None;
+        }
+        let s = inner.data[inner.start];
+        inner.start = (inner.start + 1) % inner.data.len();
+        inner.len -= 1;
+        Some(s)
+    }
+
+    /// Whether the ring currently holds no buffered samples.
+    pub fn is_empty(&self) -> bool {
+        self.inner.lock().unwrap().len == 0
+    }
+
     /// Mark the ring closed: pushes become no-ops and a blocked consumer wakes
     /// to drain what remains before returning `None`.
     pub fn close(&self) {
@@ -129,6 +162,18 @@ impl Ring {
         inner.closed = true;
         self.wake.notify_all();
     }
+}
+
+/// A [`Ring`] bound to the capture source that feeds it.
+///
+/// The ASR layer keeps one streaming session per labelled ring and tags every
+/// emitted [`Segment`] with its ring's [`AudioSource`], so mic and system audio
+/// never lose their identity after being captured (the S7 design merged both
+/// into one ring, destroying that information).
+#[derive(Clone)]
+pub struct LabelledRing {
+    pub source: AudioSource,
+    pub ring: Ring,
 }
 
 /// Errors from a [`Source`] (capture or normalization).
@@ -207,9 +252,20 @@ impl From<SourceError> for PipelineError {
 /// spawns the source's own capture thread that pushes samples into `ring`.
 /// [`stop`](Source::stop) ends capture and joins that thread.
 pub trait Source {
+    /// The labelled capture streams this source produces, in the order
+    /// [`start`](Self::start) receives their rings. Defaults to a single
+    /// microphone stream. A source may return several (e.g. [`BothSource`]
+    /// captures mic + system), in which case each ring is transcribed and
+    /// labelled independently.
+    fn stream_labels(&self) -> Vec<AudioSource> {
+        vec![AudioSource::Mic]
+    }
+
     /// Begin capture: open the device and start pushing 16 kHz mono samples
-    /// into `ring`. Device errors surface here, on the caller's thread.
-    fn start(&mut self, ring: Ring) -> Result<(), SourceError>;
+    /// into the labelled ring(s) whose [`AudioSource`] matches this source's
+    /// [`stream_labels`](Self::stream_labels). Device errors surface here, on
+    /// the caller's thread.
+    fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError>;
 
     /// Stop capture and join the capture thread. Infallible; pump errors are
     /// logged on the capture thread.
@@ -266,7 +322,15 @@ impl MicSource {
 }
 
 impl Source for MicSource {
-    fn start(&mut self, ring: Ring) -> Result<(), SourceError> {
+    fn stream_labels(&self) -> Vec<AudioSource> {
+        vec![AudioSource::Mic]
+    }
+
+    fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError> {
+        let ring = labelled_ring(rings, AudioSource::Mic)
+            .expect("mic source: labelled ring present")
+            .ring
+            .clone();
         let (tx, rx) = mpsc::channel::<mic::Frame>();
         let capture = match &self.device {
             Some(name) => mic::open_named(name, tx)?,
@@ -277,7 +341,6 @@ impl Source for MicSource {
         let gain = self.gain;
         let stop = self.stop.clone();
         let paused = self.paused.clone();
-        let ring = ring.clone();
         self.thread = Some(std::thread::spawn(move || {
             pump_loop(rx, sample_rate, gain, ring, stop, paused);
         }));
@@ -298,6 +361,14 @@ impl Source for MicSource {
     fn set_paused(&mut self, paused: bool) {
         self.paused.store(paused, Ordering::SeqCst);
     }
+}
+
+/// Find the [`LabelledRing`] a source should feed by its [`AudioSource`].
+///
+/// The pipeline constructs the rings from [`Source::stream_labels`], so a
+/// matching ring is guaranteed to exist for every source.
+fn labelled_ring<'a>(rings: &'a [LabelledRing], source: AudioSource) -> Option<&'a LabelledRing> {
+    rings.iter().find(|r| r.source == source)
 }
 
 /// Resample raw mic frames to 16 kHz mono and push them into the ring. Runs on
@@ -352,13 +423,13 @@ fn pump_loop(
     }
 }
 
-/// Mic + system audio mixed into one stream.
+/// Mic + system audio captured into two separate, source-labelled streams.
 ///
-/// Runs both the microphone and the system-audio capture simultaneously and
-/// feeds both into the same ring buffer, so the pipeline transcribes them as a
-/// single merged transcript (per design.md: one merged stream in v1). Echo from
-/// system audio re-entering the mic is inherent to this mode; recommend
-/// headphones. On platforms without system capture it surfaces an error on
+/// Runs both the microphone and the system-audio capture simultaneously, each
+/// feeding its own labelled [`Ring`]. The pipeline transcribes them as two
+/// independent ASR streams and tags every emitted [`Segment`] with its source,
+/// so the transcript shows which participant (mic vs system/speaker) said what.
+/// On platforms without system capture it surfaces an error on
 /// [`start`](Source::start).
 pub struct BothSource {
     mic: MicSource,
@@ -378,11 +449,16 @@ impl BothSource {
 
 #[cfg(target_os = "macos")]
 impl Source for BothSource {
-    fn start(&mut self, ring: Ring) -> Result<(), SourceError> {
+    fn stream_labels(&self) -> Vec<AudioSource> {
+        vec![AudioSource::Mic, AudioSource::System]
+    }
+
+    fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError> {
         // Start system audio first so a Screen Recording permission failure
-        // surfaces before the mic is left running, then the microphone.
-        self.system.start(ring.clone())?;
-        self.mic.start(ring)?;
+        // surfaces before the mic is left running, then the microphone. Each
+        // source picks its own labelled ring, so mic and system stay separate.
+        self.system.start(rings)?;
+        self.mic.start(rings)?;
         Ok(())
     }
 
@@ -399,7 +475,11 @@ impl Source for BothSource {
 
 #[cfg(not(target_os = "macos"))]
 impl Source for BothSource {
-    fn start(&mut self, _ring: Ring) -> Result<(), SourceError> {
+    fn stream_labels(&self) -> Vec<AudioSource> {
+        vec![AudioSource::Mic, AudioSource::System]
+    }
+
+    fn start(&mut self, _rings: &[LabelledRing]) -> Result<(), SourceError> {
         Err(SourceError::System(
             "system audio is not implemented on this platform".to_string(),
         ))
@@ -434,9 +514,14 @@ pub struct PipelineConfig {
 /// mono samples into a ring buffer, a dedicated ASR thread drains them through a
 /// streaming recognizer and emits typed [`Segment`] events.
 pub struct Pipeline {
-    ring: Ring,
+    /// One source-labelled ring per capture stream; the ASR thread keeps a
+    /// separate session for each so segments carry their source.
+    rings: Vec<LabelledRing>,
     engine: Option<asr::Engine>,
-    vad: Option<asr::vad::Vad>,
+    /// Silero VAD model path for the offline Whisper engine. Kept as a path so
+    /// one VAD per labelled ring can be constructed on the ASR thread (VAD is
+    /// not `Clone`). Unused by the streaming engine.
+    vad_model: Option<PathBuf>,
     events_tx: Option<Sender<Segment>>,
     events_rx: Receiver<Segment>,
     levels_tx: Option<Sender<f32>>,
@@ -459,21 +544,23 @@ impl Pipeline {
         if engine.is_whisper() {
             capacity = capacity.max(WHISPER_RING_CAPACITY);
         }
-        // VAD segments the live stream into clean utterances for the offline
-        // Whisper engine (only meaningful when a Whisper engine + VAD model are
-        // present; the streaming engine has its own built-in endpoint detection).
-        let vad = match &engine {
-            asr::Engine::Whisper(_) => cfg
-                .vad_model
-                .as_ref()
-                .map(|p| asr::vad::Vad::new(p).map_err(PipelineError::Asr))
-                .transpose()?,
-            asr::Engine::Streaming(_) => None,
-        };
+        // Build one labelled ring per capture stream the source declares. The
+        // ASR thread drains each ring into its own session so segments keep
+        // their source identity.
+        let labels = cfg.source.stream_labels();
+        let rings = labels
+            .into_iter()
+            .map(|source| LabelledRing {
+                source,
+                ring: Ring::new(capacity),
+            })
+            .collect::<Vec<_>>();
         Ok(Self {
-            ring: Ring::new(capacity),
+            rings,
             engine: Some(engine),
-            vad,
+            // Keep the VAD model path; per-ring VADs are built on the ASR thread
+            // because the streaming engine doesn't use one and `Vad` isn't Clone.
+            vad_model: cfg.vad_model,
             events_tx: Some(events_tx),
             events_rx,
             levels_tx: Some(levels_tx),
@@ -491,13 +578,16 @@ impl Pipeline {
             return Ok(());
         }
         // Start the source first (it opens the device synchronously and begins
-        // pushing into the ring), then run the ASR thread that drains it.
+        // pushing into the rings), then run the ASR thread that drains them.
         let source = self.source.as_mut().expect("source present");
-        source.start(self.ring.clone())?;
+        source.start(&self.rings)?;
 
         let engine = self.engine.take().expect("engine already started");
-        let vad = self.vad.take();
-        let ring = self.ring.clone();
+        let vad_model = self.vad_model.take();
+        // Clone the labelled rings into the ASR thread and keep our own clones:
+        // `Ring` is Arc-backed, so closing our copies closes the shared rings
+        // the thread drains (and `shutdown` must close them on this struct).
+        let rings = self.rings.clone();
         let tx = self
             .events_tx
             .as_ref()
@@ -509,8 +599,8 @@ impl Pipeline {
             .expect("levels sender present")
             .clone();
         self.asr_thread = Some(std::thread::spawn(move || match engine {
-            asr::Engine::Streaming(e) => streaming_asr_loop(e, ring, tx, levels),
-            asr::Engine::Whisper(e) => whisper_asr_loop(e, vad, ring, tx, levels),
+            asr::Engine::Streaming(e) => streaming_asr_loop(e, rings, tx, levels),
+            asr::Engine::Whisper(e) => whisper_asr_loop(e, vad_model, rings, tx, levels),
         }));
 
         self.started = true;
@@ -544,12 +634,14 @@ impl Pipeline {
 
     fn shutdown(&mut self) {
         if self.started {
-            // Stop the source first so its resampler tail lands in the ring;
-            // then close the ring so the ASR thread drains and finishes.
+            // Stop the source first so its resampler tails land in the rings;
+            // then close the rings so the ASR thread drains and finishes.
             if let Some(source) = self.source.as_mut() {
                 source.stop();
             }
-            self.ring.close();
+            for labelled in &self.rings {
+                labelled.ring.close();
+            }
             if let Some(handle) = self.asr_thread.take() {
                 let _ = handle.join();
             }
@@ -567,33 +659,136 @@ impl Drop for Pipeline {
     }
 }
 
-/// Drive the streaming recognizer from the ring buffer until it closes.
+/// How long the ASR thread waits on an empty ring before checking the others.
+const MULTIPLEX_POLL: Duration = Duration::from_millis(2);
+
+/// System RMS above which the speaker is treated as actively producing speech.
+/// While it is (plus a hangover), the mic is presumed to be carrying echo, so
+/// its audio is not transcribed at all (turn-taking capture).
+const SYS_VAD_THRESHOLD: f32 = 0.01;
+/// Echo-decay hangover: keep suppressing the mic for this many chunk-steps
+/// after system speech ends, covering the acoustic echo tail in the mic.
+const ECHO_HANGOVER: usize = 4; // ~400 ms at 0.1 s chunks
+
+/// Turn-taking echo suppressor for the mic stream.
+///
+/// The microphone physically captures the user's voice AND an attenuated echo of
+/// whatever the speakers play. No level comparison can reliably separate them
+/// (echo can be anywhere from quiet to nearly as loud as the system signal), so
+/// this suppressor implements turn-taking instead: while the system reference
+/// indicates the speaker is active, the mic stream is dropped entirely. Since a
+/// meeting is one person talking at a time, this keeps system audio out of the
+/// "mic" transcript without needing full echo cancellation. Suppression lingers
+/// for a short hangover after the system stops, covering the echo tail.
+struct EchoSuppressor {
+    /// Remaining chunk-steps of suppression while the system recently spoke.
+    hangover: usize,
+}
+
+impl EchoSuppressor {
+    fn new() -> Self {
+        Self { hangover: 0 }
+    }
+
+    /// Feed the RMS of each system (speaker) chunk. Chunks above the VAD
+    /// threshold arm the hangover; quiet chunks drain it one step at a time.
+    fn observe_system(&mut self, rms: f32) {
+        if rms > SYS_VAD_THRESHOLD {
+            self.hangover = ECHO_HANGOVER;
+        } else if self.hangover > 0 {
+            self.hangover -= 1;
+        }
+    }
+
+    /// Whether the mic stream should be fed to ASR: only when the system has not
+    /// been speaking recently. The mic's own level is irrelevant here — echo is
+    /// suppressed regardless of how loud it is.
+    fn passes(&self, _mic_rms: f32) -> bool {
+        self.hangover == 0
+    }
+}
+
+/// Drive the streaming recognizer across one or more source-labelled rings until
+/// they close. A single `OnlineRecognizer` drives one `OnlineStream` per ring;
+/// each stream's events are tagged with its ring's [`AudioSource`] and merged
+/// chronologically onto the shared event channel. A dominant-source echo gate
+/// drops mic windows that are dominated by system echo.
 fn streaming_asr_loop(
     engine: asr::AsrEngine,
-    ring: Ring,
+    rings: Vec<LabelledRing>,
     events: Sender<Segment>,
     levels: Sender<f32>,
 ) {
-    let session = engine.stream();
-    let mut chunk = Vec::with_capacity(CHUNK_FRAMES);
-    let mut last_partial = String::new();
+    let n = rings.len();
+    let mut sessions: Vec<(AudioSource, StreamingSession)> = Vec::with_capacity(n);
+    let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(n);
+    let mut last_partials: Vec<String> = Vec::with_capacity(n);
+    for labelled in &rings {
+        sessions.push((labelled.source, engine.stream()));
+        chunks.push(Vec::with_capacity(CHUNK_FRAMES));
+        last_partials.push(String::new());
+    }
+    // Echo suppressor driven by the system (speaker) ring, used to gate the mic
+    // stream. Both rings advance in real time, so the system reference is a good
+    // proxy for what is concurrently playing on the speakers.
+    let mut suppressor = EchoSuppressor::new();
 
-    while let Some(sample) = ring.pop_blocking() {
-        chunk.push(sample);
-        if chunk.len() == CHUNK_FRAMES {
-            let _ = levels.send(rms(&chunk));
-            process_chunk(&session, &chunk, &events, &mut last_partial);
-            chunk.clear();
+    loop {
+        let mut any_open = false;
+        for i in 0..n {
+            let ring = &rings[i].ring;
+            if ring.is_closed() && ring.is_empty() {
+                continue; // this stream fully drained
+            }
+            any_open = true;
+            while let Some(sample) = ring.pop_timeout(MULTIPLEX_POLL) {
+                chunks[i].push(sample);
+                if chunks[i].len() == CHUNK_FRAMES {
+                    let level = rms(&chunks[i]);
+                    let _ = levels.send(level);
+                    let source = sessions[i].0;
+                    if source == AudioSource::System {
+                        suppressor.observe_system(level);
+                    } else if !suppressor.passes(level) {
+                        chunks[i].clear();
+                        continue;
+                    }
+                    process_chunk(
+                        &sessions[i].1,
+                        &chunks[i],
+                        &events,
+                        &mut last_partials[i],
+                        source,
+                    );
+                    chunks[i].clear();
+                }
+            }
+        }
+        if !any_open {
+            break;
         }
     }
-    if !chunk.is_empty() {
-        let _ = levels.send(rms(&chunk));
-        process_chunk(&session, &chunk, &events, &mut last_partial);
+
+    // Flush any trailing partial chunks per ring.
+    for i in 0..n {
+        if !chunks[i].is_empty() {
+            let level = rms(&chunks[i]);
+            let _ = levels.send(level);
+            let source = sessions[i].0;
+            if source == AudioSource::Mic && !suppressor.passes(level) {
+                chunks[i].clear();
+                continue;
+            }
+            process_chunk(&sessions[i].1, &chunks[i], &events, &mut last_partials[i], source);
+            chunks[i].clear();
+        }
     }
-    // End of input: finalize any trailing speech.
-    let text = session.finish();
-    if !text.is_empty() {
-        let _ = events.send(Segment::final_(text));
+    // End of input: finalize any trailing speech per stream.
+    for (source, session) in sessions.iter() {
+        let text = session.finish();
+        if !text.is_empty() {
+            let _ = events.send(Segment::final_(*source, text));
+        }
     }
 }
 
@@ -629,12 +824,13 @@ fn process_chunk(
     samples: &[f32],
     events: &Sender<Segment>,
     last_partial: &mut String,
+    source: AudioSource,
 ) {
     session.feed(samples);
 
     let partial = session.partial();
     if !partial.is_empty() && partial != *last_partial {
-        let _ = events.send(Segment::partial(&partial));
+        let _ = events.send(Segment::partial(source, &partial));
         *last_partial = partial;
     }
 
@@ -643,82 +839,136 @@ fn process_chunk(
         // A final supersedes any previously emitted partial.
         last_partial.clear();
         if !text.is_empty() {
-            let _ = events.send(Segment::final_(text));
+            let _ = events.send(Segment::final_(source, text));
         }
     }
 }
 
-/// Drive an offline Whisper engine from the ring buffer until it closes.
+/// Drive an offline Whisper engine across one or more source-labelled rings until
+/// they close.
 ///
 /// Whisper has no streaming hypotheses. With a [`Vad`] the incoming audio is
 /// split into clean speech utterances and each is decoded offline into one
 /// final [`Segment`] — dropping silence and avoiding the repetition /
 /// hallucination Whisper shows when fed raw fixed-length windows. Without a VAD
-/// it falls back to ~28 s windows (the Whisper context). Partial events are
-/// never emitted.
+/// it falls back to ~28 s windows (the Whisper context). One VAD (if configured)
+/// and one window accumulator exist per ring; every emitted final is tagged with
+/// its ring's [`AudioSource`]. Partial events are never emitted.
 fn whisper_asr_loop(
     engine: asr::whisper::WhisperEngine,
-    vad: Option<asr::vad::Vad>,
-    ring: Ring,
+    vad_model: Option<PathBuf>,
+    rings: Vec<LabelledRing>,
     events: Sender<Segment>,
     levels: Sender<f32>,
 ) {
     let rate = engine.sample_rate();
-    // Feed the ring in ~0.1 s blocks to the VAD / window accumulator.
     let block_cap = 1_600usize;
-    let window_cap = asr::whisper::WINDOW_SAMPLES;
 
-    let mut block: Vec<f32> = Vec::with_capacity(block_cap);
-    let mut window: Vec<f32> = Vec::with_capacity(window_cap);
+    let n = rings.len();
+    let vads: Vec<Option<asr::vad::Vad>> = (0..n)
+        .map(|_| {
+            vad_model
+                .as_ref()
+                .map(|p| asr::vad::Vad::new(p).expect("load VAD for whisper ring"))
+        })
+        .collect();
+    let mut blocks: Vec<Vec<f32>> = (0..n).map(|_| Vec::with_capacity(block_cap)).collect();
+    let mut windows: Vec<Vec<f32>> = (0..n)
+        .map(|_| Vec::with_capacity(asr::whisper::WINDOW_SAMPLES))
+        .collect();
+    let mut suppressor = EchoSuppressor::new();
 
-    while let Some(sample) = ring.pop_blocking() {
-        block.push(sample);
-        if block.len() >= block_cap {
-            let _ = levels.send(rms(&block));
-            match &vad {
-                // VAD routing: queue the block, then decode each completed
-                // speech utterance standalone.
-                Some(vad) => {
-                    vad.push(&block);
-                    for seg in vad.drain() {
-                        if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
-                            let _ = events.send(Segment::final_(text));
-                        }
+    loop {
+        let mut any_open = false;
+        for i in 0..n {
+            let ring = &rings[i].ring;
+            if ring.is_closed() && ring.is_empty() {
+                continue;
+            }
+            any_open = true;
+            while let Some(sample) = ring.pop_timeout(MULTIPLEX_POLL) {
+                blocks[i].push(sample);
+                if blocks[i].len() >= block_cap {
+                    let level = rms(&blocks[i]);
+                    let _ = levels.send(level);
+                    let source = rings[i].source;
+                    if source == AudioSource::System {
+                        suppressor.observe_system(level);
+                    } else if !suppressor.passes(level) {
+                        blocks[i].clear();
+                        continue;
                     }
-                }
-                // Fallback routing: accumulate into fixed windows.
-                None => {
-                    window.extend_from_slice(&block);
-                    if window.len() >= window_cap {
-                        if let Ok(text) = engine.transcribe(rate, &normalize(&window)) {
-                            let _ = events.send(Segment::final_(text));
-                        }
-                        window.clear();
-                    }
+                    feed_whisper_block(&engine, &vads[i], &mut windows[i], source, &blocks[i], &events);
+                    blocks[i].clear();
                 }
             }
-            block.clear();
+        }
+        if !any_open {
+            break;
         }
     }
 
     // End of input: flush trailing speech (VAD) or the partial window (fallback).
-    match vad {
-        Some(vad) => {
-            if !block.is_empty() {
-                vad.push(&block);
+    for i in 0..n {
+        let source = rings[i].source;
+        // Feed any remaining partial block (echo-gated on the mic stream).
+        if !blocks[i].is_empty() {
+            let level = rms(&blocks[i]);
+            if !(source == AudioSource::Mic && !suppressor.passes(level)) {
+                feed_whisper_block(&engine, &vads[i], &mut windows[i], source, &blocks[i], &events);
             }
-            for seg in vad.flush() {
-                if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
-                    let _ = events.send(Segment::final_(text));
+            blocks[i].clear();
+        }
+        match &vads[i] {
+            Some(vad) => {
+                for seg in vad.flush() {
+                    if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
+                        let _ = events.send(Segment::final_(source, text));
+                    }
+                }
+            }
+            None => {
+                if !windows[i].is_empty() {
+                    let _ = levels.send(rms(&windows[i]));
+                    if let Ok(text) = engine.transcribe(rate, &normalize(&windows[i])) {
+                        let _ = events.send(Segment::final_(source, text));
+                    }
                 }
             }
         }
-        None => {
-            if !window.is_empty() {
-                let _ = levels.send(rms(&window));
-                if let Ok(text) = engine.transcribe(rate, &normalize(&window)) {
-                    let _ = events.send(Segment::final_(text));
+    }
+}
+
+/// Queue one ~0.1 s block into a ring's VAD or fixed-window accumulator and emit
+/// any finalized utterances, tagged with the ring's `source`.
+fn feed_whisper_block(
+    engine: &asr::whisper::WhisperEngine,
+    vad: &Option<asr::vad::Vad>,
+    window: &mut Vec<f32>,
+    source: AudioSource,
+    block: &[f32],
+    events: &Sender<Segment>,
+) {
+    let rate = engine.sample_rate();
+    match vad {
+        // VAD routing: queue the block, then decode each completed speech
+        // utterance standalone.
+        Some(vad) => {
+            vad.push(block);
+            for seg in vad.drain() {
+                if let Ok(text) = engine.transcribe(rate, &normalize(&seg)) {
+                    let _ = events.send(Segment::final_(source, text));
                 }
+            }
+        }
+        // Fallback routing: accumulate into fixed windows.
+        None => {
+            window.extend_from_slice(block);
+            if window.len() >= asr::whisper::WINDOW_SAMPLES {
+                if let Ok(text) = engine.transcribe(rate, &normalize(window)) {
+                    let _ = events.send(Segment::final_(source, text));
+                }
+                window.clear();
             }
         }
     }
@@ -797,6 +1047,102 @@ mod tests {
         r.close();
     }
 
+    #[test]
+    fn ring_pop_timeout_returns_none_when_empty() {
+        let r = Ring::new(8);
+        // Empty and open: the poll times out without returning data.
+        assert_eq!(r.pop_timeout(Duration::from_millis(10)), None);
+        r.close();
+        assert_eq!(r.pop_timeout(Duration::from_millis(10)), None);
+    }
+
+    #[test]
+    fn ring_pop_timeout_returns_pushed_samples() {
+        let r = Ring::new(8);
+        r.push(&[7.0, 8.0]);
+        assert_eq!(r.pop_timeout(Duration::from_millis(5)), Some(7.0));
+        assert_eq!(r.pop_timeout(Duration::from_millis(5)), Some(8.0));
+        assert_eq!(r.pop_timeout(Duration::from_millis(5)), None);
+        r.close();
+    }
+
+    /// Regression: the pipeline keeps its own ring clones to close on shutdown
+    /// while the ASR thread drains its own clones. Closing one clone must be
+    /// observed by the other, or `shutdown` would block forever on `join`
+    /// (which froze Stop/Pause). `Ring` is Arc-backed, so this holds by design.
+    #[test]
+    fn ring_close_is_shared_across_clones() {
+        let pipeline_copy = Ring::new(8);
+        let asr_thread_copy = pipeline_copy.clone(); // handed to the ASR thread
+        pipeline_copy.push(&[1.0, 2.0]);
+        // The pipeline closes its copy on shutdown; the ASR thread's copy must
+        // then drain what remains and report closed/empty.
+        pipeline_copy.close();
+        assert_eq!(asr_thread_copy.pop_blocking(), Some(1.0));
+        assert_eq!(asr_thread_copy.pop_blocking(), Some(2.0));
+        assert_eq!(asr_thread_copy.pop_blocking(), None);
+        assert!(asr_thread_copy.is_closed());
+    }
+
+    // --- Echo suppressor --------------------------------------------------
+
+    /// With the system silent, the mic always passes (no echo to suppress).
+    #[test]
+    fn echo_suppressor_passes_mic_when_system_is_silent() {
+        let mut s = EchoSuppressor::new();
+        s.observe_system(0.002); // quiet, below the system-VAD threshold
+        assert!(s.passes(0.001));
+        assert!(s.passes(0.01));
+        assert!(s.passes(0.05));
+    }
+
+    /// While the system is actively speaking the mic is dropped entirely,
+    /// regardless of its level — echo is suppressed at any volume.
+    #[test]
+    fn echo_suppressor_drops_mic_while_system_speaks() {
+        let mut s = EchoSuppressor::new();
+        s.observe_system(0.1); // speaker actively talking
+        assert!(!s.passes(0.02)); // quiet echo => dropped
+        assert!(!s.passes(0.3)); // even loud mic (echo or overlap) => dropped
+    }
+
+    /// Quiet-but-active system speech must still suppress the mic (the old
+    /// level gate let this through).
+    #[test]
+    fn echo_suppressor_handles_quiet_system_speech() {
+        let mut s = EchoSuppressor::new();
+        s.observe_system(0.02); // quiet but active system speech
+        assert!(!s.passes(0.02)); // comparable mic => dropped
+        assert!(!s.passes(0.06)); // louder mic => still dropped
+    }
+
+    /// Suppression lingers after system speech ends (echo tail), then releases.
+    #[test]
+    fn echo_suppressor_hangover_covers_echo_tail() {
+        let mut s = EchoSuppressor::new();
+        s.observe_system(0.1); // speaker talking
+        s.observe_system(0.001); // speaker stops; hangover armed
+        assert!(!s.passes(0.02));
+        // Once the hangover drains, the user's turn may start again.
+        for _ in 0..=ECHO_HANGOVER {
+            s.observe_system(0.0);
+        }
+        assert!(s.passes(0.02));
+    }
+
+    // --- Segment source tagging ------------------------------------------
+
+    #[test]
+    fn segments_carry_their_capture_source() {
+        let mic = Segment::final_(AudioSource::Mic, "hello");
+        assert_eq!(mic.source, AudioSource::Mic);
+        assert_eq!(mic.kind, SegmentKind::Final);
+
+        let sys = Segment::partial(AudioSource::System, "par");
+        assert_eq!(sys.source, AudioSource::System);
+        assert_eq!(sys.kind, SegmentKind::Partial);
+    }
+
     // --- Pipeline -------------------------------------------------------
 
     /// A [`Source`] that pushes one pre-recorded 16 kHz mono buffer on start.
@@ -806,7 +1152,11 @@ mod tests {
     }
 
     impl Source for FakeSource {
-        fn start(&mut self, ring: Ring) -> Result<(), SourceError> {
+        fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError> {
+            let ring = labelled_ring(rings, AudioSource::Mic)
+                .expect("fake source: labelled ring present")
+                .ring
+                .clone();
             ring.push(&self.samples);
             Ok(())
         }

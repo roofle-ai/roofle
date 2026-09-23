@@ -1,7 +1,7 @@
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
-use roofle_core::storage::SqliteStorage;
+use roofle_core::storage::{AudioSource, SqliteStorage};
 
 use crate::commands::{Control, SourceKind};
 use crate::models::ModelManager;
@@ -12,6 +12,8 @@ use crate::models::ModelManager;
 pub struct TranscriptCue {
     /// Seconds since recording start when the utterance was finalized.
     pub start_secs: f64,
+    /// Which capture source produced this utterance (`mic` or `system`).
+    pub source: AudioSource,
     pub text: String,
 }
 

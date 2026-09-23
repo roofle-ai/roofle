@@ -24,7 +24,8 @@ use std::sync::mpsc::Sender;
 use screencapturekit::prelude::*;
 
 use crate::audio::mic::Frame;
-use crate::pipeline::{Ring, Source, SourceError};
+use crate::pipeline::{LabelledRing, Ring, Source, SourceError};
+use crate::storage::AudioSource;
 
 /// System audio is delivered at this rate by ScreenCaptureKit after our config.
 const SYSTEM_SAMPLE_RATE: u32 = 48_000;
@@ -210,14 +211,23 @@ impl SystemSource {
 }
 
 impl Source for SystemSource {
-    fn start(&mut self, ring: Ring) -> Result<(), SourceError> {
+    fn stream_labels(&self) -> Vec<AudioSource> {
+        vec![AudioSource::System]
+    }
+
+    fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError> {
+        let ring = rings
+            .iter()
+            .find(|r| r.source == AudioSource::System)
+            .expect("system source: labelled ring present")
+            .ring
+            .clone();
         let (tx, rx) = std::sync::mpsc::channel::<Frame>();
         let capture = open(tx)?;
         let sample_rate = capture.sample_rate();
         let gain = self.gain;
         let stop = self.stop.clone();
         let paused = self.paused.clone();
-        let ring = ring.clone();
         self.thread = Some(std::thread::spawn(move || {
             pump_loop(rx, sample_rate, gain, ring, stop, paused);
         }));

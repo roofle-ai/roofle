@@ -11,11 +11,13 @@
 
 use std::fmt;
 
+use crate::storage::AudioSource;
+
 /// Whether a segment is a running hypothesis or a stable, finalized utterance.
 ///
 /// `Serialize` (S9) so the Tauri shell can emit segments to the frontend as
 /// typed IPC events.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SegmentKind {
     /// Text that is still being recognized (the hypothesis may still change).
     Partial,
@@ -26,25 +28,29 @@ pub enum SegmentKind {
 /// A single piece of recognized text and its stability kind.
 ///
 /// `Serialize` (S9) so a segment crosses the Tauri IPC boundary unchanged.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Segment {
     pub kind: SegmentKind,
+    /// Which capture source produced this segment: `mic` or `system`.
+    pub source: AudioSource,
     pub text: String,
 }
 
 impl Segment {
-    /// Build a partial (still-changing) segment.
-    pub fn partial(text: impl Into<String>) -> Self {
+    /// Build a partial (still-changing) segment for `source`.
+    pub fn partial(source: AudioSource, text: impl Into<String>) -> Self {
         Self {
             kind: SegmentKind::Partial,
+            source,
             text: text.into(),
         }
     }
 
-    /// Build a final (stable) segment.
-    pub fn final_(text: impl Into<String>) -> Self {
+    /// Build a final (stable) segment for `source`.
+    pub fn final_(source: AudioSource, text: impl Into<String>) -> Self {
         Self {
             kind: SegmentKind::Final,
+            source,
             text: text.into(),
         }
     }
@@ -70,7 +76,8 @@ impl Transcript {
     /// Build a transcript from a single final segment's text.
     pub fn from_final(text: impl Into<String>) -> Self {
         let text = text.into();
-        let segment = Segment::final_(text.clone());
+        // Whole-file transcription has no live capture source; default to mic.
+        let segment = Segment::final_(AudioSource::Mic, text.clone());
         Self {
             text,
             segments: vec![segment],

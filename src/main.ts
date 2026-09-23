@@ -46,6 +46,8 @@ import "./ui";
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
 interface Segment {
   kind: "Partial" | "Final";
+  /// Which capture source produced this utterance: `mic` or `system` (speaker).
+  source: "mic" | "system";
   text: string;
 }
 

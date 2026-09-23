@@ -158,7 +158,8 @@ impl WhisperEngine {
         let mut parts = Vec::new();
         for chunk in wave.samples().chunks(WINDOW_SAMPLES) {
             if let Ok(text) = self.transcribe(rate, chunk) {
-                segments.push(Segment::final_(text.clone()));
+                // Whole-file offline transcription has no live capture source.
+                segments.push(Segment::final_(crate::storage::AudioSource::Mic, text.clone()));
                 parts.push(text);
             }
         }
