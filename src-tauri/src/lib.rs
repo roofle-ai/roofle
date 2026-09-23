@@ -200,10 +200,13 @@ pub fn run() {
             commands::list_sessions,
             commands::get_session,
             commands::delete_session,
+            commands::list_session_questions,
             commands::save_notes,
             commands::load_ai_config,
             commands::save_ai_config,
-            commands::test_ai_connection
+            commands::test_ai_connection,
+            commands::analyse_session,
+            commands::get_session_analysis
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

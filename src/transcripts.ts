@@ -57,3 +57,54 @@ export function saveNotes(id: number, notes: string): Promise<void> {
 export function deleteSession(id: number): Promise<void> {
   return invoke<void>("delete_session", { id });
 }
+
+/** A session's persisted follow-up question, as shown in the right panel. */
+export interface SessionQuestion {
+  id: number;
+  text: string;
+  status: "open" | "answered" | "stale";
+}
+
+/** A session's persisted follow-up questions (for the right panel on open). */
+export function listSessionQuestions(id: number): Promise<SessionQuestion[]> {
+  return invoke<SessionQuestion[]>("list_session_questions", { id });
+}
+
+// --- Offline self-assessment (offline-agent) --------------------------------
+
+/** One scored call dimension (0-100; `score` null when there was no evidence). */
+export interface AnalysisDimension {
+  score: number | null;
+  reasoning: string;
+  evidence: string[];
+}
+
+/** A full self-assessment returned by the offline-agent. */
+export interface AnalysisResult {
+  call_summary: string;
+  caveats: string[];
+  dimensions: Record<string, AnalysisDimension>;
+  lowest_scoring_dimension: string | null;
+  overall_score: number;
+}
+
+/** Evaluate a finished session from a perspective + context; returns the dashboard. */
+export function analyseSession(
+  id: number,
+  perspective: string,
+  context: string,
+  apiKey: string,
+): Promise<AnalysisResult> {
+  return invoke<AnalysisResult>("analyse_session", { id, perspective, context, apiKey });
+}
+
+/** A persisted offline analysis for a session (context it was run with + result). */
+export interface AnalysisView {
+  context: string;
+  result: AnalysisResult;
+}
+
+/** The session's persisted offline analysis, if one exists. */
+export function getSessionAnalysis(id: number): Promise<AnalysisView | null> {
+  return invoke<AnalysisView | null>("get_session_analysis", { id });
+}

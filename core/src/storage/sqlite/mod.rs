@@ -1,11 +1,16 @@
-//! SQLite storage. Owns the connection and migrations only; each domain's row
-//! mapping lives in a dedicated child module — [`sessions`] (sessions +
-//! segments), [`paragraphs`] — and every SQL string lives in [`sql`]. This file
-//! stays about "the connection", never about a table's queries.
+//! SQLite storage. Owns the connection and schema initialization; each domain's
+//! row mapping lives in a dedicated child module — [`sessions`] (sessions +
+//! segments), [`paragraphs`], [`transcript`], [`questions`] — and every query
+//! string lives in [`sql`]. This file stays about "the connection"; the schema
+//! itself lives in the [`schema`] directory (DB initialization / migrations).
 
+mod analysis;
 mod paragraphs;
+mod questions;
+mod schema;
 mod sessions;
 mod sql;
+mod transcript;
 
 use chrono::{DateTime, Utc};
 use std::path::Path;
@@ -13,7 +18,13 @@ use std::sync::Mutex;
 
 use crate::storage::StorageError;
 
-use sql::{SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4};
+/// A session's persisted offline self-assessment: the analysis context that
+/// produced it plus the raw `AnalysisResult` JSON.
+#[derive(Debug, Clone)]
+pub struct StoredAnalysis {
+    pub context: String,
+    pub result_json: String,
+}
 
 /// Thread-safe SQLite store. Wrap in `app.manage` once, share everywhere.
 pub struct SqliteStorage {
@@ -53,24 +64,12 @@ impl SqliteStorage {
         Ok(storage)
     }
 
-    /// Apply pending migrations, tracked by `PRAGMA user_version`.
+    /// Initialize the schema on a fresh database. Future schema changes are
+    /// applied here as incremental migrations (see the `schema` directory),
+    /// tracked by `PRAGMA user_version`.
     fn migrate(&self) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().unwrap();
-        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-
-        if version < 1 {
-            apply(&mut conn, SCHEMA_V1, 1)?;
-        }
-        if version < 2 {
-            apply(&mut conn, SCHEMA_V2, 2)?;
-        }
-        if version < 3 {
-            apply(&mut conn, SCHEMA_V3, 3)?;
-        }
-        if version < 4 {
-            apply(&mut conn, SCHEMA_V4, 4)?;
-        }
-        Ok(())
+        schema::initialize(&mut conn)
     }
 
     /// Current schema version (`PRAGMA user_version`); 0 means a fresh DB.
@@ -78,19 +77,6 @@ impl SqliteStorage {
         let conn = self.conn.lock().unwrap();
         Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
     }
-}
-
-/// Run a migration batch and stamp `user_version`, atomically.
-fn apply(
-    conn: &mut rusqlite::Connection,
-    batch: &str,
-    version: i64,
-) -> Result<(), StorageError> {
-    let tx = conn.transaction()?;
-    tx.execute_batch(batch)?;
-    tx.pragma_update(None, "user_version", version)?;
-    tx.commit()?;
-    Ok(())
 }
 
 /// RFC 3339 UTC text, matching what `chrono`'s serde emits over IPC.

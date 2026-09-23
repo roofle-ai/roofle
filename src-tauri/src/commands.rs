@@ -17,12 +17,13 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use chrono::Utc;
-use live_agent::{persist_boundary, ParagraphWatcher, DEFAULT_CHAR_LIMIT};
+use live_agent::{ParagraphWatcher, DEFAULT_CHAR_LIMIT};
 use roofle_core::pipeline::{
     BothSource, MicSource, Pipeline, PipelineConfig, Source, DEFAULT_RING_CAPACITY,
 };
 use roofle_core::storage::{
-    NewSegment, NewSession, SessionDetail, SessionRepository, SessionSummary,
+    AudioSource, NewAudioSegment, NewSegment, NewSession, ParagraphStore, QuestionStatus,
+    QuestionStore, SessionDetail, SessionRepository, SessionSummary,
 };
 #[cfg(target_os = "macos")]
 use roofle_core::pipeline::SystemSource;
@@ -33,6 +34,7 @@ use crate::models::ModelInfo;
 use crate::state::{AppState, TranscriptCue};
 use live_agent::challenge::agent_challenges;
 use live_agent::notes::{agent_notes, log_step, logging_enabled, CompletionClient};
+use offline_agent::analysis::{analyse, AnalysisResult};
 
 /// Default amplitude gain applied to captured audio (no-op at 1.0).
 const DEFAULT_GAIN: f32 = 1.0;
@@ -321,6 +323,23 @@ pub fn delete_session(state: tauri::State<AppState>, id: i64) -> Result<(), Stri
     state.storage.delete_session(id).map_err(|e| e.to_string())
 }
 
+/// A session's persisted follow-up questions, for the right panel on open.
+#[tauri::command]
+pub fn list_session_questions(
+    state: tauri::State<AppState>,
+    id: i64,
+) -> Result<Vec<crate::state::QuestionView>, String> {
+    let qs = state.storage.list_questions(id).map_err(|e| e.to_string())?;
+    Ok(qs
+        .iter()
+        .map(|q| crate::state::QuestionView {
+            id: q.id,
+            text: q.text.clone(),
+            status: status_label(q.status),
+        })
+        .collect())
+}
+
 // --- AI client (Slice 1) ------------------------------------------------
 
 /// Resolve the app data dir for AI config persistence.
@@ -382,6 +401,113 @@ pub async fn test_ai_connection(app: AppHandle, api_key: String) -> Result<Strin
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?
+}
+
+/// Evaluate a finished session from a chosen perspective + context via the
+/// offline-agent, and return the self-assessment for the dashboard. Runs on a
+/// worker thread so a slow provider never freezes the UI. The API key is
+/// supplied by the renderer (from localStorage); `ROOFLE_LOCAL_KEY` overrides.
+/// The result is persisted per session so a later click shows it without
+/// re-analyzing.
+#[tauri::command]
+pub async fn analyse_session(
+    app: AppHandle,
+    id: i64,
+    perspective: String,
+    context: String,
+    api_key: String,
+) -> Result<AnalysisResult, String> {
+    let config = ai::load_config(&ai_data_dir(&app)?);
+    let api_key = ai::resolve_api_key(&api_key);
+    if config.model.trim().is_empty() || api_key.trim().is_empty() {
+        return Err("AI not configured: set a model and API key in Settings".to_string());
+    }
+
+    // Full essay-paragraph transcript of the finished session (all segments,
+    // not the editable notes document).
+    let transcript = app
+        .state::<AppState>()
+        .storage
+        .get_session(id)
+        .map_err(|e| e.to_string())?
+        .map(|d| d.transcript)
+        .unwrap_or_default();
+    if transcript.trim().is_empty() {
+        return Err("this session has no transcript to analyse".to_string());
+    }
+
+    let log = logging_enabled();
+    // The raw LLM request/response is logged by `NotesClient::complete`; log the
+    // analysis step too so an empty/malformed reply is visible in the AI log.
+    log_step(
+        log,
+        "offline/analyse",
+        &format!(
+            "session={id} model={} perspective={perspective} context={context} transcript={} chars",
+            config.model,
+            transcript.chars().count(),
+        ),
+    );
+
+    // Keep the context for persistence; `context` itself moves into the thread.
+    let stored_context = context.clone();
+    let result: AnalysisResult = tauri::async_runtime::spawn_blocking(move || {
+        let client = NotesClient { config, api_key };
+        analyse(&client, &transcript, &perspective, &context)
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))??;
+
+    log_step(
+        log,
+        "offline/analyse",
+        &format!(
+            "parsed session={id} dimensions={} caveats={} overall={} lowest={:?} summary={:?}",
+            result.dimensions.len(),
+            result.caveats.len(),
+            result.overall_score,
+            result.lowest_scoring_dimension,
+            result.call_summary,
+        ),
+    );
+
+    // Persist so the next click on Analyse shows this without re-analyzing.
+    let json = serde_json::to_string(&result).map_err(|e| e.to_string())?;
+    app.state::<AppState>()
+        .storage
+        .save_analysis(id, &stored_context, &json)
+        .map_err(|e| e.to_string())?;
+    Ok(result)
+}
+
+/// A persisted offline analysis as shown to the renderer.
+#[derive(serde::Serialize)]
+pub struct AnalysisView {
+    context: String,
+    result: AnalysisResult,
+}
+
+/// The session's persisted offline analysis, if one exists. The renderer calls
+/// this before opening the analyse modal: when a result is present it is shown
+/// directly and the model is not called again.
+#[tauri::command]
+pub fn get_session_analysis(app: AppHandle, id: i64) -> Result<Option<AnalysisView>, String> {
+    let stored = app
+        .state::<AppState>()
+        .storage
+        .load_analysis(id)
+        .map_err(|e| e.to_string())?;
+    match stored {
+        Some(s) => {
+            let result: AnalysisResult =
+                serde_json::from_str(&s.result_json).map_err(|e| format!("stored analysis parse: {e}"))?;
+            Ok(Some(AnalysisView {
+                context: s.context,
+                result,
+            }))
+        }
+        None => Ok(None),
+    }
 }
 
 /// A `CompletionClient` backed by the configured OpenAI-compatible AI client,
@@ -520,15 +646,15 @@ fn generate_notes(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
             }
         };
 
-        // The notes produced so far for this session (empty on first run); the
-        // agent merges the new paragraph into this and returns the full doc.
-        let existing = app
-            .state::<AppState>()
-            .notes
-            .lock()
-            .unwrap()
-            .get(&session_id)
-            .cloned()
+        // The live note produced so far for this session (empty on first run),
+        // so the agent keeps merging across chunks. `rolling_summaries` is
+        // untouched; `live_notes` is the notes store.
+        let storage = &app.state::<AppState>().storage;
+        let existing = storage
+            .latest_note(session_id)
+            .ok()
+            .flatten()
+            .map(|n| n.text)
             .unwrap_or_default();
 
         let result = agent_notes(
@@ -544,13 +670,9 @@ fn generate_notes(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
                     &format!("notes #{seq} session={session_id}"),
                     &format!("final notes = {} chars", text.chars().count()),
                 );
-                // Replace the running notes for this session and publish the
-                // full document so the UI shows the merged/validated result.
-                app.state::<AppState>()
-                    .notes
-                    .lock()
-                    .unwrap()
-                    .insert(session_id, text.clone());
+                // Append the note generation and publish the full document so
+                // the UI shows the merged/validated result.
+                let _ = storage.save_note(session_id, seq, &text);
                 let _ = app.emit(
                     "notes-update",
                     crate::state::NotesUpdate { seq, text },
@@ -599,41 +721,64 @@ fn generate_challenges(app: AppHandle, session_id: i64, seq: i64, new_text: Stri
             }
         };
 
-        // The follow-up questions produced so far for this session (empty on
-        // first run); the agent merges the new paragraph into this.
-        let existing = app
-            .state::<AppState>()
-            .challenges
-            .lock()
-            .unwrap()
-            .get(&session_id)
-            .cloned()
+        // The session's currently-open questions (id, text), so the resolver
+        // can reference them by id.
+        let storage = &app.state::<AppState>().storage;
+        let open = storage
+            .list_questions(session_id)
+            .map(|qs| {
+                qs.iter()
+                    .filter(|q| q.status == QuestionStatus::Open)
+                    .map(|q| (q.id, q.text.clone()))
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default();
 
         let result = agent_challenges(
             client.as_ref().map(|c| c as &dyn CompletionClient).unwrap(),
             &new_text,
-            &existing,
+            &open,
             log,
         );
-        log_challenges(&new_text, &result);
         match result {
-            Ok(text) => {
+            Ok(res) => {
                 log_step(
                     log,
                     &format!("challenge #{seq} session={session_id}"),
-                    &format!("final questions = {} chars", text.chars().count()),
+                    &format!(
+                        "added={} answered={} stale={}",
+                        res.added.len(),
+                        res.answered.len(),
+                        res.stale.len(),
+                    ),
                 );
-                // Replace the running question list for this session and publish
-                // it so the UI can surface it (right panel later).
-                app.state::<AppState>()
-                    .challenges
-                    .lock()
-                    .unwrap()
-                    .insert(session_id, text.clone());
+                // Persist the JSON-derived result: add approved questions as
+                // open and resolve the answered/stale ones by id.
+                for text in &res.added {
+                    let _ = storage.create_question(session_id, text, seq);
+                }
+                for (id, reason) in &res.answered {
+                    let _ = storage.resolve_question(*id, QuestionStatus::Answered, reason, Some(seq));
+                }
+                for (id, reason) in &res.stale {
+                    let _ = storage.resolve_question(*id, QuestionStatus::Stale, reason, None);
+                }
+                // Publish the session's full question list so the UI renders it.
+                let questions = storage
+                    .list_questions(session_id)
+                    .map(|qs| {
+                        qs.iter()
+                            .map(|q| crate::state::QuestionView {
+                                id: q.id,
+                                text: q.text.clone(),
+                                status: status_label(q.status),
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
                 let _ = app.emit(
                     "challenge-update",
-                    crate::state::ChallengeUpdate { seq, text },
+                    crate::state::ChallengeUpdate { seq, questions },
                 );
             }
             Err(e) => log_step(log, &format!("challenge #{seq} session={session_id}"), &e),
@@ -641,42 +786,12 @@ fn generate_challenges(app: AppHandle, session_id: i64, seq: i64, new_text: Stri
     });
 }
 
-/// Disposable dev aid: when `ROOFLE_LOG_AI` is on, append each challenge
-/// agent step (the latest paragraph and the resulting follow-up questions) to
-/// a timestamped text file in the project root, so the question agent's
-/// quality can be inspected offline. Remove together with its caller when no
-/// longer needed.
-fn log_challenges(paragraph: &str, result: &Result<String, String>) {
-    if !logging_enabled() {
-        return;
+fn status_label(status: QuestionStatus) -> String {
+    match status {
+        QuestionStatus::Open => "open".into(),
+        QuestionStatus::Answered => "answered".into(),
+        QuestionStatus::Stale => "stale".into(),
     }
-    // One log file per run, named by the millisecond timestamp of the first call.
-    static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
-    let file = LOG_FILE.get_or_init(|| {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap_or(Path::new("."));
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0);
-        root.join(format!("challenge-{stamp}.log"))
-    });
-
-    let stamp = Utc::now().to_rfc3339();
-    let block = match result {
-        Ok(questions) => format!(
-            "== {stamp} ==\n--- PARAGRAPH ---\n{paragraph}\n--- FOLLOW-UP QUESTIONS ---\n{questions}\n\n"
-        ),
-        Err(err) => format!(
-            "== {stamp} ==\n--- PARAGRAPH ---\n{paragraph}\n--- ERROR ---\n{err}\n\n"
-        ),
-    };
-    let _ = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(file)
-        .and_then(|mut f| f.write_all(block.as_bytes()));
 }
 
 // --- Engine thread ------------------------------------------------------
@@ -736,7 +851,7 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
                         timestamp_offset = offset;
                         segment_seq = last_seq;
                         // Start a paragraph watcher for this session.
-                        watcher = Some(ParagraphWatcher::new(id, DEFAULT_CHAR_LIMIT));
+                        watcher = Some(ParagraphWatcher::new(DEFAULT_CHAR_LIMIT));
                     }
                     Err(e) => {
                         let _ = stop_pipeline(&mut pipeline);
@@ -760,8 +875,6 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
                     paused_total = Duration::ZERO;
                     pause_started = None;
                 }
-                // Stop feeding the watcher and persist any full final paragraph.
-                flush_watcher(&app, &mut watcher);
                 let _ = reply.send(result);
             }
             Ok(Control::Pause { reply }) => {
@@ -809,6 +922,8 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
         );
 
         if let Some((id, duration)) = pending_finalize.take() {
+            // Trailing segments are drained; flush any final paragraph first.
+            flush_watcher(&app, &mut watcher, active_session);
             close_session(&app, id, duration);
             active_session = None;
         }
@@ -816,14 +931,15 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
 
     // App is exiting: stop capture gracefully so trailing speech is flushed.
     let _ = stop_pipeline(&mut pipeline);
-    if let Some(id) = active_session.take() {
+    let exit_session = active_session.take();
+    // Persist any final paragraph still buffered at exit.
+    flush_watcher(&app, &mut watcher, exit_session);
+    if let Some(id) = exit_session {
         let duration = recording_started
             .map(|s| s.elapsed().saturating_sub(paused_total).as_secs_f64())
             .unwrap_or(0.0);
         close_session(&app, id, duration);
     }
-    // Persist any final paragraph still buffered at exit.
-    flush_watcher(&app, &mut watcher);
 }
 
 /// Build and start a pipeline for `source`, replacing any running one. Ensures
@@ -984,42 +1100,19 @@ fn forward_events(
                 start_secs,
                 text: segment.text.clone(),
             });
-            // Feed the paragraph watcher; persist + log + turn each boundary into
-            // an AI note AND follow-up questions for the UI, both in real time.
-            if let Some(w) = watcher.as_mut() {
-                for boundary in w.push(&segment.text) {
-                    match persist_boundary(&app.state::<AppState>().storage, &boundary) {
-                        Ok(()) => eprintln!(
-                            "[roofle] paragraph #{} (new={} chars) session={}",
-                            boundary.seq,
-                            boundary.new_text.chars().count(),
-                            boundary.session_id,
-                        ),
-                        Err(e) => eprintln!("[roofle] persist paragraph: {e}"),
-                    }
-                    generate_notes(
-                        app.clone(),
-                        boundary.session_id,
-                        boundary.seq,
-                        boundary.new_text.clone(),
-                    );
-                    generate_challenges(
-                        app.clone(),
-                        boundary.session_id,
-                        boundary.seq,
-                        boundary.new_text,
-                    );
-                }
-            }
             if let Some(sid) = session_id {
                 *seq += 1;
                 pending.push(NewSegment {
                     session_id: sid,
                     seq: *seq,
                     start_secs,
-                    text: segment.text,
+                    text: segment.text.clone(),
                     created_at: Utc::now(),
                 });
+                // db-persist path: fold the segment into a source-tagged
+                // paragraph and, on a boundary, finalize + append it to the
+                // merged transcript log (the input to the AI agents).
+                ingest_segment(app, sid, &segment.text, start_secs, watcher);
             }
         }
     }
@@ -1033,34 +1126,67 @@ fn forward_events(
     }
 }
 
-/// Flush the live session's paragraph watcher, persisting the full final
-/// paragraph (even below the char limit) once transcription stops.
-fn flush_watcher(app: &AppHandle, watcher: &mut Option<ParagraphWatcher>) {
-    let Some(mut w) = watcher.take() else {
+/// Fold one utterance into a source-tagged paragraph; on a boundary, finalize
+/// and append it to the merged transcript log (which triggers the agents).
+fn ingest_segment(
+    app: &AppHandle,
+    session_id: i64,
+    text: &str,
+    start_secs: f64,
+    watcher: &mut Option<ParagraphWatcher>,
+) {
+    let storage = &app.state::<AppState>().storage;
+    // ponytail: every unit is tagged 'system' until the mic split lands.
+    let source = AudioSource::System;
+    let start_ms = (start_secs * 1000.0) as i64;
+    if let Err(e) = storage.add_segment(&NewAudioSegment {
+        session_id,
+        source,
+        text: text.to_string(),
+        start_ms,
+        // ponytail: the ASR stream yields no per-segment duration yet, so the
+        // span is a point; `end_ms >= start_ms` still holds.
+        end_ms: start_ms,
+        confidence: None,
+        created_at: Utc::now(),
+    }) {
+        eprintln!("[roofle] persist audio segment: {e}");
+        return;
+    }
+
+    let Some(w) = watcher.as_mut() else {
         return;
     };
-    if let Some(boundary) = w.flush() {
-        match persist_boundary(&app.state::<AppState>().storage, &boundary) {
-            Ok(()) => eprintln!(
-                "[roofle] flushed paragraph #{} (new={} chars) session={}",
-                boundary.seq,
-                boundary.new_text.chars().count(),
-                boundary.session_id,
-            ),
-            Err(e) => eprintln!("[roofle] persist final paragraph: {e}"),
+    if w.push(text) {
+        finalize_paragraph(app, session_id);
+        w.reset();
+    }
+}
+
+/// Finalize the session's paragraph (append to the transcript log, reset the
+/// row) and trigger the notes + challenge agents on the newest chunk.
+fn finalize_paragraph(app: &AppHandle, session_id: i64) {
+    let storage = &app.state::<AppState>().storage;
+    match storage.finalize_paragraph(session_id) {
+        Ok(Some((seq, text))) => {
+            generate_notes(app.clone(), session_id, seq, text.clone());
+            generate_challenges(app.clone(), session_id, seq, text);
         }
-        generate_notes(
-            app.clone(),
-            boundary.session_id,
-            boundary.seq,
-            boundary.new_text.clone(),
-        );
-        generate_challenges(
-            app.clone(),
-            boundary.session_id,
-            boundary.seq,
-            boundary.new_text,
-        );
+        Ok(None) => {}
+        Err(e) => eprintln!("[roofle] finalize paragraph: {e}"),
+    }
+}
+
+/// On stop, fold any remaining buffered text into a final paragraph and append
+/// it to the merged log (even below the char limit), then discard the watcher.
+fn flush_watcher(app: &AppHandle, watcher: &mut Option<ParagraphWatcher>, session_id: Option<i64>) {
+    let Some(w) = watcher.take() else {
+        return;
+    };
+    if w.has_pending() {
+        if let Some(sid) = session_id {
+            finalize_paragraph(app, sid);
+        }
     }
 }
 

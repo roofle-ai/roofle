@@ -1,63 +1,6 @@
-//! Every SQL string in the store, in one place. Schema batches are applied in
-//! order by `SqliteStorage::migrate`; query constants are named by table + verb.
-
-// --- Schema (applied in version order) ------------------------------------
-
-/// v1: sessions + segments; timestamps are RFC 3339 UTC text so the file stays
-/// human-readable; segments cascade-delete with their session.
-pub(super) const SCHEMA_V1: &str = r#"
-CREATE TABLE IF NOT EXISTS sessions (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    title         TEXT    NOT NULL DEFAULT '',
-    source        TEXT    NOT NULL,
-    model_id      TEXT    NOT NULL,
-    started_at    TEXT    NOT NULL,
-    ended_at      TEXT,
-    duration_secs REAL    NOT NULL DEFAULT 0,
-    status        TEXT    NOT NULL DEFAULT 'recording'
-);
-
-CREATE TABLE IF NOT EXISTS segments (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    seq        INTEGER NOT NULL,
-    start_secs REAL    NOT NULL,
-    text       TEXT    NOT NULL,
-    created_at TEXT    NOT NULL,
-    UNIQUE (session_id, seq)
-);
-
-CREATE INDEX IF NOT EXISTS idx_segments_session ON segments (session_id, seq);
-"#;
-
-/// v2: `updated_at` lets a continued session's date/time refresh in the list.
-pub(super) const SCHEMA_V2: &str = r#"
-ALTER TABLE sessions ADD COLUMN updated_at TEXT;
-UPDATE sessions SET updated_at = started_at WHERE updated_at IS NULL;
-"#;
-
-/// v3: derived paragraph chunks written by live-agent's paragraph watcher.
-/// One row per character-threshold boundary; keyed per session so a session's
-/// paragraphs can be replayed in order and cascade-delete with their session.
-pub(super) const SCHEMA_V3: &str = r#"
-CREATE TABLE IF NOT EXISTS paragraphs (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    seq        INTEGER NOT NULL,
-    prev_text  TEXT    NOT NULL,
-    new_text   TEXT    NOT NULL,
-    created_at TEXT    NOT NULL,
-    UNIQUE (session_id, seq)
-);
-
-CREATE INDEX IF NOT EXISTS idx_paragraphs_session ON paragraphs (session_id, seq);
-"#;
-
-/// v4: the editable notes document per session (seed/transcript + user edits).
-/// Defaults to empty; transcription itself remains in `segments` (unchanged).
-pub(super) const SCHEMA_V4: &str = r#"
-ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT '';
-"#;
+//! Every SQL string in the store, in one place — query constants only, named by
+//! table + verb. The schema lives in the `schema` module (applied by
+//! `schema::initialize`), so this file is purely about reads and writes.
 
 // --- sessions -------------------------------------------------------------
 
@@ -127,18 +70,164 @@ WHERE session_id = ?1
 ORDER BY seq
 "#;
 
-// --- paragraphs -----------------------------------------------------------
+// --- audio_segments -------------------------------------------------------
 
-/// Insert one paragraph chunk.
-pub(super) const INSERT_PARAGRAPH: &str = r#"
-INSERT INTO paragraphs (session_id, seq, prev_text, new_text, created_at)
-VALUES (?1, ?2, ?3, ?4, ?5)
+/// Insert one source-tagged audio segment.
+pub(super) const INSERT_AUDIO_SEGMENT: &str = r#"
+INSERT INTO audio_segments
+    (session_id, source, text, start_ms, end_ms, confidence, created_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 "#;
 
-/// A session's paragraphs in sequence order.
-pub(super) const SELECT_PARAGRAPHS: &str = r#"
-SELECT id, session_id, seq, prev_text, new_text, created_at
+// --- paragraphs -----------------------------------------------------------
+
+/// The session's current paragraph row.
+pub(super) const SELECT_PARAGRAPH: &str = r#"
+SELECT session_id, source, text, start_ms, end_ms, sequence_no, created_at, updated_at
 FROM paragraphs
 WHERE session_id = ?1
-ORDER BY seq
+"#;
+
+/// Start the session's paragraph row (first fold).
+pub(super) const INSERT_PARAGRAPH: &str = r#"
+INSERT INTO paragraphs
+    (session_id, source, text, start_ms, end_ms, sequence_no, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?6)
+"#;
+
+/// Fold a segment into the paragraph: append text and extend end_ms.
+/// The separator space is skipped when the paragraph was just reset (empty).
+pub(super) const UPDATE_PARAGRAPH_APPEND: &str = r#"
+UPDATE paragraphs
+SET text = CASE WHEN text = '' THEN ?1 ELSE text || ' ' || ?1 END,
+    end_ms = ?2, updated_at = ?3
+WHERE session_id = ?4
+"#;
+
+/// Reset the paragraph row for the next paragraph, recording the last
+/// transcript sequence folded.
+pub(super) const RESET_PARAGRAPH: &str = r#"
+UPDATE paragraphs
+SET text = '', start_ms = 0, end_ms = 0, sequence_no = ?1, updated_at = ?2
+WHERE session_id = ?3
+"#;
+
+// --- transcript_log -------------------------------------------------------
+
+/// Highest merged-log sequence of a session (0 when it has none).
+pub(super) const SELECT_LAST_TRANSCRIPT_SEQ: &str =
+    "SELECT COALESCE(MAX(sequence_no), 0) FROM transcript_log WHERE session_id = ?1";
+
+/// Append a finalized paragraph to the merged log.
+pub(super) const INSERT_TRANSCRIPT: &str = r#"
+INSERT INTO transcript_log
+    (session_id, source, text, start_ms, sequence_no, created_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+"#;
+
+/// The newest (highest-sequence) transcript entry of a session.
+pub(super) const SELECT_NEWEST_TRANSCRIPT: &str = r#"
+SELECT id, session_id, source, text, start_ms, sequence_no, created_at
+FROM transcript_log
+WHERE session_id = ?1
+ORDER BY sequence_no DESC
+LIMIT 1
+"#;
+
+/// A session's transcript entries after a given sequence, in order.
+pub(super) const SELECT_TRANSCRIPT_AFTER: &str = r#"
+SELECT id, session_id, source, text, start_ms, sequence_no, created_at
+FROM transcript_log
+WHERE session_id = ?1 AND sequence_no > ?2
+ORDER BY sequence_no
+"#;
+
+// --- rolling_summaries ----------------------------------------------------
+
+/// Overwrite a session's rolling summary (upsert).
+pub(super) const UPSERT_ROLLING_SUMMARY: &str = r#"
+INSERT INTO rolling_summaries (session_id, summary_text, last_sequence_no, updated_at)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT(session_id) DO UPDATE SET
+    summary_text = excluded.summary_text,
+    last_sequence_no = excluded.last_sequence_no,
+    updated_at = excluded.updated_at
+"#;
+
+/// A session's rolling summary, if any.
+pub(super) const SELECT_ROLLING_SUMMARY: &str = r#"
+SELECT session_id, summary_text, last_sequence_no, updated_at
+FROM rolling_summaries
+WHERE session_id = ?1
+"#;
+
+// --- questions ------------------------------------------------------------
+
+/// A session's questions, newest first.
+pub(super) const SELECT_QUESTIONS: &str = r#"
+SELECT id, session_id, text, lens, status, resolution_reason,
+       source_sequence_no, resolved_sequence_no, created_at, updated_at
+FROM questions
+WHERE session_id = ?1
+ORDER BY id DESC
+"#;
+
+/// Insert one open question.
+pub(super) const INSERT_QUESTION: &str = r#"
+INSERT INTO questions
+    (session_id, text, lens, status, resolution_reason,
+     source_sequence_no, resolved_sequence_no, created_at, updated_at)
+VALUES (?1, ?2, ?3, 'open', NULL, ?4, NULL, ?5, ?5)
+"#;
+
+/// Mark every currently-open question of a session stale.
+pub(super) const UPDATE_QUESTIONS_STALE: &str = r#"
+UPDATE questions
+SET status = 'stale', updated_at = ?1
+WHERE session_id = ?2 AND status = 'open'
+"#;
+
+/// Resolve a single question: set status, reason, and resolving sequence.
+pub(super) const UPDATE_QUESTION_RESOLVE: &str = r#"
+UPDATE questions
+SET status = ?1, resolution_reason = ?2, resolved_sequence_no = ?3, updated_at = ?4
+WHERE id = ?5
+"#;
+
+// --- live_notes ------------------------------------------------------------
+
+/// Overwrite the session's live note (upsert).
+pub(super) const UPSERT_LIVE_NOTE: &str = r#"
+INSERT INTO live_notes (session_id, sequence_no, text, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?4)
+ON CONFLICT(session_id) DO UPDATE SET
+    sequence_no = excluded.sequence_no,
+    text = excluded.text,
+    updated_at = excluded.updated_at
+"#;
+
+/// The session's live note (the running notes doc).
+pub(super) const SELECT_LATEST_LIVE_NOTE: &str = r#"
+SELECT session_id, sequence_no, text, created_at, updated_at
+FROM live_notes
+WHERE session_id = ?1
+"#;
+
+// --- session_analysis (offline self-assessment) -----------------------------
+
+/// Upsert a session's offline analysis (one row per session).
+pub(super) const UPSERT_SESSION_ANALYSIS: &str = r#"
+INSERT INTO session_analysis (session_id, context, result_json, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?4)
+ON CONFLICT(session_id) DO UPDATE SET
+    context = excluded.context,
+    result_json = excluded.result_json,
+    updated_at = excluded.updated_at
+"#;
+
+/// A session's persisted offline analysis, if any.
+pub(super) const SELECT_SESSION_ANALYSIS: &str = r#"
+SELECT context, result_json
+FROM session_analysis
+WHERE session_id = ?1
 "#;

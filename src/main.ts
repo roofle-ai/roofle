@@ -31,7 +31,16 @@ import {
 } from "lucide";
 import { loadStoredApiKey } from "./ai";
 import { openSettings } from "./settings";
-import { deleteSession, getSession, listSessions, saveNotes } from "./transcripts";
+import {
+  analyseSession,
+  deleteSession,
+  getSession,
+  getSessionAnalysis,
+  listSessionQuestions,
+  listSessions,
+  saveNotes,
+  type AnalysisResult
+} from "./transcripts";
 import "./ui";
 
 /// Payload of a `transcript-update` event (mirrors roofle_core::asr::Segment).
@@ -53,10 +62,17 @@ interface NotesUpdate {
   text: string;
 }
 
+/// One follow-up question from the challenge agent.
+interface QuestionView {
+  id: number;
+  text: string;
+  status: "open" | "answered" | "stale";
+}
+
 /// Payload of a `challenge-update` event (AI-generated follow-up questions).
 interface ChallengeUpdate {
   seq: number;
-  text: string;
+  questions: QuestionView[];
 }
 
 /// Category of a follow-up question.
@@ -69,6 +85,7 @@ interface FollowUp {
   text: string;
   timestamp: number; // seconds into the session
   blockIndex: number; // id of the source transcript block
+  status: "open" | "answered" | "stale";
   resolved: boolean;
 }
 
@@ -104,6 +121,12 @@ const qLive = document.querySelector<HTMLSpanElement>("#q-live")!;
 const summaryCard = document.querySelector<HTMLDivElement>("#summary-card")!;
 const summaryStats = document.querySelector<HTMLDivElement>("#summary-stats")!;
 const summaryNote = document.querySelector<HTMLParagraphElement>("#summary-note")!;
+const analyseBtn = document.querySelector<HTMLButtonElement>("#analyse-btn")!;
+const analyseModal = document.querySelector<HTMLDivElement>("#analyse-modal")!;
+const perspectiveSelect = document.querySelector<HTMLSelectElement>("#analyse-perspective")!;
+const contextSelect = document.querySelector<HTMLSelectElement>("#analyse-context")!;
+const analysisDashboard = document.querySelector<HTMLDivElement>("#analysis-dashboard")!;
+const analysisBody = document.querySelector<HTMLDivElement>("#analysis-body")!;
 
 // ---- Icons ----------------------------------------------------------------
 const ICONS = {
@@ -156,7 +179,6 @@ let pendingAppend: string[] = [];
 let notesSaveTimer: number | undefined;
 
 let questions: FollowUp[] = [];
-let nextQuestionId = 0;
 let analysisMode = false;
 
 // ---- Theme (light / dark, defaults to system) ------------------------------
@@ -199,8 +221,16 @@ function formatTime(totalSec: number): string {
 }
 
 function startTimer(): void {
-  elapsedSec = 0;
-  timerEl.textContent = formatTime(0);
+  // Clear any running interval first — `recording-state` and the transport
+  // button can both trigger a start, and leftover intervals would each tick
+  // `elapsedSec`, making the clock run faster than real time.
+  if (timerInterval !== undefined) {
+    window.clearInterval(timerInterval);
+    timerInterval = undefined;
+  }
+  // Keep the accumulated time on resume; a genuinely fresh start resets it
+  // in `start()`.
+  timerEl.textContent = formatTime(elapsedSec);
   timerInterval = window.setInterval(() => {
     elapsedSec += 1;
     timerEl.textContent = formatTime(elapsedSec);
@@ -259,32 +289,53 @@ function flushPending(): void {
 }
 
 // ---- Follow-up questions (agent-driven) ------------------------------------
-// Follow-up questions come from the live challenge agent via the
-// `challenge-update` event — the agent returns the full question list as plain
-// text (one question per line). We ingest it into the right panel, deduping
-// against what's already shown so the feed grows rather than repeats.
-function ingestChallenges(text: string, timestamp: number): void {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim().replace(/^[-*•\d.)\s]+/, ""))
-    .filter((l) => l.length > 0);
-  if (lines.length === 0) return;
+// The challenge agent parses its LLM JSON into structured questions and emits
+// the session's full list via `challenge-update`. We reconcile it against the
+// panel by backend id: drop cards no longer present, add new ones, and flip
+// resolved state from `status` (open = unanswered; answered/stale = resolved).
+function ingestChallenges(qs: QuestionView[], timestamp: number): void {
+  if (qs.length === 0) return;
+  const incoming = new Map(qs.map((q) => [q.id, q]));
 
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").replace(/[?.!]+$/, "").trim();
-  for (const line of lines) {
-    const key = norm(line);
-    if (questions.some((q) => norm(q.text) === key)) continue;
-    const q: FollowUp = {
-      id: nextQuestionId++,
+  // Drop cards that left the backend list.
+  for (const q of questions) {
+    if (!incoming.has(q.id)) {
+      document.querySelector(`[data-qid="${q.id}"]`)?.remove();
+    }
+  }
+  questions = questions.filter((q) => incoming.has(q.id));
+
+  // Upsert each incoming question.
+  for (const q of qs) {
+    const existing = questions.find((x) => x.id === q.id);
+    const resolved = q.status !== "open";
+    if (existing) {
+      existing.text = q.text;
+      existing.status = q.status;
+      existing.resolved = resolved;
+      const card = document.querySelector<HTMLElement>(`[data-qid="${q.id}"]`);
+      if (card) {
+        card.classList.toggle("resolved", resolved);
+        const label = card.querySelector<HTMLElement>(".q-state");
+        if (label) label.textContent = resolved ? "Resolved" : "Unanswered";
+      }
+      continue;
+    }
+    const fq: FollowUp = {
+      id: q.id,
       type: "Open",
-      text: line,
+      text: q.text,
       timestamp,
       blockIndex: 0,
-      resolved: false,
+      status: q.status,
+      resolved,
     };
-    questions.push(q);
-    renderQuestion(q);
+    questions.push(fq);
+    renderQuestion(fq);
   }
+  questionsEmpty.hidden = questions.length !== 0;
+  updateLiveBadge();
+  if (analysisMode) renderSummary();
 }
 
 function renderQuestion(q: FollowUp): void {
@@ -392,9 +443,9 @@ function renderSummary(): void {
     return;
   }
   summaryCard.hidden = false;
-  const counts: Record<string, number> = { Clarification: 0, Action: 0, Risk: 0, Decision: 0, Open: 0 };
-  questions.forEach((q) => (counts[q.type] = (counts[q.type] || 0) + 1));
-  const unresolved = questions.filter((q) => !q.resolved).length;
+  const open = questions.filter((q) => q.status === "open").length;
+  const answered = questions.filter((q) => q.status === "answered").length;
+  const stale = questions.filter((q) => q.status === "stale").length;
 
   summaryStats.innerHTML = "";
   const add = (n: number, label: string) => {
@@ -409,13 +460,15 @@ function renderSummary(): void {
     summaryStats.appendChild(stat);
   };
   add(questions.length, "questions");
-  add(unresolved, "open");
-  (Object.keys(counts) as QuestionType[]).forEach((type) => {
-    if (counts[type]) add(counts[type], type.toLowerCase());
-  });
-  summaryNote.textContent = unresolved
-    ? `${unresolved} follow-up ${unresolved === 1 ? "question remains" : "questions remain"} open for the team.`
-    : "All follow-up questions resolved. Nice work.";
+  if (open) add(open, "open");
+  if (answered) add(answered, "answered");
+  if (stale) add(stale, "stale");
+
+  summaryNote.textContent = open
+    ? `${open} follow-up ${open === 1 ? "question remains" : "questions remain"} open for the team.`
+    : answered > 0
+      ? "All follow-up questions answered."
+      : "All follow-up questions closed.";
   updateLiveBadge();
 }
 
@@ -427,6 +480,212 @@ function setAnalysisMode(on: boolean): void {
     summaryCard.hidden = true;
     updateLiveBadge();
   }
+}
+
+// ---- Offline analysis (offline-agent) --------------------------------------
+const PERSPECTIVES = ["Sales"];
+const CONTEXTS = ["Selling a product", "Buying a product"];
+
+/// Show the Analyse button only once transcription has fully stopped and a
+/// session with content is in view.
+function updateAnalyseVisibility(): void {
+  analyseBtn.hidden = !(sessionState === "idle" && viewedSessionId !== null);
+}
+
+/// On click: if the session already has a persisted analysis, show it directly
+/// (never re-analyze); otherwise open the perspective/context modal.
+async function onAnalyseClick(): Promise<void> {
+  if (viewedSessionId === null) return;
+  try {
+    const stored = await getSessionAnalysis(viewedSessionId);
+    if (stored) {
+      analysisDashboard.hidden = false;
+      renderAnalysis(stored.result);
+      return;
+    }
+  } catch {
+    // Non-fatal: fall through to the modal on lookup errors.
+  }
+  openAnalyseModal();
+}
+
+function openAnalyseModal(): void {
+  fillSelect(perspectiveSelect, PERSPECTIVES);
+  fillSelect(contextSelect, CONTEXTS);
+  analyseModal.hidden = false;
+}
+
+function closeAnalyseModal(): void {
+  analyseModal.hidden = true;
+}
+
+function fillSelect(select: HTMLSelectElement, options: string[]): void {
+  select.innerHTML = "";
+  for (const o of options) {
+    const opt = document.createElement("option");
+    opt.value = o;
+    opt.textContent = o;
+    select.appendChild(opt);
+  }
+}
+
+/// Evaluate the viewed session and render the self-assessment dashboard.
+async function runAnalysis(): Promise<void> {
+  if (viewedSessionId === null) return;
+  const perspective = perspectiveSelect.value;
+  const context = contextSelect.value;
+  closeAnalyseModal();
+
+  analysisBody.replaceChildren();
+  const loading = document.createElement("p");
+  loading.className = "analysis-loading";
+  loading.textContent = "Analysing…";
+  analysisBody.appendChild(loading);
+  analysisDashboard.hidden = false;
+
+  try {
+    const result = await analyseSession(viewedSessionId, perspective, context, loadStoredApiKey());
+    renderAnalysis(result);
+  } catch (err) {
+    analysisBody.replaceChildren();
+    const p = document.createElement("p");
+    p.className = "analysis-error";
+    p.textContent = String(err);
+    analysisBody.appendChild(p);
+  }
+}
+
+/// Build the dashboard from the LLM's structured result: overall score, call
+/// summary, per-dimension scores with reasoning/evidence, and caveats. All text
+/// via textContent (safe).
+function renderAnalysis(r: AnalysisResult): void {
+  analysisBody.replaceChildren();
+
+  const dims = Object.entries(r.dimensions);
+  // The model can return an empty result (blank JSON); surface that instead of
+  // a blank white dashboard.
+  const hasContent = !!r.call_summary || dims.length > 0 || r.caveats.length > 0;
+  if (!hasContent) {
+    const p = document.createElement("p");
+    p.className = "analysis-error";
+    p.textContent = "The model returned no evaluation data. Please try again.";
+    analysisBody.appendChild(p);
+    return;
+  }
+
+  // Overall score banner.
+  const overall = document.createElement("div");
+  overall.className = "analysis-overall";
+  const overallNum = document.createElement("b");
+  overallNum.textContent = formatScore(r.overall_score);
+  overall.appendChild(overallNum);
+  const overallLabel = document.createElement("span");
+  overallLabel.textContent = "overall / 100";
+  overall.appendChild(overallLabel);
+  if (r.lowest_scoring_dimension) {
+    const low = document.createElement("small");
+    low.textContent = `Work on: ${humanizeKey(r.lowest_scoring_dimension)}`;
+    overall.appendChild(low);
+  }
+  analysisBody.appendChild(overall);
+
+  if (r.call_summary) {
+    const summary = document.createElement("p");
+    summary.className = "analysis-summary";
+    summary.textContent = r.call_summary;
+    analysisBody.appendChild(summary);
+  }
+
+  // Per-dimension score cards.
+  if (dims.length > 0) {
+    const grid = document.createElement("div");
+    grid.className = "analysis-scores";
+    for (const [key, dim] of dims) {
+      const card = document.createElement("div");
+      card.className = "analysis-score";
+      if (r.lowest_scoring_dimension === key) card.classList.add("lowest");
+
+      const head = document.createElement("div");
+      head.className = "analysis-score-head";
+      const name = document.createElement("span");
+      name.className = "analysis-score-name";
+      name.textContent = humanizeKey(key);
+      const val = document.createElement("span");
+      val.className = "analysis-score-val";
+      val.textContent = dim.score === null ? "—" : formatScore(dim.score);
+      head.appendChild(name);
+      head.appendChild(val);
+      card.appendChild(head);
+
+      if (dim.score !== null) {
+        const track = document.createElement("div");
+        track.className = "analysis-score-track";
+        const fill = document.createElement("div");
+        fill.className = "analysis-score-fill";
+        fill.style.width = `${Math.max(0, Math.min(100, dim.score))}%`;
+        track.appendChild(fill);
+        card.appendChild(track);
+      }
+
+      if (dim.reasoning) {
+        const reason = document.createElement("p");
+        reason.className = "analysis-score-reason";
+        reason.textContent = dim.reasoning;
+        card.appendChild(reason);
+      }
+
+      if (dim.evidence.length > 0) {
+        const ev = document.createElement("ul");
+        ev.className = "analysis-evidence";
+        for (const e of dim.evidence) {
+          const li = document.createElement("li");
+          li.textContent = e;
+          ev.appendChild(li);
+        }
+        card.appendChild(ev);
+      }
+
+      grid.appendChild(card);
+    }
+    analysisBody.appendChild(grid);
+  }
+
+  // Scope caveats that affected scoring.
+  appendList(analysisBody, "Caveats", r.caveats, "analysis-warn");
+}
+
+/// A titled bullet list (e.g. caveats / evidence) with a colour accent.
+function appendList(
+  parent: HTMLElement,
+  title: string,
+  items: string[],
+  cls: string,
+): void {
+  if (items.length === 0) return;
+  const h = document.createElement("h4");
+  h.className = "analysis-block-title";
+  h.textContent = title;
+  parent.appendChild(h);
+
+  const ul = document.createElement("ul");
+  ul.className = "analysis-list";
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.className = cls;
+    li.textContent = item;
+    ul.appendChild(li);
+  }
+  parent.appendChild(ul);
+}
+
+/// `next_step_strength` -> "Next Step Strength".
+function humanizeKey(k: string): string {
+  return k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/// Render a score value without trailing zeros (50, 7.5).
+function formatScore(v: number): string {
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
 // ---- Transport --------------------------------------------------------------
@@ -465,6 +724,8 @@ function setSessionState(state: SessionState): void {
       : state === "paused"
         ? "Paused — follow-up questions will resume when you resume recording."
         : "Roofle is listening… follow-up questions will appear here as the conversation unfolds.";
+
+  updateAnalyseVisibility();
 }
 
 function describeError(err: unknown): string {
@@ -547,6 +808,7 @@ function clearTranscriptUI(): void {
   titleFromTranscript = undefined;
   resetQuestions();
   setAnalysisMode(false);
+  analysisDashboard.hidden = true;
 }
 
 // ---- Notes persistence ------------------------------------------------------
@@ -658,6 +920,7 @@ async function loadHistory(): Promise<void> {
             viewedSessionId = null;
             chatTitle.textContent = notesTitle();
             clearTranscriptUI();
+            updateAnalyseVisibility();
           }
           void loadHistory();
         })
@@ -675,6 +938,7 @@ async function openSession(id: number): Promise<void> {
     if (!detail) return;
 
     viewedSessionId = id;
+    updateAnalyseVisibility();
 
     // Clear the live notes + questions, then load the stored notes document.
     clearTranscriptUI();
@@ -686,10 +950,16 @@ async function openSession(id: number): Promise<void> {
     chatTitle.textContent = notesTitle(new Date(detail.session.started_at));
     notesInput.value = detail.notes ?? "";
 
-    // Follow-up questions are produced live by the challenge agent and arrive
-    // via `challenge-update`; re-opening a session shows whatever was captured
-    // for it during the live run.
+    // Load this session's persisted follow-up questions from the DB and show
+    // them in the right panel (tagged by the viewed session).
+    resetQuestions();
     setAnalysisMode(true);
+    try {
+      const qs = await listSessionQuestions(id);
+      ingestChallenges(qs, 0);
+    } catch {
+      // Non-fatal: the live feed will populate as the conversation continues.
+    }
     await loadHistory();
   } catch (err) {
     setStatus("error", String(err));
@@ -702,6 +972,7 @@ async function newSession(): Promise<void> {
     await stop();
   }
   viewedSessionId = null;
+  updateAnalyseVisibility();
   chatTitle.textContent = notesTitle();
   clearTranscriptUI();
   showToast("New Meeting Notes");
@@ -723,6 +994,9 @@ async function start(): Promise<void> {
     if (continueId === null) {
       chatTitle.textContent = notesTitle();
       clearTranscriptUI();
+      // Fresh recording: the on-screen clock restarts at 0.
+      elapsedSec = 0;
+      timerEl.textContent = formatTime(0);
     }
     resetQuestions();
     setAnalysisMode(false);
@@ -859,6 +1133,14 @@ async function init(): Promise<void> {
   stopBtn.addEventListener("click", () => void stop());
   newSessionBtn?.addEventListener("click", () => void newSession());
   settingsBtn?.addEventListener("click", () => openSettings());
+
+  analyseBtn.addEventListener("click", () => void onAnalyseClick());
+  document.querySelector<HTMLButtonElement>("#analyse-close")!.addEventListener("click", closeAnalyseModal);
+  document.querySelector<HTMLButtonElement>("#analyse-cancel")!.addEventListener("click", closeAnalyseModal);
+  document.querySelector<HTMLButtonElement>("#analyse-submit")!.addEventListener("click", () => void runAnalysis());
+  document.querySelector<HTMLButtonElement>("#analysis-close")!.addEventListener("click", () => {
+    analysisDashboard.hidden = true;
+  });
   themeToggle.addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
     applyTheme(cur === "dark" ? "light" : "dark");
@@ -892,10 +1174,10 @@ async function init(): Promise<void> {
   });
 
   // AI-generated follow-up questions, driven by the live challenge agent. The
-  // agent returns the full accumulated question list (one per line), so we
-  // ingest it into the right panel, deduping as we go.
+  // agent returns the session's full structured question list, so we reconcile
+  // it into the right panel.
   await listen<ChallengeUpdate>("challenge-update", (event) => {
-    ingestChallenges(event.payload.text, elapsedSec);
+    ingestChallenges(event.payload.questions, elapsedSec);
   });
 
   // AI-generated meeting notes replace the raw transcript in the notes panel.

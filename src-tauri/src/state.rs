@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
@@ -25,13 +24,22 @@ pub struct NotesUpdate {
     pub text: String,
 }
 
+/// One follow-up question sent to the UI.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QuestionView {
+    pub id: i64,
+    pub text: String,
+    /// `open`, `answered`, or `stale`.
+    pub status: String,
+}
+
 /// Payload of a `challenge-update` event (AI-generated follow-up questions).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ChallengeUpdate {
-    /// Paragraph number these questions were generated from.
+    /// Transcript sequence these questions were generated from.
     pub seq: i64,
-    /// The generated follow-up questions text.
-    pub text: String,
+    /// The session's full question list, with resolution status.
+    pub questions: Vec<QuestionView>,
 }
 
 /// App-wide state.
@@ -56,12 +64,6 @@ pub struct AppState {
     /// SQLite store; the engine thread writes sessions/segments in real time
     /// and command threads read them for the UI.
     pub storage: SqliteStorage,
-    /// The running AI notes document per session (the agent merges each new
-    /// paragraph into this, replacing it wholesale on every `notes-update`).
-    pub notes: Mutex<HashMap<i64, String>>,
-    /// The running follow-up-question list per session (the challenge agent
-    /// merges each new paragraph into this on every `challenge-update`).
-    pub challenges: Mutex<HashMap<i64, String>>,
     /// The effective API key for live notes, supplied by the renderer (from
     /// its localStorage) when a recording starts; the `ROOFLE_LOCAL_KEY` env
     /// var overrides it. Rust never persists this.
@@ -85,8 +87,6 @@ impl AppState {
             tray: Mutex::new(None),
             storage,
             api_key: Mutex::new(String::new()),
-            notes: Mutex::new(HashMap::new()),
-            challenges: Mutex::new(HashMap::new()),
         }
     }
 }

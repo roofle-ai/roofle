@@ -17,16 +17,32 @@ mod tests;
 
 mod paragraph;
 mod paragraph_store;
+mod questions;
 mod repository;
 mod sqlite;
+mod transcript;
 
 pub use paragraph::render_paragraph;
-pub use paragraph_store::{NewParagraph, Paragraph, ParagraphStore};
+pub use paragraph_store::{AudioSegment, NewAudioSegment, Paragraph, ParagraphStore};
+pub use questions::{LiveNote, Question, QuestionStatus, QuestionStore, RollingSummary};
 pub use repository::{SessionRepository, StorageError};
+pub use sqlite::StoredAnalysis;
 pub use sqlite::SqliteStorage;
+pub use transcript::{TranscriptEntry, TranscriptStore};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+/// Which capture source produced a transcript unit. Per the db-persist plan a
+/// segment/paragraph belongs to exactly one source and never mixes mic+system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AudioSource {
+    /// The user's own microphone.
+    Mic,
+    /// System/output audio — the other call participant(s).
+    System,
+}
 
 /// Lifecycle of a recording session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
