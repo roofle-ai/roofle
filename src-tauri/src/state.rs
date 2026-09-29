@@ -67,8 +67,8 @@ pub struct AppState {
     /// and command threads read them for the UI.
     pub storage: SqliteStorage,
     /// The effective API key for live notes, supplied by the renderer (from
-    /// its localStorage) when a recording starts; the `ROOFLE_LOCAL_KEY` env
-    /// var overrides it. Rust never persists this.
+    /// its localStorage) when a recording starts; a local key env var (see
+    /// `ai::KEY_ENV_VARS`) overrides it. Rust never persists this.
     pub api_key: Mutex<String>,
 }
 

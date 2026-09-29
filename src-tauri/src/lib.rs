@@ -2,6 +2,7 @@
 mod ai;
 mod commands;
 mod models;
+mod notify;
 mod state;
 
 use roofle_core::storage::SqliteStorage;
@@ -61,7 +62,7 @@ fn tray_action(app: &tauri::AppHandle, action: TrayAction) {
                 // The tray always starts a fresh session (None = new). It passes
                 // no API key (a native menu can't read the renderer's
                 // localStorage), so start_recording reuses the last key a popup
-                // recording supplied (or the `ROOFLE_LOCAL_KEY` env var).
+                // recording supplied (or a local key env var; see ai.rs).
                 tauri::async_runtime::block_on(commands::start_recording(
                     app.clone(),
                     state,
@@ -96,6 +97,7 @@ fn show_popup(app: &tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         // Restore the window's size/position/maximized state on startup and
         // save it again as the user moves or resizes. VISIBLE is excluded so
         // the menu-bar app keeps launching hidden.
@@ -173,6 +175,11 @@ pub fn run() {
                 })
                 .build(app)?;
             *app.state::<state::AppState>().tray.lock().unwrap() = Some(tray);
+
+            // macOS requires explicit notification authorization; the plugin's
+            // desktop backend never prompts, so request it here (idempotent).
+            #[cfg(target_os = "macos")]
+            notify::request_permission();
 
             Ok(())
         })

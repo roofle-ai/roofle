@@ -789,6 +789,11 @@ fn generate_challenges(app: AppHandle, session_id: i64, seq: i64, new_text: Stri
                     "challenge-update",
                     crate::state::ChallengeUpdate { seq, questions },
                 );
+                // Surface the newly added questions as a background toast
+                // (skipped while the main window is visible; see notify.rs).
+                if !res.added.is_empty() {
+                    crate::notify::notify_new_questions(&app, &res.added);
+                }
             }
             Err(e) => log_step(log, &format!("challenge #{seq} session={session_id}"), &e),
         }
