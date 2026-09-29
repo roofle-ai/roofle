@@ -204,6 +204,7 @@ pub fn run() {
             commands::select_model,
             commands::selected_model,
             commands::export_transcript,
+            commands::export_text,
             commands::list_sessions,
             commands::get_session,
             commands::delete_session,

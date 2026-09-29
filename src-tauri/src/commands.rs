@@ -293,6 +293,30 @@ fn chrono_like_timestamp() -> String {
     format!("{days:08}-{rem:05}")
 }
 
+/// Write arbitrary text content (the full transcription or the meeting notes)
+/// to the app's `exports/` folder and return the absolute path written. Used by
+/// the UI's Export menu on the main panel.
+#[tauri::command]
+pub fn export_text(
+    state: tauri::State<AppState>,
+    filename: String,
+    content: String,
+) -> Result<String, String> {
+    if content.trim().is_empty() {
+        return Err("nothing to export".to_string());
+    }
+    let exports_dir = state
+        .models
+        .root()
+        .parent()
+        .unwrap_or_else(|| Path::new("assets"))
+        .join("exports");
+    std::fs::create_dir_all(&exports_dir).map_err(|e| format!("create exports dir: {e}"))?;
+    let path = exports_dir.join(filename);
+    std::fs::write(&path, content).map_err(|e| format!("write export: {e}"))?;
+    Ok(path.display().to_string())
+}
+
 // --- Session storage -----------------------------------------------------
 
 /// List recorded sessions, newest first, with a first-words preview.

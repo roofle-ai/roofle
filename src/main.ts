@@ -16,11 +16,13 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { openPath } from "@tauri-apps/plugin-opener";
 import {
   CircleCheck,
   CircleDot,
   CornerDownRight,
   createIcons,
+  Download,
   MessageSquareQuote,
   Moon,
   Plus,
@@ -130,6 +132,9 @@ const contextSelect = document.querySelector<HTMLSelectElement>("#analyse-contex
 const analysisDashboard = document.querySelector<HTMLDivElement>("#analysis-dashboard")!;
 const analysisBody = document.querySelector<HTMLDivElement>("#analysis-body")!;
 const questionsPanel = document.querySelector<HTMLElement>("#questions-panel")!;
+const exportControl = document.querySelector<HTMLDivElement>("#export-control")!;
+const exportBtn = document.querySelector<HTMLButtonElement>("#export-btn")!;
+const exportMenu = document.querySelector<HTMLDivElement>("#export-menu")!;
 
 // ---- Icons ----------------------------------------------------------------
 const ICONS = {
@@ -143,6 +148,7 @@ const ICONS = {
   CircleCheck,
   CornerDownRight,
   Trash,
+  Download,
 };
 
 function refreshIcons(): void {
@@ -765,6 +771,66 @@ function showToast(msg: string): void {
   }, 2200);
 }
 
+// ---- Export (full transcription / meeting notes) -------------------------
+function closeExportMenu(): void {
+  exportMenu.hidden = true;
+  exportBtn.setAttribute("aria-expanded", "false");
+}
+
+function toggleExportMenu(): void {
+  const open = exportMenu.hidden;
+  exportMenu.hidden = !open;
+  exportBtn.setAttribute("aria-expanded", String(open));
+}
+
+/// Compact local timestamp for export filenames: `YYYYMMDD-HHMMSS`.
+function exportStamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(
+    d.getHours(),
+  )}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+/// Run one export: `transcript` = the session's essay-rendered transcription,
+/// `notes` = the current notes document. Writes a `.txt` to the app exports
+/// folder and reveals it in the OS file manager.
+async function runExport(kind: "transcript" | "notes"): Promise<void> {
+  closeExportMenu();
+
+  let content = "";
+  let label = "Notes";
+  if (kind === "transcript") {
+    label = "Transcript";
+    if (viewedSessionId !== null) {
+      try {
+        const detail = await getSession(viewedSessionId);
+        content = detail?.transcript ?? "";
+      } catch {
+        content = "";
+      }
+    }
+  } else {
+    content = notesInput.value;
+  }
+
+  if (!content.trim()) {
+    showToast("Nothing to export yet");
+    return;
+  }
+
+  const filename = `Roofle-${label}-${exportStamp()}.txt`;
+  try {
+    const path = await invoke<string>("export_text", { filename, content });
+    showToast(`Exported: ${path}`);
+    // Reveal the saved file in the OS file manager.
+    const dir = path.slice(0, path.lastIndexOf("/"));
+    openPath(dir).catch(() => {});
+  } catch (err) {
+    showToast(String(err));
+  }
+}
+
 /// Make the floating transport control freely draggable anywhere in the main
 /// panel. It starts centered over the transcript and follows the pointer.
 function initFloatingControl(): void {
@@ -1162,6 +1228,23 @@ async function init(): Promise<void> {
   document.querySelectorAll<HTMLElement>(".resizer").forEach(setupResizer);
   initFloatingControl();
   setupShortcuts();
+
+  // Export control: toggle the small menu, close on outside click or Escape.
+  exportBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleExportMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!exportControl.contains(e.target as Node)) closeExportMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeExportMenu();
+  });
+  exportMenu.querySelectorAll<HTMLButtonElement>("[data-export]").forEach((item) => {
+    item.addEventListener("click", () => {
+      void runExport(item.dataset.export as "transcript" | "notes");
+    });
+  });
 
   notesInput.addEventListener("input", scheduleNotesSave);
   notesInput.addEventListener("focus", flushPending);
