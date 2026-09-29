@@ -79,6 +79,26 @@ fn save_and_load_notes_round_trip() {
 }
 
 #[test]
+fn set_title_round_trip() {
+    let storage = store();
+    let session = storage
+        .create_session(new_session("mic", Utc::now()))
+        .unwrap();
+
+    // Default title is empty.
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.session.title, "");
+
+    // The offline title agent renames the session; read it back via get_session.
+    storage.set_title(session.id, "Q3 Roadmap Planning").unwrap();
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.session.title, "Q3 Roadmap Planning");
+
+    // Setting a title on a missing session is an error.
+    assert!(storage.set_title(999, "nope").is_err());
+}
+
+#[test]
 fn create_and_list_session() {
     let storage = store();
     let started = Utc::now();

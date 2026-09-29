@@ -7,5 +7,7 @@
 //! strengths, improvements and action items — for the dashboard.
 
 pub mod analysis;
+pub mod title;
 
 pub use analysis::{analyse, AnalysisResult};
+pub use title::generate_title;

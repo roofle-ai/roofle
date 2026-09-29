@@ -47,6 +47,10 @@ WHERE id = ?1
 pub(super) const UPDATE_SESSION_NOTES: &str =
     "UPDATE sessions SET notes = ?1 WHERE id = ?2";
 
+/// Rename a session (the offline title-generator agent).
+pub(super) const UPDATE_SESSION_TITLE: &str =
+    "UPDATE sessions SET title = ?1 WHERE id = ?2";
+
 /// Delete a session; children cascade.
 pub(super) const DELETE_SESSION: &str = "DELETE FROM sessions WHERE id = ?1";
 

@@ -13,7 +13,7 @@ use crate::storage::{
 use super::sql::{
     DELETE_SESSION, INSERT_SEGMENT, INSERT_SESSION, SELECT_LAST_SEG_SEQ, SELECT_SEGMENTS,
     SELECT_SESSION, SELECT_SESSIONS, SELECT_SESSION_DURATION, UPDATE_SESSION_FINALIZE,
-    UPDATE_SESSION_NOTES, UPDATE_SESSION_RESUME,
+    UPDATE_SESSION_NOTES, UPDATE_SESSION_RESUME, UPDATE_SESSION_TITLE,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
@@ -167,6 +167,15 @@ impl SessionRepository for SqliteStorage {
     fn save_notes(&self, id: i64, notes: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().unwrap();
         let n = conn.execute(UPDATE_SESSION_NOTES, params![notes, id])?;
+        if n == 0 {
+            return Err(StorageError::NotFound(id));
+        }
+        Ok(())
+    }
+
+    fn set_title(&self, id: i64, title: &str) -> Result<(), StorageError> {
+        let conn = self.conn.lock().unwrap();
+        let n = conn.execute(UPDATE_SESSION_TITLE, params![title, id])?;
         if n == 0 {
             return Err(StorageError::NotFound(id));
         }

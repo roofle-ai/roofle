@@ -86,6 +86,9 @@ pub trait SessionRepository {
     /// Persist the editable notes document for a session.
     fn save_notes(&self, id: i64, notes: &str) -> Result<(), StorageError>;
 
+    /// Rename a session's title (set by the offline title-generator agent).
+    fn set_title(&self, id: i64, title: &str) -> Result<(), StorageError>;
+
     /// Delete a session; its segments cascade.
     fn delete_session(&self, id: i64) -> Result<(), StorageError>;
 }

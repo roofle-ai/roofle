@@ -30,6 +30,7 @@ use roofle_core::pipeline::SystemSource;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::ai::{self, AiClient, AiConfig, AiConfigView, ChatMessage, ProviderKind};
+use crate::ai_client::{ai_data_dir, NotesClient};
 use crate::models::ModelInfo;
 use crate::state::{AppState, TranscriptCue};
 use live_agent::challenge::agent_challenges;
@@ -371,13 +372,6 @@ pub fn list_session_questions(
 
 // --- AI client (Slice 1) ------------------------------------------------
 
-/// Resolve the app data dir for AI config persistence.
-fn ai_data_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
-    app.path()
-        .app_data_dir()
-        .map_err(|e| format!("app data dir: {e}"))
-}
-
 /// Load the AI config view (base URL, model). The API key itself lives in the
 /// renderer's localStorage and is never returned by Rust; `has_api_key` only
 /// reflects the `ROOFLE_LOCAL_KEY` env var.
@@ -481,7 +475,7 @@ pub async fn analyse_session(
     // Keep the context for persistence; `context` itself moves into the thread.
     let stored_context = context.clone();
     let result: AnalysisResult = tauri::async_runtime::spawn_blocking(move || {
-        let client = NotesClient { config, api_key };
+        let client = NotesClient::new(config, api_key);
         analyse(&client, &transcript, &perspective, &context)
     })
     .await
@@ -537,71 +531,6 @@ pub fn get_session_analysis(app: AppHandle, id: i64) -> Result<Option<AnalysisVi
         }
         None => Ok(None),
     }
-}
-
-/// A `CompletionClient` backed by the configured OpenAI-compatible AI client,
-/// so live-agent's note logic can call the LLM through the app's abstraction.
-struct NotesClient {
-    config: AiConfig,
-    api_key: String,
-}
-
-impl CompletionClient for NotesClient {
-    fn complete(&self, system: &str, user: &str) -> Result<String, String> {
-        let result = AiClient::new().chat(
-            &self.config,
-            &self.api_key,
-            vec![
-                ChatMessage {
-                    role: "system".to_string(),
-                    content: system.to_string(),
-                },
-                ChatMessage {
-                    role: "user".to_string(),
-                    content: user.to_string(),
-                },
-            ],
-        );
-        log_llm_exchange(system, user, &result);
-        result
-    }
-}
-
-/// Disposable dev aid: when `ROOFLE_LOG_AI` is on, append the exact request
-/// (system + user) and the LLM response to a timestamped text file in the
-/// project root. Remove this together with its caller when no longer needed.
-fn log_llm_exchange(system: &str, user: &str, result: &Result<String, String>) {
-    if !logging_enabled() {
-        return;
-    }
-    // One log file per run, named by the millisecond timestamp of the first call.
-    static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
-    let file = LOG_FILE.get_or_init(|| {
-        // Project root = parent of the src-tauri crate dir (compile-time).
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap_or(Path::new("."));
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis())
-            .unwrap_or(0);
-        root.join(format!("ai-llm-{stamp}.log"))
-    });
-
-    let stamp = Utc::now().to_rfc3339();
-    let block = match result {
-        Ok(reply) => format!(
-            "== {stamp} ==\n--- SYSTEM ---\n{system}\n--- USER ---\n{user}\n--- REPLY ---\n{reply}\n\n"
-        ),
-        Err(err) => format!(
-            "== {stamp} ==\n--- SYSTEM ---\n{system}\n--- USER ---\n{user}\n--- ERROR ---\n{err}\n\n"
-        ),
-    };
-    let _ = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(file)
-        .and_then(|mut f| f.write_all(block.as_bytes()));
 }
 
 /// Disposable dev aid: when `ROOFLE_LOG_AI` is on, append each finalized
@@ -671,7 +600,7 @@ fn generate_notes(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
                     &format!("notes #{seq} session={session_id}"),
                     &format!("agent start (model={}, new={new_chars} chars)", config.model),
                 );
-                Some(NotesClient { config, api_key })
+                Some(NotesClient::new(config, api_key))
             }
             Err(e) => {
                 log_step(log, &format!("notes #{seq} session={session_id}"), &e);
@@ -746,7 +675,7 @@ fn generate_challenges(app: AppHandle, session_id: i64, seq: i64, new_text: Stri
                     &format!("challenge #{seq} session={session_id}"),
                     &format!("agent start (model={}, new={new_chars} chars)", config.model),
                 );
-                Some(NotesClient { config, api_key })
+                Some(NotesClient::new(config, api_key))
             }
             Err(e) => {
                 log_step(log, &format!("challenge #{seq} session={session_id}"), &e);
@@ -963,6 +892,8 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
             // Trailing segments are drained; flush any final paragraph first.
             flush_watcher(&app, &mut watcher, active_session);
             close_session(&app, id, duration);
+            // Offline title agent: rename the finished session from its notes.
+            crate::title::rename_session(app.clone(), id);
             active_session = None;
         }
     }
@@ -977,6 +908,7 @@ fn engine_loop(app: AppHandle, rx: Receiver<Control>) {
             .map(|s| s.elapsed().saturating_sub(paused_total).as_secs_f64())
             .unwrap_or(0.0);
         close_session(&app, id, duration);
+        crate::title::rename_session(app.clone(), id);
     }
 }
 

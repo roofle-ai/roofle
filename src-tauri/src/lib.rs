@@ -1,9 +1,11 @@
 // roofle-app — thin Tauri 2 shell over roofle-core.
 mod ai;
+mod ai_client;
 mod commands;
 mod models;
 mod notify;
 mod state;
+mod title;
 
 use roofle_core::storage::SqliteStorage;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -219,3 +221,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
