@@ -3,7 +3,7 @@
     <h2 id="chat-title" class="new-title">Notes</h2>
     <button id="analyse-btn" type="button" class="analyse-btn" hidden>
       <i data-lucide="sparkles" aria-hidden="true"></i>
-      <span>Analyse</span>
+      <span>Review</span>
     </button>
   </div>
 
@@ -15,8 +15,8 @@
       id="notes-input"
       class="notes-input"
       spellcheck="true"
-      aria-label="Meeting notes"
-      placeholder="Start recording or type your meeting notes here…"
+      aria-label="Conversation notes"
+      placeholder="Start recording or type your notes here…"
     ></textarea>
   </div>
 
@@ -54,7 +54,7 @@
        once an analysis has run. -->
   <div id="analysis-dashboard" class="analysis-dashboard" hidden>
     <div class="analysis-dash-head">
-      <h3 class="analysis-dash-title">Self-assessment</h3>
+      <h3 class="analysis-dash-title">Conversation review</h3>
       <button id="analysis-close" type="button" class="analysis-close" aria-label="Close analysis">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12" />
@@ -71,7 +71,7 @@
 <div id="analyse-modal" class="analyse-overlay" role="dialog" aria-modal="true" aria-labelledby="analyse-title" hidden>
   <div class="analyse-dialog">
     <div class="analyse-head">
-      <h2 id="analyse-title" class="analyse-title">Analyse session</h2>
+      <h2 id="analyse-title" class="analyse-title">Review this conversation</h2>
       <button id="analyse-close" type="button" class="analyse-close" aria-label="Close">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12" />
@@ -80,20 +80,20 @@
     </div>
 
     <div class="analyse-field">
-      <label class="analyse-label" for="analyse-perspective">Perspective</label>
-      <span class="analyse-desc">The lens to evaluate this conversation from.</span>
+      <label class="analyse-label" for="analyse-perspective">Review as</label>
+      <span class="analyse-desc">How you'd like to evaluate this conversation.</span>
       <select id="analyse-perspective" class="analyse-select"></select>
     </div>
 
     <div class="analyse-field">
-      <label class="analyse-label" for="analyse-context">Context</label>
-      <span class="analyse-desc">Background about the speaker, goal, or setting.</span>
+      <label class="analyse-label" for="analyse-context">Conversation type</label>
+      <span class="analyse-desc">What kind of conversation this is.</span>
       <select id="analyse-context" class="analyse-select"></select>
     </div>
 
     <div class="analyse-actions">
       <button id="analyse-cancel" type="button" class="btn-ghost">Cancel</button>
-      <button id="analyse-submit" type="button" class="btn-primary">Run analysis</button>
+      <button id="analyse-submit" type="button" class="btn-primary">Start review</button>
     </div>
   </div>
 </div>

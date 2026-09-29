@@ -1,25 +1,28 @@
 <aside class="panel history" id="history-panel">
   <div class="panel-head">
-    <span class="panel-heading">Transcriptions</span>
+    <span class="panel-heading">Conversations</span>
   </div>
 
   <button id="new-session-btn" type="button" class="new-chat">
     <i data-lucide="plus" aria-hidden="true"></i>
-    <span>New Meeting Notes</span>
+    <span>New conversation</span>
   </button>
 
   <div class="history-label">
-    <span>All sessions</span>
+    <span>All conversations</span>
     <span id="history-count" class="history-count">0</span>
   </div>
 
   <div class="history-list">
     <div id="history-empty" class="history-empty">
-      <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9A1.5 1.5 0 0 1 18.5 16H8l-4 4z" />
-        <path d="M8 9h8M8 12h5" />
-      </svg>
-      <p>No previous transcriptions yet.</p>
+      <span class="empty-orb" aria-hidden="true">
+        <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9A1.5 1.5 0 0 1 18.5 16H8l-4 4z" />
+          <path d="M8 9h8M8 12h5" />
+        </svg>
+      </span>
+      <strong class="empty-title">No conversations yet</strong>
+      <p class="empty-copy">Start a new conversation to capture your first review.</p>
     </div>
   </div>
 </aside>

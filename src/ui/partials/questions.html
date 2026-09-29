@@ -10,15 +10,18 @@
   <div id="summary-card" class="summary-card" hidden>
     <div class="summary-head">
       <i data-lucide="sparkles" aria-hidden="true"></i>
-      <span>Meeting insights</span>
+      <span>Conversations insights</span>
     </div>
     <div id="summary-stats" class="summary-stats"></div>
     <p id="summary-note" class="summary-note"></p>
   </div>
 
   <div id="questions-empty" class="questions-empty">
-    <i data-lucide="message-square-quote" aria-hidden="true"></i>
-    <p id="questions-empty-hint">Roofle is listening… follow-up questions will appear here as the conversation unfolds.</p>
+    <span class="empty-orb insight" aria-hidden="true">
+      <i data-lucide="message-square-quote"></i>
+    </span>
+    <strong class="empty-title">Stay sharp in the moment</strong>
+    <p id="questions-empty-hint">Roofle listens for what's left unsaid — follow-up questions will surface here as the conversation unfolds.</p>
   </div>
 
   <div id="questions-list" class="questions-list"></div>

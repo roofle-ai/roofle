@@ -129,6 +129,7 @@ const perspectiveSelect = document.querySelector<HTMLSelectElement>("#analyse-pe
 const contextSelect = document.querySelector<HTMLSelectElement>("#analyse-context")!;
 const analysisDashboard = document.querySelector<HTMLDivElement>("#analysis-dashboard")!;
 const analysisBody = document.querySelector<HTMLDivElement>("#analysis-body")!;
+const questionsPanel = document.querySelector<HTMLElement>("#questions-panel")!;
 
 // ---- Icons ----------------------------------------------------------------
 const ICONS = {
@@ -484,9 +485,15 @@ function setAnalysisMode(on: boolean): void {
   }
 }
 
+/// Hide the follow-up questions panel while the analysis dashboard is on screen
+/// (it belongs to the meeting-notes view). Re-show it once analysis is closed.
+function syncQuestionsPanel(): void {
+  questionsPanel.hidden = !analysisDashboard.hidden;
+}
+
 // ---- Offline analysis (offline-agent) --------------------------------------
-const PERSPECTIVES = ["Sales"];
-const CONTEXTS = ["Selling a product", "Buying a product"];
+const PERSPECTIVES = ["Sales rep", "Interviewer", "Presenter", "Facilitator"];
+const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
 
 /// Show the Analyse button only once transcription has fully stopped and a
 /// session with content is in view.
@@ -502,6 +509,7 @@ async function onAnalyseClick(): Promise<void> {
     const stored = await getSessionAnalysis(viewedSessionId);
     if (stored) {
       analysisDashboard.hidden = false;
+      syncQuestionsPanel();
       renderAnalysis(stored.result);
       return;
     }
@@ -541,9 +549,10 @@ async function runAnalysis(): Promise<void> {
   analysisBody.replaceChildren();
   const loading = document.createElement("p");
   loading.className = "analysis-loading";
-  loading.textContent = "Analysing…";
+  loading.textContent = "Reviewing…";
   analysisBody.appendChild(loading);
   analysisDashboard.hidden = false;
+  syncQuestionsPanel();
 
   try {
     const result = await analyseSession(viewedSessionId, perspective, context, loadStoredApiKey());
@@ -570,7 +579,7 @@ function renderAnalysis(r: AnalysisResult): void {
   if (!hasContent) {
     const p = document.createElement("p");
     p.className = "analysis-error";
-    p.textContent = "The model returned no evaluation data. Please try again.";
+    p.textContent = "Not enough dialogue to review";
     analysisBody.appendChild(p);
     return;
   }
@@ -582,7 +591,7 @@ function renderAnalysis(r: AnalysisResult): void {
   overallNum.textContent = formatScore(r.overall_score);
   overall.appendChild(overallNum);
   const overallLabel = document.createElement("span");
-  overallLabel.textContent = "overall / 100";
+  overallLabel.textContent = "Overall score";
   overall.appendChild(overallLabel);
   if (r.lowest_scoring_dimension) {
     const low = document.createElement("small");
@@ -811,6 +820,7 @@ function clearTranscriptUI(): void {
   resetQuestions();
   setAnalysisMode(false);
   analysisDashboard.hidden = true;
+  syncQuestionsPanel();
 }
 
 // ---- Notes persistence ------------------------------------------------------
@@ -977,7 +987,7 @@ async function newSession(): Promise<void> {
   updateAnalyseVisibility();
   chatTitle.textContent = notesTitle();
   clearTranscriptUI();
-  showToast("New Meeting Notes");
+  showToast("New conversation");
 }
 
 async function onMainControl(): Promise<void> {
@@ -1142,6 +1152,7 @@ async function init(): Promise<void> {
   document.querySelector<HTMLButtonElement>("#analyse-submit")!.addEventListener("click", () => void runAnalysis());
   document.querySelector<HTMLButtonElement>("#analysis-close")!.addEventListener("click", () => {
     analysisDashboard.hidden = true;
+    syncQuestionsPanel();
   });
   themeToggle.addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";

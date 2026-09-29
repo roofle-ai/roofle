@@ -11,6 +11,22 @@ use tauri_plugin_notification::NotificationExt;
 /// Title shown on every follow-up notification.
 const NOTIF_TITLE: &str = "Roofle — Follow-up questions";
 
+/// Whether the process is running from a proper `.app` bundle on macOS.
+///
+/// `UNUserNotificationCenter` requires a valid app bundle; when the binary runs
+/// directly from `target/debug/` (i.e. `tauri dev` / `cargo run`), accessing
+/// `currentNotificationCenter` throws an `NSInternalInconsistencyException`
+/// ("bundleProxyForCurrentProcess is nil") and crashes the app. Guard so the
+/// native prompt only fires for packaged builds; in dev the plugin's
+/// notifications are simply not authorized (harmless).
+#[cfg(target_os = "macos")]
+fn is_bundled_app() -> bool {
+    std::env::current_exe()
+        .ok()
+        .map(|p| p.to_string_lossy().contains(".app/"))
+        .unwrap_or(false)
+}
+
 /// Request macOS notification authorization once, so follow-up notifications
 /// actually display. The plugin's desktop backend never prompts for this; on
 /// macOS a notification is silently dropped until the user grants it.
@@ -20,6 +36,12 @@ pub fn request_permission() {
     use objc2::runtime::Bool;
     use objc2_foundation::NSError;
     use objc2_user_notifications::{UNUserNotificationCenter, UNAuthorizationOptions};
+
+    // Skip on unbundled dev runs — see `is_bundled_app`.
+    if !is_bundled_app() {
+        eprintln!("[roofle] skipping notification permission (not a bundled .app)");
+        return;
+    }
 
     let center = UNUserNotificationCenter::currentNotificationCenter();
     let options = UNAuthorizationOptions::Badge
