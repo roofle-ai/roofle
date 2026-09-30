@@ -20,6 +20,8 @@ export interface QuestionView {
   id: number;
   text: string;
   status: "open" | "answered" | "stale";
+  /** Agent-written resolution: the answer when `answered`, the reason when `stale`. */
+  reason: string | null;
 }
 
 export interface ChallengeUpdate {

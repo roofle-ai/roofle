@@ -37,7 +37,6 @@ export const dom = {
   qLive: query<HTMLSpanElement>("#q-live"),
   summaryCard: query<HTMLDivElement>("#summary-card"),
   summaryStats: query<HTMLDivElement>("#summary-stats"),
-  summaryNote: query<HTMLParagraphElement>("#summary-note"),
   analyseBtn: query<HTMLButtonElement>("#analyse-btn"),
   analyseBtnLabel: query<HTMLSpanElement>("#analyse-btn span"),
   analyseModal: query<HTMLDivElement>("#analyse-modal"),

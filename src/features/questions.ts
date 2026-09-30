@@ -2,8 +2,8 @@ import { session } from "../app/state";
 import { create, dom } from "../lib/dom";
 import { formatTime } from "../lib/format";
 import { refreshIcons } from "../lib/icons";
-import { scrollNotesToEnd } from "./notes";
 import type { QuestionView } from "../types";
+import { scrollNotesToEnd } from "./notes";
 
 interface FollowUp extends QuestionView {
   timestamp: number;
@@ -51,12 +51,31 @@ export function ingestChallenges(incoming: QuestionView[], timestamp: number): v
 function updateQuestion(existing: FollowUp, q: QuestionView): void {
   existing.text = q.text;
   existing.status = q.status;
+  existing.reason = q.reason;
   existing.resolved = q.status !== "open";
   const card = cardFor(q.id);
   if (!card) return;
   card.classList.toggle("resolved", existing.resolved);
   const label = card.querySelector<HTMLElement>(".q-state");
   if (label) label.textContent = stateLabel(existing.resolved);
+  syncAnswer(card, existing.reason);
+}
+
+/** Keep the card's answer block in step with the agent's resolution text. */
+function syncAnswer(card: HTMLElement, reason: string | null): void {
+  const el = card.querySelector<HTMLElement>(".qanswer");
+  if (!reason) {
+    el?.remove();
+    return;
+  }
+  if (el) {
+    el.textContent = reason;
+    return;
+  }
+  const fresh = create("p", "qanswer", reason);
+  const meta = card.querySelector<HTMLElement>(".qmeta");
+  if (meta) meta.before(fresh);
+  else card.append(fresh);
 }
 
 function renderQuestion(q: FollowUp): void {
@@ -101,7 +120,9 @@ function renderQuestion(q: FollowUp): void {
   const meta = create("div", "qmeta");
   meta.append(metaLeft, actions);
 
-  card.append(top, create("p", "qtext", q.text), meta);
+  card.append(top, create("p", "qtext", q.text));
+  if (q.reason) card.append(create("p", "qanswer", q.reason));
+  card.append(meta);
   dom.questionsList.prepend(card);
   refreshIcons();
   updateLiveBadge();
@@ -148,21 +169,18 @@ function renderSummary(): void {
   const stale = count("stale");
 
   dom.summaryStats.replaceChildren();
-  const addStat = (n: number, label: string) => {
-    const stat = create("div", "stat");
-    stat.append(create("b", undefined, String(n)), create("span", undefined, label));
+  const addStat = (n: number, label: "open" | "answered" | "stale") => {
+    const stat = create("div", `stat ${label}`);
+    stat.append(
+      create("span", "stat-dot"),
+      create("b", undefined, String(n)),
+      create("span", undefined, label),
+    );
     dom.summaryStats.append(stat);
   };
-  addStat(questions.length, "questions");
   if (open) addStat(open, "open");
   if (answered) addStat(answered, "answered");
   if (stale) addStat(stale, "stale");
-
-  dom.summaryNote.textContent = open
-    ? `${open} follow-up ${open === 1 ? "question remains" : "questions remain"} open for the team.`
-    : answered > 0
-      ? "All follow-up questions answered."
-      : "All follow-up questions closed.";
   updateLiveBadge();
 }
 

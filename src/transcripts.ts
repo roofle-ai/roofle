@@ -63,6 +63,8 @@ export interface SessionQuestion {
   id: number;
   text: string;
   status: "open" | "answered" | "stale";
+  /** Agent-written resolution: the answer when `answered`, the reason when `stale`. */
+  reason: string | null;
 }
 
 /** A session's persisted follow-up questions (for the right panel on open). */

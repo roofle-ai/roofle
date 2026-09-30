@@ -20,6 +20,8 @@ pub struct QuestionView {
     pub text: String,
     /// `open`, `answered`, or `stale`.
     pub status: &'static str,
+    /// Agent-written resolution text: the answer when `answered`, the reason when `stale`.
+    pub reason: Option<String>,
 }
 
 impl From<&Question> for QuestionView {
@@ -32,6 +34,7 @@ impl From<&Question> for QuestionView {
                 QuestionStatus::Answered => "answered",
                 QuestionStatus::Stale => "stale",
             },
+            reason: q.resolution_reason.clone(),
         }
     }
 }

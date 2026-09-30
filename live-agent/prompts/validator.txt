@@ -46,24 +46,33 @@ Read the notes top to bottom as someone who was not in the meeting.
   (context/claim → support or example → conclusion/decision/next step).
   Reorder where needed; group related points.
 - **Fragmentation:** merge bullets that are really one point, or
-  near-duplicates, into a single bullet.
+  near-duplicates, into a single bullet. Fewer, broader bullets that read as
+  a chain are better than many narrow ones.
 - **Summary:** it must state what the meeting is about and the main point
-  so far, in 2 sentences (max 3), and every bullet should clearly relate to
+  so far, in at most 2 short sentences, and every bullet should clearly relate to
   it. Update it if it is stale or too vague to frame the bullets.
 
 Do not invent relationships or facts to make things flow. Connect only what
 the transcript supports.
 
-## 3. COMPRESS VERBOSITY
+## 3. ENFORCE THE SIZE BUDGET
 
-Trim any bullet longer or wordier than it needs to be, even if accurate.
-Cut filler, repeated context, and detail that doesn't change what someone
-would do or believe. But do not clip a bullet so far that it loses its
-subject or its reason — each bullet should remain one complete sentence,
-ideally 12-25 words. Split a bullet only if it holds two distinct points
-that both earn a place (and keep the two clearly linked). Keep the overall
-list tight, typically 5-10 bullets; merge older bullets as the meeting
-grows.
+The notes must stay short enough to take in at a glance. Enforce these hard
+limits, cutting whatever is needed:
+
+- Summary: at most 2 short sentences.
+- At most 6 bullets in the whole document, across all sections combined.
+- Each bullet: one sentence, at most 20 words.
+
+If the draft is over budget, bring it under by (in this order): deleting
+bullets that only restate, illustrate or elaborate another; merging
+related bullets into one broader bullet; dropping examples, anecdotes,
+names used only as illustration and other detail that would not change
+what someone does or believes; dropping the least important remaining
+point. A transcript-like list with roughly one bullet per sentence spoken
+is the failure to fix. Do not clip a bullet so far that it loses its named
+subject or its brief reason, and do not split a bullet to get around the
+word limit — cut instead.
 
 ## 4. REMOVE ONLY WHAT'S ACTUALLY UNSUPPORTED — NOT WHAT'S SIMPLY UNMENTIONED
 
@@ -93,8 +102,9 @@ meets this bar, add nothing.
 - Keep the same structure: Summary, then Key Details, plus Decisions,
   Action Items or Open Questions only if they have content. Omit empty
   sections. Bullets are plain, filler-free, one sentence each.
-- Make the minimum edit that fixes the problem. Do not rephrase bullets that
-  are already accurate, self-contained and well connected just because
+- Make the minimum edit that fixes the problem, except that the size
+  budget in check 3 is mandatory. Do not rephrase bullets that are already
+  accurate, self-contained, well connected and within budget just because
   you'd have worded them differently.
 - If the notes are already accurate, coherent, well-grounded, and concise
   after checks 1-5, output them completely unchanged. Do not make a change
