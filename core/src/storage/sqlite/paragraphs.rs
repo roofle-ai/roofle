@@ -10,7 +10,7 @@ use crate::storage::{
 
 use super::sql::{
     INSERT_AUDIO_SEGMENT, INSERT_PARAGRAPH, INSERT_TRANSCRIPT, RESET_PARAGRAPH,
-    SELECT_LAST_TRANSCRIPT_SEQ, SELECT_PARAGRAPH, UPDATE_PARAGRAPH_APPEND,
+    SELECT_AUDIO_TEXTS, SELECT_LAST_TRANSCRIPT_SEQ, SELECT_PARAGRAPH, UPDATE_PARAGRAPH_APPEND,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
@@ -89,6 +89,17 @@ impl ParagraphStore for SqliteStorage {
         )?;
         tx.commit()?;
         Ok(Some((seq, para.text)))
+    }
+
+    fn audio_texts(
+        &self,
+        session_id: i64,
+        source: AudioSource,
+    ) -> Result<Vec<String>, StorageError> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(SELECT_AUDIO_TEXTS)?;
+        let rows = stmt.query_map(params![session_id, source_str(source)], |r| r.get(0))?;
+        Ok(rows.collect::<Result<Vec<String>, _>>()?)
     }
 }
 

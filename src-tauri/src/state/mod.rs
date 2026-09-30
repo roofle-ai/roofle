@@ -1,0 +1,49 @@
+mod payloads;
+
+use std::sync::mpsc::Sender;
+use std::sync::Mutex;
+
+use roofle_core::storage::SqliteStorage;
+
+use crate::engine::{Control, SourceKind};
+use crate::models::ModelManager;
+
+pub use payloads::{ChallengeUpdate, NotesUpdate, QuestionView, TitleUpdate, TranscriptCue};
+
+pub struct AppState {
+    /// Control channel to the engine thread (None once it has shut down).
+    pub engine: Mutex<Option<Sender<Control>>>,
+    pub models: ModelManager,
+    pub selected_model: Mutex<String>,
+    /// Finalized cues of the current recording, for `.txt`/`.srt` export.
+    pub transcript: Mutex<Vec<TranscriptCue>>,
+    pub recording: Mutex<bool>,
+    /// Source the tray menu's Start records.
+    pub last_source: Mutex<SourceKind>,
+    pub tray: Mutex<Option<tauri::tray::TrayIcon>>,
+    pub storage: SqliteStorage,
+    /// Renderer-supplied key captured at recording start for the live agents.
+    /// Never persisted.
+    pub api_key: Mutex<String>,
+}
+
+impl AppState {
+    pub fn new(engine: Sender<Control>, models: ModelManager, storage: SqliteStorage) -> Self {
+        let default_model = models
+            .list()
+            .first()
+            .map(|m| m.id.clone())
+            .unwrap_or_default();
+        Self {
+            engine: Mutex::new(Some(engine)),
+            models,
+            selected_model: Mutex::new(default_model),
+            transcript: Mutex::new(Vec::new()),
+            recording: Mutex::new(false),
+            last_source: Mutex::new(SourceKind::Both),
+            tray: Mutex::new(None),
+            storage,
+            api_key: Mutex::new(String::new()),
+        }
+    }
+}

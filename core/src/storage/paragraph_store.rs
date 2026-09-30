@@ -63,4 +63,12 @@ pub trait ParagraphStore {
     /// transcript log (new sequence), reset the paragraph row, and return
     /// `(sequence_no, text)` — or `None` when the paragraph is empty.
     fn finalize_paragraph(&self, session_id: i64) -> Result<Option<(i64, String)>, StorageError>;
+
+    /// The texts of a session's audio segments from one source, oldest first.
+    /// Lets agents see e.g. everything the user said out loud (`Mic`).
+    fn audio_texts(
+        &self,
+        session_id: i64,
+        source: AudioSource,
+    ) -> Result<Vec<String>, StorageError>;
 }

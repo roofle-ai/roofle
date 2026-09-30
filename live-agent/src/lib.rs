@@ -9,6 +9,6 @@ pub mod challenge;
 pub mod notes;
 pub mod watcher;
 
-pub use challenge::{agent_challenges, ChallengeResult};
+pub use challenge::{agent_challenges, ChallengeContext, ChallengeResult};
 pub use notes::{agent_notes, log_step, logging_enabled, CompletionClient};
 pub use watcher::{ParagraphWatcher, DEFAULT_CHAR_LIMIT};

@@ -1,13 +1,10 @@
-//! Offline Whisper speech recognition via sherpa-onnx's `OfflineRecognizer`.
+//! Offline Whisper recognition via sherpa-onnx's `OfflineRecognizer`.
 //!
-//! Whisper is an *offline* (non-streaming) model family: you feed a complete
-//! audio clip — up to the ~30 s native Whisper context — and it returns the
-//! transcript. There are no partial/live hypotheses. The pipeline therefore
-//! feeds fixed ~28 s windows and emits one final [`Segment`] per window, so
-//! transcripts appear in ~30 s blocks instead of streaming word-by-word.
+//! Whisper takes a complete clip (up to ~30 s) and returns its transcript, with
+//! no partial hypotheses, so audio is fed in windows and each yields one final
+//! [`Segment`].
 //!
-//! Exported model layout (`{name}-encoder*.onnx`, `{name}-decoder*.onnx`,
-//! `{name}-tokens.txt`); see `scripts/fetch-assets.sh`.
+//! Model layout: `{name}-encoder*.onnx`, `{name}-decoder*.onnx`, `{name}-tokens.txt`.
 
 use std::path::{Path, PathBuf};
 
@@ -15,42 +12,31 @@ use sherpa_onnx::{OfflineRecognizer, OfflineRecognizerConfig, OfflineWhisperMode
 
 use super::{AsrError, Segment, Transcript};
 
-/// Sample rate (Hz) Whisper consumes; matches [`super::ASR_SAMPLE_RATE`].
 pub const WHISPER_SAMPLE_RATE: u32 = 16_000;
 
-/// Whisper's native audio context is 30 s; keep windows safely under it.
+/// Whisper's context is 30 s; stay safely under it.
 pub const WINDOW_SAMPLES: usize = 28 * (WHISPER_SAMPLE_RATE as usize);
 
 /// Paths to the files of an exported Whisper ONNX model.
-///
-/// `from_model_dir` resolves the standard file names (for the `base.en` export:
-/// `base.en-encoder.int8.onnx`, `base.en-decoder.int8.onnx`,
-/// `base.en-tokens.txt`). Individual files can be overridden on the struct.
 #[derive(Debug, Clone)]
 pub struct WhisperModelConfig {
     pub encoder: PathBuf,
     pub decoder: PathBuf,
     pub tokens: PathBuf,
-    /// Whisper language (e.g. `"en"`). `"auto"` disables forced language.
     pub language: String,
-    /// Whisper task: `"transcribe"` or `"translate"`.
     pub task: String,
-    /// ONNX Runtime execution provider (e.g. `"cpu"`).
     pub provider: String,
-    /// Number of inference threads.
     pub num_threads: i32,
 }
 
 impl WhisperModelConfig {
-    /// Whether `dir` looks like an exported Whisper model (has a
-    /// `<name>-encoder*.onnx`). Used to auto-select the engine.
+    /// Whether `dir` holds an exported Whisper model (has a `<name>-encoder*.onnx`).
     pub fn probe(dir: &Path) -> bool {
         find_file(dir, "-encoder.int8.onnx")
             .or_else(|| find_file(dir, "-encoder.onnx"))
             .is_some()
     }
 
-    /// Resolve a config from a model directory containing the standard files.
     pub fn from_model_dir(dir: impl AsRef<Path>) -> Result<Self, AsrError> {
         let dir = dir.as_ref();
         let encoder = find_file(dir, "-encoder.int8.onnx")
@@ -93,16 +79,12 @@ impl WhisperModelConfig {
     }
 }
 
-/// A loaded Whisper engine wrapping sherpa-onnx's `OfflineRecognizer`.
-///
-/// Inference is CPU-bound; run it off the audio callback (the pipeline already
-/// runs it on the dedicated ASR thread).
+/// A loaded Whisper engine. Inference is CPU-bound; keep it off the audio callback.
 pub struct WhisperEngine {
     recognizer: OfflineRecognizer,
 }
 
 impl WhisperEngine {
-    /// Load the model described by `config`.
     pub fn new(cfg: WhisperModelConfig) -> Result<Self, AsrError> {
         let mut config = OfflineRecognizerConfig::default();
         config.model_config.whisper = OfflineWhisperModelConfig {
@@ -124,13 +106,11 @@ impl WhisperEngine {
         Ok(Self { recognizer })
     }
 
-    /// Sample rate (Hz) the model expects at its input ([`WHISPER_SAMPLE_RATE`]).
     pub fn sample_rate(&self) -> u32 {
         WHISPER_SAMPLE_RATE
     }
 
-    /// Transcribe one audio window (must be ≤ ~30 s). Returns the text, or
-    /// [`AsrError::EmptyTranscript`] when no speech was decoded.
+    /// Transcribe one window (≤ ~30 s); errors with [`AsrError::EmptyTranscript`] on no speech.
     pub fn transcribe(&self, sample_rate: u32, samples: &[f32]) -> Result<String, AsrError> {
         let stream = self.recognizer.create_stream();
         stream.accept_waveform(sample_rate as i32, samples);
@@ -145,8 +125,7 @@ impl WhisperEngine {
         Ok(text)
     }
 
-    /// Transcribe a WAV file, chunking it into ~28 s windows (the Whisper
-    /// context limit). Returns a [`Transcript`] of final segments.
+    /// Transcribe a WAV file in [`WINDOW_SAMPLES`] windows.
     pub fn transcribe_wav<P: AsRef<Path>>(&self, path: P) -> Result<Transcript, AsrError> {
         let path_str = super::path_to_string(path.as_ref())?;
         let wave = Wave::read(&path_str).ok_or_else(|| {
@@ -158,7 +137,7 @@ impl WhisperEngine {
         let mut parts = Vec::new();
         for chunk in wave.samples().chunks(WINDOW_SAMPLES) {
             if let Ok(text) = self.transcribe(rate, chunk) {
-                // Whole-file offline transcription has no live capture source.
+                // No live capture source for whole-file transcription.
                 segments.push(Segment::final_(crate::storage::AudioSource::Mic, text.clone()));
                 parts.push(text);
             }
@@ -173,7 +152,6 @@ impl WhisperEngine {
     }
 }
 
-/// Find a regular file in `dir` whose name ends with `suffix`.
 fn find_file(dir: &Path, suffix: &str) -> Option<PathBuf> {
     let entries = std::fs::read_dir(dir).ok()?;
     for entry in entries.flatten() {

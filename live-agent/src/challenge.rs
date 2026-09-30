@@ -38,15 +38,30 @@ pub struct ChallengeResult {
     pub stale: Vec<(i64, String)>,
 }
 
+/// Conversation context the agents use to avoid repeating ground and to tie
+/// the newest chunk back to earlier claims. Either field may be empty.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ChallengeContext<'a> {
+    /// Compressed record of the conversation *before* the newest chunk (it
+    /// must not already contain the newest chunk, or its content would look
+    /// "already covered").
+    pub summary: &'a str,
+    /// Everything the user has said out loud (microphone), so questions they
+    /// already asked or had answered are not suggested again.
+    pub mic: &'a str,
+}
+
 /// Run the three-agent follow-up-question update for one paragraph boundary.
 ///
 /// `paragraph` is the newly accumulated transcript chunk; `open_questions` are
 /// the session's currently-open questions as `(id, text)`, so the resolver can
-/// reference them by id. Returns the questions to add and the resolutions.
+/// reference them by id. `context` carries the earlier-conversation summary and
+/// the user's own speech. Returns the questions to add and the resolutions.
 pub fn agent_challenges(
     client: &dyn CompletionClient,
     paragraph: &str,
     open_questions: &[(i64, String)],
+    context: ChallengeContext<'_>,
     log: bool,
 ) -> Result<ChallengeResult, String> {
     crate::notes::log_step(
@@ -60,7 +75,12 @@ pub fn agent_challenges(
     );
 
     // 1. Investigator: surface candidate questions from the new paragraph.
-    let investigated = client.complete(INVESTIGATOR_SYSTEM, paragraph)?;
+    let investigator_user = format!(
+        "{}\n\nQuestions already open (do not duplicate):\n{}",
+        context_block(paragraph, context),
+        or_none(&numbered_with_ids(open_questions)),
+    );
+    let investigated = client.complete(INVESTIGATOR_SYSTEM, &investigator_user)?;
     crate::notes::log_step(
         log,
         "challenge/investigator",
@@ -73,39 +93,49 @@ pub fn agent_challenges(
         .filter(|q| !q.trim().is_empty())
         .collect();
 
-    // 2. Validator: filter the drafts against the paragraph.
-    crate::notes::log_step(log, "challenge/validator", "checking drafts against paragraph");
-    let validator_user = format!(
-        "Transcript paragraph:\n{paragraph}\n\nCandidate questions:\n{}",
-        numbered(&candidates),
-    );
-    let validated = client.complete(VALIDATOR_SYSTEM, &validator_user)?;
-    crate::notes::log_step(
-        log,
-        "challenge/validator",
-        &format!("returned {} chars", validated.chars().count()),
-    );
-    let val: ValidatorOut = parse_json(&validated)?;
-    let added: Vec<String> = val
-        .results
-        .into_iter()
-        .filter(|r| r.approved && !r.question.trim().is_empty())
-        .map(|r| r.question.trim().to_string())
-        .collect();
+    // 2. Validator: filter the drafts against the paragraph and context.
+    let added: Vec<String> = if candidates.is_empty() {
+        Vec::new()
+    } else {
+        crate::notes::log_step(log, "challenge/validator", "checking drafts against paragraph");
+        let validator_user = format!(
+            "{}\n\nInvestigator's reasoning:\n{}\n\nCandidate questions:\n{}",
+            context_block(paragraph, context),
+            or_none(inv.reasoning.trim()),
+            numbered(&candidates),
+        );
+        let validated = client.complete(VALIDATOR_SYSTEM, &validator_user)?;
+        crate::notes::log_step(
+            log,
+            "challenge/validator",
+            &format!("returned {} chars", validated.chars().count()),
+        );
+        let val: ValidatorOut = parse_json(&validated)?;
+        val.results
+            .into_iter()
+            .filter(|r| r.approved && !r.question.trim().is_empty())
+            .map(|r| r.question.trim().to_string())
+            .collect()
+    };
 
     // 3. Resolver: decide which open questions the newest chunk resolves.
-    crate::notes::log_step(log, "challenge/resolver", "resolving open questions");
-    let resolver_user = format!(
-        "Transcript paragraph:\n{paragraph}\n\nOpen questions (each with its id):\n{}",
-        numbered_with_ids(open_questions),
-    );
-    let reviewed = client.complete(RESOLVER_SYSTEM, &resolver_user)?;
-    crate::notes::log_step(
-        log,
-        "challenge/resolver",
-        &format!("returned {} chars", reviewed.chars().count()),
-    );
-    let res: ResolverOut = parse_json(&reviewed)?;
+    let res: ResolverOut = if open_questions.is_empty() {
+        ResolverOut::default()
+    } else {
+        crate::notes::log_step(log, "challenge/resolver", "resolving open questions");
+        let resolver_user = format!(
+            "{}\n\nOpen questions (each with its id):\n{}",
+            context_block(paragraph, context),
+            numbered_with_ids(open_questions),
+        );
+        let reviewed = client.complete(RESOLVER_SYSTEM, &resolver_user)?;
+        crate::notes::log_step(
+            log,
+            "challenge/resolver",
+            &format!("returned {} chars", reviewed.chars().count()),
+        );
+        parse_json(&reviewed)?
+    };
 
     let answered = res
         .answered
@@ -129,6 +159,8 @@ pub fn agent_challenges(
 struct InvestigatorOut {
     #[serde(default)]
     questions: Vec<String>,
+    #[serde(default)]
+    reasoning: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -168,6 +200,27 @@ fn parse_json<T: for<'de> Deserialize<'de>>(raw: &str) -> Result<T, String> {
     serde_json::from_str(&raw[start..end]).map_err(|e| format!("bad challenge JSON: {e}"))
 }
 
+/// The three labelled inputs every agent receives, matching the headings the
+/// prompts refer to.
+fn context_block(paragraph: &str, context: ChallengeContext<'_>) -> String {
+    format!(
+        "NEWEST chunk (speaker transcription):\n{}\n\n\
+         YOUR OWN microphone transcription (context):\n{}\n\n\
+         RUNNING CONVERSATION SUMMARY (everything before the newest chunk):\n{}",
+        paragraph.trim(),
+        or_none(context.mic.trim()),
+        or_none(context.summary.trim()),
+    )
+}
+
+fn or_none(s: &str) -> &str {
+    if s.is_empty() {
+        "(none)"
+    } else {
+        s
+    }
+}
+
 fn numbered(items: &[String]) -> String {
     items
         .iter()
@@ -203,9 +256,9 @@ mod tests {
     struct JsonProbe;
     impl CompletionClient for JsonProbe {
         fn complete(&self, system: &str, _user: &str) -> Result<String, String> {
-            if system.contains("resolver") {
+            if system == RESOLVER_SYSTEM {
                 Ok(r#"{"answered":[{"id":"Q1","reason":"delivered by Friday"}],"stale":[{"id":"Q4","reason":"topic moved on"}]}"#.to_string())
-            } else if system.contains("investigator") {
+            } else if system == INVESTIGATOR_SYSTEM {
                 Ok(r#"{"questions":["Q1","Q2"],"reasoning":"probed assumptions"}"#.to_string())
             } else {
                 Ok(r#"{"results":[{"question":"Q1","approved":true,"reason":"concrete"},{"question":"Q2","approved":false,"reason":"failed check 4"}],"summary":"1 approved"}"#.to_string())
@@ -219,6 +272,7 @@ mod tests {
             &JsonProbe,
             "para",
             &[(1, "open one".into()), (4, "open two".into())],
+            ChallengeContext::default(),
             false,
         )
         .unwrap();
@@ -240,18 +294,64 @@ mod tests {
         struct EmptyProbe;
         impl CompletionClient for EmptyProbe {
             fn complete(&self, system: &str, _user: &str) -> Result<String, String> {
-                if system.contains("investigator") {
+                if system == INVESTIGATOR_SYSTEM {
                     Ok(r#"{"questions":[],"reasoning":"nothing to probe"}"#.to_string())
-                } else if system.contains("resolver") {
+                } else if system == RESOLVER_SYSTEM {
                     Ok(r#"{"answered":[],"stale":[]}"#.to_string())
                 } else {
                     Ok(r#"{"results":[],"summary":"no candidates"}"#.to_string())
                 }
             }
         }
-        let out = agent_challenges(&EmptyProbe, "para", &[], false).unwrap();
+        let out = agent_challenges(&EmptyProbe, "para", &[], ChallengeContext::default(), false).unwrap();
         assert!(out.added.is_empty());
         assert!(out.answered.is_empty());
         assert!(out.stale.is_empty());
+    }
+
+    #[test]
+    fn agents_receive_summary_mic_and_open_questions() {
+        use std::sync::Mutex;
+        struct Recorder(Mutex<Vec<(String, String)>>);
+        impl CompletionClient for Recorder {
+            fn complete(&self, system: &str, user: &str) -> Result<String, String> {
+                self.0.lock().unwrap().push((system.to_string(), user.to_string()));
+                if system == RESOLVER_SYSTEM {
+                    Ok(r#"{"answered":[],"stale":[]}"#.to_string())
+                } else if system == INVESTIGATOR_SYSTEM {
+                    Ok(r#"{"questions":["Q1"],"reasoning":"why"}"#.to_string())
+                } else {
+                    Ok(r#"{"results":[],"summary":""}"#.to_string())
+                }
+            }
+        }
+        let rec = Recorder(Mutex::new(Vec::new()));
+        let ctx = ChallengeContext { summary: "EARLIER-SUMMARY", mic: "MY-OWN-WORDS" };
+        agent_challenges(&rec, "NEW-CHUNK", &[(7, "open seven".into())], ctx, false).unwrap();
+
+        let calls = rec.0.lock().unwrap();
+        assert_eq!(calls.len(), 3, "investigator, validator and resolver all run");
+        for (_, user) in calls.iter() {
+            assert!(user.contains("NEW-CHUNK"), "{user}");
+            assert!(user.contains("EARLIER-SUMMARY"), "{user}");
+            assert!(user.contains("MY-OWN-WORDS"), "{user}");
+        }
+        assert!(calls[0].1.contains("[id 7] open seven"), "investigator sees open questions");
+        assert!(calls[1].1.contains("why"), "validator sees investigator reasoning");
+    }
+
+    #[test]
+    fn skips_validator_and_resolver_when_nothing_to_judge() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        struct Counter(AtomicUsize);
+        impl CompletionClient for Counter {
+            fn complete(&self, _s: &str, _u: &str) -> Result<String, String> {
+                self.0.fetch_add(1, Ordering::SeqCst);
+                Ok(r#"{"questions":[],"reasoning":"none"}"#.to_string())
+            }
+        }
+        let c = Counter(AtomicUsize::new(0));
+        agent_challenges(&c, "para", &[], ChallengeContext::default(), false).unwrap();
+        assert_eq!(c.0.load(Ordering::SeqCst), 1, "only the investigator runs");
     }
 }

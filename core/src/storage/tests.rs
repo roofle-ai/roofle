@@ -300,6 +300,25 @@ fn add_segment_folds_into_single_paragraph() {
 }
 
 #[test]
+fn audio_texts_returns_one_source_in_time_order() {
+    let storage = store();
+    let session = storage.create_session(new_session("both", Utc::now())).unwrap();
+
+    let mut mic_late = new_segment(session.id, "mic later", 900, 950);
+    mic_late.source = AudioSource::Mic;
+    let mut mic_early = new_segment(session.id, "mic early", 100, 150);
+    mic_early.source = AudioSource::Mic;
+    storage.add_segment(&mic_early).unwrap();
+    storage.add_segment(&new_segment(session.id, "them", 500, 600)).unwrap();
+    storage.add_segment(&mic_late).unwrap();
+
+    let mic = storage.audio_texts(session.id, AudioSource::Mic).unwrap();
+    assert_eq!(mic, vec!["mic early".to_string(), "mic later".to_string()]);
+    let system = storage.audio_texts(session.id, AudioSource::System).unwrap();
+    assert_eq!(system, vec!["them".to_string()]);
+}
+
+#[test]
 fn finalize_paragraph_moves_text_to_log_and_resets() {
     let storage = store();
     let session = storage.create_session(new_session("system", Utc::now())).unwrap();

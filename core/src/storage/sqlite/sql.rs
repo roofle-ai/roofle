@@ -83,6 +83,14 @@ INSERT INTO audio_segments
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 "#;
 
+/// A session's audio-segment texts from one source, oldest first.
+pub(super) const SELECT_AUDIO_TEXTS: &str = r#"
+SELECT text
+FROM audio_segments
+WHERE session_id = ?1 AND source = ?2
+ORDER BY start_ms, id
+"#;
+
 // --- paragraphs -----------------------------------------------------------
 
 /// The session's current paragraph row.

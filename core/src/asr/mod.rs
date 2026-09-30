@@ -12,27 +12,19 @@ use sherpa_onnx::{OnlineRecognizer, OnlineRecognizerConfig, OnlineStream, Wave};
 
 pub use segments::{Segment, SegmentKind, Transcript};
 
-/// Sample rate (Hz) the streaming transducer models consume at their input.
-/// Every capture source is normalized to this before ASR (see
-/// `audio::processing::TARGET_SAMPLE_RATE`, which equals this value).
+/// Sample rate (Hz) every capture source is normalized to before ASR.
 pub const ASR_SAMPLE_RATE: u32 = 16_000;
 
-/// Leading silence (frames at [`ASR_SAMPLE_RATE`]) prepended before whole-file
-/// transcription so the streaming recognizer has context and does not drop the
-/// first ~0.3 s of speech. ~0.7 s at 16 kHz (chosen empirically so the known
-/// test WAV transcribes cleanly from first to last word).
+/// ~0.7 s of leading silence (chosen empirically); without it the streaming
+/// recognizer drops the first ~0.3 s of speech.
 const WARM_UP_FRAMES: usize = (ASR_SAMPLE_RATE as usize) * 7 / 10;
 
-/// Errors produced by the ASR engine.
 #[derive(Debug)]
 pub enum AsrError {
-    /// Failed to build the recognizer from the supplied model files.
     Create(String),
-    /// Failed to read a WAV file.
     ReadWave(String),
-    /// The recognizer produced no text for the given audio.
     EmptyTranscript,
-    /// The input path is not valid UTF-8 (sherpa-onnx needs a `&str` path).
+    /// sherpa-onnx needs `&str` paths.
     NonUtf8Path,
 }
 
@@ -52,37 +44,23 @@ impl fmt::Display for AsrError {
 impl Error for AsrError {}
 
 /// Paths to the files of a streaming Zipformer-Transducer model.
-///
-/// `from_model_dir` resolves the standard file names used by the development
-/// model (`sherpa-onnx-streaming-zipformer-en-2023-06-26`); see
-/// `scripts/fetch-assets.sh` to download it. Individual files can be overridden
-/// on the returned struct.
 #[derive(Debug, Clone)]
 pub struct AsrModelConfig {
-    /// ONNX encoder model (`encoder-*.int8.onnx`).
     pub encoder: PathBuf,
-    /// ONNX decoder model (`decoder-*.int8.onnx`).
     pub decoder: PathBuf,
-    /// ONNX joiner model (`joiner-*.int8.onnx`).
     pub joiner: PathBuf,
-    /// BPE token vocabulary (`tokens.txt`).
     pub tokens: PathBuf,
-    /// ONNX Runtime execution provider (e.g. `"cpu"`).
     pub provider: String,
-    /// Number of inference threads (keep modest; ASR runs off the audio thread).
     pub num_threads: i32,
-    /// Whether to detect utterance boundaries automatically.
     pub enable_endpoint: bool,
 }
 
 impl AsrModelConfig {
-    /// Standard file names inside a downloaded streaming-zipformer model dir.
     pub const ENCODER_FILE: &'static str = "encoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx";
     pub const DECODER_FILE: &'static str = "decoder-epoch-99-avg-1-chunk-16-left-128.int8.onnx";
     pub const JOINER_FILE: &'static str = "joiner-epoch-99-avg-1-chunk-16-left-128.int8.onnx";
     pub const TOKENS_FILE: &'static str = "tokens.txt";
 
-    /// Resolve a config from a model directory containing the standard files.
     pub fn from_model_dir(dir: impl AsRef<Path>) -> Self {
         let dir = dir.as_ref();
         Self {
@@ -96,7 +74,6 @@ impl AsrModelConfig {
         }
     }
 
-    /// Whether all referenced files exist on disk.
     pub fn present_files(&self) -> bool {
         self.encoder.is_file()
             && self.decoder.is_file()
@@ -105,20 +82,14 @@ impl AsrModelConfig {
     }
 }
 
-/// The ASR engine for a model directory, auto-selected by its file layout.
-///
-/// A directory containing `<name>-encoder*.onnx` is treated as an exported
-/// Whisper model ([`whisper::WhisperEngine`]); otherwise it is treated as a
-/// streaming Zipformer-Transducer ([`AsrEngine`]).
+/// The ASR engine for a model directory, chosen by file layout: a
+/// `<name>-encoder*.onnx` means Whisper, otherwise a streaming transducer.
 pub enum Engine {
-    /// Streaming Zipformer-Transducer engine (live partials).
     Streaming(AsrEngine),
-    /// Offline Whisper engine (windowed final-only segments).
     Whisper(whisper::WhisperEngine),
 }
 
 impl Engine {
-    /// Load whichever engine the model directory contains.
     pub fn from_model_dir(dir: impl AsRef<Path>) -> Result<Self, AsrError> {
         let dir = dir.as_ref();
         if whisper::WhisperModelConfig::probe(dir) {
@@ -130,12 +101,10 @@ impl Engine {
         }
     }
 
-    /// Whether this is the offline Whisper engine.
     pub fn is_whisper(&self) -> bool {
         matches!(self, Engine::Whisper(_))
     }
 
-    /// Sample rate (Hz) the engine expects at its input.
     pub fn sample_rate(&self) -> u32 {
         match self {
             Engine::Streaming(e) => e.sample_rate(),
@@ -143,7 +112,6 @@ impl Engine {
         }
     }
 
-    /// Transcribe a WAV file (whole-file; Whisper chunks into ~28 s windows).
     pub fn transcribe_wav<P: AsRef<Path>>(&self, path: P) -> Result<Transcript, AsrError> {
         match self {
             Engine::Streaming(e) => e.transcribe_wav(path),
@@ -152,9 +120,7 @@ impl Engine {
     }
 }
 
-/// Whether every file of the model in `dir` is present on disk.
-///
-/// Works for both Whisper and streaming-transducer layouts.
+/// Whether every file of the model in `dir` is present (either layout).
 pub fn model_present(dir: &Path) -> bool {
     if whisper::WhisperModelConfig::probe(dir) {
         whisper::WhisperModelConfig::from_model_dir(dir)
@@ -165,17 +131,13 @@ pub fn model_present(dir: &Path) -> bool {
     }
 }
 
-/// A loaded streaming ASR engine (wraps `sherpa_onnx::OnlineRecognizer`).
-///
-/// Inference is CPU-bound and runs on the calling thread; keep that off the
-/// real-time audio callback (plan: *never block the audio callback* — S7 moves
-/// this to a dedicated thread fed by a ring buffer).
+/// A loaded streaming ASR engine. Inference is CPU-bound and runs on the
+/// calling thread; keep it off the real-time audio callback.
 pub struct AsrEngine {
     recognizer: OnlineRecognizer,
 }
 
 impl AsrEngine {
-    /// Load the model described by `config`.
     pub fn new(config: AsrModelConfig) -> Result<Self, AsrError> {
         let mut recognizer_config = OnlineRecognizerConfig::default();
         let model_config = &mut recognizer_config.model_config;
@@ -194,17 +156,11 @@ impl AsrEngine {
         Ok(Self { recognizer })
     }
 
-    /// Sample rate (Hz) the model expects at its input ([`ASR_SAMPLE_RATE`]).
     pub fn sample_rate(&self) -> u32 {
         ASR_SAMPLE_RATE
     }
 
-    /// Start a live streaming recognition session (S6).
-    ///
-    /// Prepends [`WARM_UP_FRAMES`] of silence so the recognizer has context and
-    /// does not drop the first ~0.3 s of speech (same rationale as
-    /// [`transcribe_waveform`](Self::transcribe_waveform)). Feed 16 kHz mono
-    /// chunks with [`StreamingSession::feed`] and poll results.
+    /// Start a live session, primed with [`WARM_UP_FRAMES`] of silence.
     pub fn stream(&self) -> StreamingSession<'_> {
         let session = StreamingSession {
             recognizer: &self.recognizer,
@@ -215,8 +171,6 @@ impl AsrEngine {
         session
     }
 
-    /// Transcribe a WAV file: read it, run the streaming recognizer over the
-    /// whole waveform, and return the final [`Transcript`].
     pub fn transcribe_wav<P: AsRef<Path>>(&self, path: P) -> Result<Transcript, AsrError> {
         let path_str = path_to_string(path.as_ref())?;
         let wave = Wave::read(&path_str).ok_or_else(|| {
@@ -225,14 +179,7 @@ impl AsrEngine {
         self.transcribe_waveform(wave.sample_rate() as u32, wave.samples())
     }
 
-    /// Run the streaming recognizer over a complete 16 kHz mono waveform and
-    /// return the final transcript.
-    ///
-    /// `samples` must be at the model's input rate ([`ASR_SAMPLE_RATE`]);
-    /// resampling to that rate happens upstream (S4, `audio::processing`).
-    ///
-    /// A short silence warm-up is prepended because streaming recognizers drop
-    /// the leading ~0.3 s of speech for lack of context.
+    /// Run the recognizer over a complete waveform already at [`ASR_SAMPLE_RATE`].
     pub fn transcribe_waveform(
         &self,
         sample_rate: u32,
@@ -242,12 +189,11 @@ impl AsrEngine {
         let rate = sample_rate as i32;
 
         let mut audio = Vec::with_capacity(samples.len() + WARM_UP_FRAMES);
-        audio.resize(WARM_UP_FRAMES, 0.0); // leading silence
+        audio.resize(WARM_UP_FRAMES, 0.0);
         audio.extend_from_slice(samples);
 
-        // Feed in ~0.2 s chunks with a decode between each. This mirrors live
-        // streaming (S6) and is more robust at both ends of the utterance than
-        // a single whole-file feed.
+        // ~0.2 s chunks mirror live streaming and are more robust at both ends
+        // of the utterance than one whole-file feed.
         let chunk_frames = (sample_rate as usize) / 5;
         for chunk in audio.chunks(chunk_frames.max(1)) {
             stream.accept_waveform(rate, chunk);
@@ -260,7 +206,6 @@ impl AsrEngine {
             self.recognizer.decode(&stream);
         }
 
-        // After input_finished the result text is the complete transcript.
         let text = self
             .recognizer
             .get_result(&stream)
@@ -273,32 +218,22 @@ impl AsrEngine {
     }
 }
 
-/// A live streaming recognition session over the engine's stream (S6).
+/// A live recognition session, created via [`AsrEngine::stream`].
 ///
-/// Created via [`AsrEngine::stream`]. Feed 16 kHz mono `f32` chunks with
-/// [`feed`](StreamingSession::feed), poll [`partial`](StreamingSession::partial)
-/// for the current hypothesis, and close out each utterance with
-/// [`is_endpoint`](StreamingSession::is_endpoint) +
-/// [`take_final`](StreamingSession::take_final). Call [`finish`](StreamingSession::finish)
-/// once at shutdown to flush trailing speech.
-///
-/// All methods are `&self` (sherpa-onnx's `OnlineStream` takes shared refs), so
-/// the session is cheap to drive from a single consumer thread — never from the
-/// real-time audio callback.
+/// Feed chunks with `feed`, read the hypothesis with `partial`, close each
+/// utterance with `is_endpoint` + `take_final`, and call `finish` once at
+/// shutdown. Drive it from a single consumer thread, never the audio callback.
 pub struct StreamingSession<'a> {
     recognizer: &'a OnlineRecognizer,
     stream: OnlineStream,
 }
 
 impl StreamingSession<'_> {
-    /// Sample rate (Hz) the session consumes ([`ASR_SAMPLE_RATE`]).
     pub fn sample_rate(&self) -> u32 {
         ASR_SAMPLE_RATE
     }
 
-    /// Feed one chunk of 16 kHz mono samples and decode.
-    ///
-    /// Chunks can be any size; the recognizer accumulates them internally.
+    /// Feed a chunk of any size and decode.
     pub fn feed(&self, samples: &[f32]) {
         self.stream.accept_waveform(ASR_SAMPLE_RATE as i32, samples);
         while self.recognizer.is_ready(&self.stream) {
@@ -306,7 +241,7 @@ impl StreamingSession<'_> {
         }
     }
 
-    /// Current hypothesis text (partial result); empty until speech is decoded.
+    /// Current hypothesis; empty until speech is decoded.
     pub fn partial(&self) -> String {
         self.recognizer
             .get_result(&self.stream)
@@ -314,25 +249,19 @@ impl StreamingSession<'_> {
             .unwrap_or_default()
     }
 
-    /// Whether the recognizer detected an utterance boundary (trailing silence).
+    /// Whether trailing silence marked an utterance boundary.
     pub fn is_endpoint(&self) -> bool {
         self.recognizer.is_endpoint(&self.stream)
     }
 
-    /// Finalize the current utterance and start a fresh one.
-    ///
-    /// Call when [`is_endpoint`](Self::is_endpoint) is true. Returns the
-    /// finalized text (empty for a silence-only utterance).
+    /// Finalize the current utterance (empty if silence-only) and start a fresh one.
     pub fn take_final(&self) -> String {
         let text = self.partial();
         self.recognizer.reset(&self.stream);
         text
     }
 
-    /// Signal end of input and return the final result of the current utterance.
-    ///
-    /// Use once at shutdown to flush trailing speech the endpoint rules have not
-    /// yet finalized.
+    /// Signal end of input and return any trailing speech not yet finalized.
     pub fn finish(&self) -> String {
         self.stream.input_finished();
         while self.recognizer.is_ready(&self.stream) {
@@ -354,11 +283,7 @@ pub(crate) fn path_to_string(path: &Path) -> Result<String, AsrError> {
 mod tests {
     use super::*;
 
-    /// Dev model + test WAVs, downloaded by `scripts/fetch-assets.sh`. CI has no
-    /// network models, so these tests skip (trivially pass) when absent.
-    ///
-    /// Paths are resolved from the crate dir (`core/`) up to the repo root so
-    /// the test passes regardless of the invoking working directory.
+    // Assets come from `scripts/fetch-assets.sh`; tests skip when absent (CI).
     fn repo_root() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("..")
     }
@@ -383,9 +308,6 @@ mod tests {
         assert!(engine.is_whisper(), "expected the Whisper engine to be selected");
         let transcript = engine.transcribe_wav(&wav).expect("transcribe wav");
 
-        // Whisper is far more accurate than the old streaming Zipformer; it
-        // reproduces the LibriSpeech test utterance essentially verbatim (with
-        // punctuation). Assert on a stable phrase after normalizing case.
         let text = transcript.text.to_lowercase();
         assert!(
             text.contains("direct consequence"),
@@ -399,10 +321,7 @@ mod tests {
         );
     }
 
-    /// The offline Whisper path must reproduce the whole-file transcript when
-    /// the audio is fed in ~28 s windows (mirrors the live capture loop, which
-    /// has no streaming hypotheses). No microphone is needed — the bundled WAV
-    /// stands in for live audio.
+    /// Windowed feeding must reproduce the whole-file transcript.
     #[test]
     fn whisper_transcribes_wav_in_windows() {
         if !assets_present() {
