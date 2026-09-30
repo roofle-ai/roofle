@@ -6,14 +6,14 @@ use chrono::{DateTime, Utc};
 use rusqlite::params;
 
 use crate::storage::{
-    render_paragraph, NewSegment, NewSession, Session, SessionDetail, SessionRepository,
-    SessionStatus, SessionSummary, StorageError, TranscriptSegment,
+    render_paragraph, AudioSegment, AudioSource, NewSession, Session, SessionDetail,
+    SessionRepository, SessionStatus, SessionSummary, StorageError,
 };
 
 use super::sql::{
-    DELETE_SESSION, INSERT_SEGMENT, INSERT_SESSION, SELECT_LAST_SEG_SEQ, SELECT_SEGMENTS,
-    SELECT_SESSION, SELECT_SESSIONS, SELECT_SESSION_DURATION, UPDATE_SESSION_FINALIZE,
-    UPDATE_SESSION_NOTES, UPDATE_SESSION_RESUME, UPDATE_SESSION_TITLE,
+    DELETE_SESSION, INSERT_SESSION, SELECT_AUDIO_SEGMENTS, SELECT_SESSION, SELECT_SESSIONS,
+    SELECT_SESSION_DURATION, UPDATE_SESSION_FINALIZE, UPDATE_SESSION_NOTES, UPDATE_SESSION_RESUME,
+    UPDATE_SESSION_TITLE,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
@@ -48,29 +48,6 @@ impl SessionRepository for SqliteStorage {
         })
     }
 
-    fn append_segments(&self, segments: &[NewSegment]) -> Result<(), StorageError> {
-        if segments.is_empty() {
-            return Ok(());
-        }
-
-        let mut conn = self.conn.lock().unwrap();
-        let tx = conn.transaction()?;
-        {
-            let mut stmt = tx.prepare(INSERT_SEGMENT)?;
-            for seg in segments {
-                stmt.execute(params![
-                    seg.session_id,
-                    seg.seq,
-                    seg.start_secs,
-                    seg.text,
-                    to_rfc3339(seg.created_at),
-                ])?;
-            }
-        }
-        tx.commit()?;
-        Ok(())
-    }
-
     fn finalize_session(
         &self,
         id: i64,
@@ -103,15 +80,6 @@ impl SessionRepository for SqliteStorage {
             params![to_rfc3339(Utc::now()), id],
         )?;
         Ok(duration)
-    }
-
-    fn last_seq(&self, session_id: i64) -> Result<i64, StorageError> {
-        let conn = self.conn.lock().unwrap();
-        Ok(conn.query_row(
-            SELECT_LAST_SEG_SEQ,
-            params![session_id],
-            |r| r.get(0),
-        )?)
     }
 
     fn list_sessions(&self, limit: Option<i64>) -> Result<Vec<SessionSummary>, StorageError> {
@@ -192,26 +160,30 @@ impl SessionRepository for SqliteStorage {
         };
         let (session, notes) = build_session(raw?)?;
 
-        let mut stmt = conn.prepare(SELECT_SEGMENTS)?;
+        let mut stmt = conn.prepare(SELECT_AUDIO_SEGMENTS)?;
         let segments = stmt
             .query_map(params![id], |r| {
                 Ok((
                     r.get::<_, i64>(0)?,
                     r.get::<_, i64>(1)?,
-                    r.get::<_, i64>(2)?,
-                    r.get::<_, f64>(3)?,
-                    r.get::<_, String>(4)?,
-                    r.get::<_, String>(5)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, i64>(4)?,
+                    r.get::<_, i64>(5)?,
+                    r.get::<_, Option<f64>>(6)?,
+                    r.get::<_, String>(7)?,
                 ))
             })?
             .map(|r| {
-                let (id, session_id, seq, start_secs, text, created_at) = r?;
-                Ok(TranscriptSegment {
+                let (id, session_id, source, text, start_ms, end_ms, confidence, created_at) = r?;
+                Ok(AudioSegment {
                     id,
                     session_id,
-                    seq,
-                    start_secs,
+                    source: parse_audio_source(&source),
                     text,
+                    start_ms,
+                    end_ms,
+                    confidence,
                     created_at: parse_utc(&created_at)?,
                 })
             })
@@ -312,5 +284,12 @@ fn parse_status(s: &str) -> SessionStatus {
     match s {
         "recording" => SessionStatus::Recording,
         _ => SessionStatus::Completed,
+    }
+}
+
+fn parse_audio_source(s: &str) -> AudioSource {
+    match s {
+        "mic" => AudioSource::Mic,
+        _ => AudioSource::System,
     }
 }

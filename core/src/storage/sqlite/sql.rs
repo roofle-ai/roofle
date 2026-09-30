@@ -30,7 +30,7 @@ pub(super) const UPDATE_SESSION_RESUME: &str =
 pub(super) const SELECT_SESSIONS: &str = r#"
 SELECT s.id, s.title, s.source, s.model_id, s.started_at, s.ended_at,
        s.duration_secs, s.status, s.updated_at,
-       (SELECT text FROM segments WHERE session_id = s.id ORDER BY seq LIMIT 1)
+       (SELECT text FROM audio_segments WHERE session_id = s.id ORDER BY id LIMIT 1)
 FROM sessions s
 ORDER BY s.updated_at DESC
 LIMIT ?1
@@ -54,26 +54,6 @@ pub(super) const UPDATE_SESSION_TITLE: &str =
 /// Delete a session; children cascade.
 pub(super) const DELETE_SESSION: &str = "DELETE FROM sessions WHERE id = ?1";
 
-// --- segments -------------------------------------------------------------
-
-/// Append one finalized utterance.
-pub(super) const INSERT_SEGMENT: &str = r#"
-INSERT INTO segments (session_id, seq, start_secs, text, created_at)
-VALUES (?1, ?2, ?3, ?4, ?5)
-"#;
-
-/// Highest segment sequence of a session (0 when it has none).
-pub(super) const SELECT_LAST_SEG_SEQ: &str =
-    "SELECT COALESCE(MAX(seq), 0) FROM segments WHERE session_id = ?1";
-
-/// A session's segments in recognition order.
-pub(super) const SELECT_SEGMENTS: &str = r#"
-SELECT id, session_id, seq, start_secs, text, created_at
-FROM segments
-WHERE session_id = ?1
-ORDER BY seq
-"#;
-
 // --- audio_segments -------------------------------------------------------
 
 /// Insert one source-tagged audio segment.
@@ -81,6 +61,14 @@ pub(super) const INSERT_AUDIO_SEGMENT: &str = r#"
 INSERT INTO audio_segments
     (session_id, source, text, start_ms, end_ms, confidence, created_at)
 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+"#;
+
+/// A session's audio segments in recognition order (`id` is insertion order).
+pub(super) const SELECT_AUDIO_SEGMENTS: &str = r#"
+SELECT id, session_id, source, text, start_ms, end_ms, confidence, created_at
+FROM audio_segments
+WHERE session_id = ?1
+ORDER BY id
 "#;
 
 /// A session's audio-segment texts from one source, oldest first.
@@ -152,25 +140,6 @@ SELECT id, session_id, source, text, start_ms, sequence_no, created_at
 FROM transcript_log
 WHERE session_id = ?1 AND sequence_no > ?2
 ORDER BY sequence_no
-"#;
-
-// --- rolling_summaries ----------------------------------------------------
-
-/// Overwrite a session's rolling summary (upsert).
-pub(super) const UPSERT_ROLLING_SUMMARY: &str = r#"
-INSERT INTO rolling_summaries (session_id, summary_text, last_sequence_no, updated_at)
-VALUES (?1, ?2, ?3, ?4)
-ON CONFLICT(session_id) DO UPDATE SET
-    summary_text = excluded.summary_text,
-    last_sequence_no = excluded.last_sequence_no,
-    updated_at = excluded.updated_at
-"#;
-
-/// A session's rolling summary, if any.
-pub(super) const SELECT_ROLLING_SUMMARY: &str = r#"
-SELECT session_id, summary_text, last_sequence_no, updated_at
-FROM rolling_summaries
-WHERE session_id = ?1
 "#;
 
 // --- questions ------------------------------------------------------------

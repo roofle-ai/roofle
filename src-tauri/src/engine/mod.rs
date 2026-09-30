@@ -103,7 +103,7 @@ impl Engine {
         match session::prepare(&self.app, source, session_id) {
             Ok(started) => {
                 self.active_session = Some(started.id);
-                self.ingest.begin_session(started.timestamp_offset, started.last_seq);
+                self.ingest.begin_session(started.timestamp_offset);
                 Ok(())
             }
             Err(e) => {

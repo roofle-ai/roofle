@@ -3,8 +3,8 @@
 use chrono::{Duration, Utc};
 
 use crate::storage::{
-    AudioSource, NewAudioSegment, NewSegment, NewSession, ParagraphStore, QuestionStore,
-    SessionRepository, SessionStatus, SqliteStorage, TranscriptStore,
+    AudioSource, NewAudioSegment, NewSession, ParagraphStore, QuestionStore, SessionRepository,
+    SessionStatus, SqliteStorage, TranscriptStore,
 };
 
 fn store() -> SqliteStorage {
@@ -116,33 +116,19 @@ fn create_and_list_session() {
 }
 
 #[test]
-fn append_segments_and_get_session_in_order() {
+fn add_segments_and_get_session_in_order() {
     let storage = store();
     let session = storage.create_session(new_session("both", Utc::now())).unwrap();
 
-    storage
-        .append_segments(&[
-            NewSegment {
-                session_id: session.id,
-                seq: 1,
-                start_secs: 0.5,
-                text: "First".to_string(),
-                created_at: Utc::now(),
-            },
-            NewSegment {
-                session_id: session.id,
-                seq: 2,
-                start_secs: 4.0,
-                text: "Second sentence.".to_string(),
-                created_at: Utc::now(),
-            },
-        ])
-        .unwrap();
+    storage.add_segment(&new_segment(session.id, "First", 0, 500)).unwrap();
+    storage.add_segment(&new_segment(session.id, "Second sentence.", 4000, 5000)).unwrap();
 
     let detail = storage.get_session(session.id).unwrap().unwrap();
     assert_eq!(detail.segments.len(), 2);
     assert_eq!(detail.segments[0].text, "First");
-    assert_eq!(detail.segments[1].seq, 2);
+    // The single audio_segments store keeps the source tag on each utterance.
+    assert_eq!(detail.segments[0].source, AudioSource::System);
+    assert_eq!(detail.segments[1].text, "Second sentence.");
     assert_eq!(detail.transcript, "First Second sentence.");
 }
 
@@ -161,18 +147,10 @@ fn finalize_session_sets_end_and_status() {
 }
 
 #[test]
-fn delete_session_cascades_segments() {
+fn delete_session_cascades_audio_segments() {
     let storage = store();
     let session = storage.create_session(new_session("mic", Utc::now())).unwrap();
-    storage
-        .append_segments(&[NewSegment {
-            session_id: session.id,
-            seq: 1,
-            start_secs: 0.0,
-            text: "Doomed".to_string(),
-            created_at: Utc::now(),
-        }])
-        .unwrap();
+    storage.add_segment(&new_segment(session.id, "Doomed", 0, 10)).unwrap();
 
     storage.delete_session(session.id).unwrap();
 
@@ -215,32 +193,18 @@ fn list_sessions_newest_first_with_limit() {
 fn continue_session_reopens_and_accumulates() {
     let storage = store();
     let session = storage.create_session(new_session("mic", Utc::now())).unwrap();
-    storage
-        .append_segments(&[NewSegment {
-            session_id: session.id,
-            seq: 1,
-            start_secs: 0.0,
-            text: "hello".to_string(),
-            created_at: Utc::now(),
-        }])
-        .unwrap();
+    storage.add_segment(&new_segment(session.id, "hello", 0, 100)).unwrap();
     storage.finalize_session(session.id, Utc::now(), 30.0).unwrap();
 
     // Continuing returns the accumulated duration as the timestamp offset.
     let offset = storage.continue_session(session.id).unwrap();
     assert_eq!(offset, 30.0);
 
-    // The reopened session stays recording and segments continue the sequence.
-    storage
-        .append_segments(&[NewSegment {
-            session_id: session.id,
-            seq: 2,
-            start_secs: 31.0,
-            text: "again".to_string(),
-            created_at: Utc::now(),
-        }])
-        .unwrap();
-    assert_eq!(storage.last_seq(session.id).unwrap(), 2);
+    // The reopened session stays recording and audio segments keep appending.
+    storage.add_segment(&new_segment(session.id, "again", 31000, 32000)).unwrap();
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    assert_eq!(detail.segments.len(), 2);
+    assert_eq!(detail.segments[1].text, "again");
 
     let list = storage.list_sessions(None).unwrap();
     assert_eq!(list[0].status, SessionStatus::Recording);
@@ -259,13 +223,12 @@ fn list_preview_shows_first_words() {
     let storage = store();
     let session = storage.create_session(new_session("mic", Utc::now())).unwrap();
     storage
-        .append_segments(&[NewSegment {
-            session_id: session.id,
-            seq: 1,
-            start_secs: 0.0,
-            text: "one two three four five six seven eight nine ten eleven".to_string(),
-            created_at: Utc::now(),
-        }])
+        .add_segment(&new_segment(
+            session.id,
+            "one two three four five six seven eight nine ten eleven",
+            0,
+            100,
+        ))
         .unwrap();
 
     let list = storage.list_sessions(None).unwrap();
@@ -367,24 +330,6 @@ fn delete_session_cascades_paragraphs_and_transcript() {
 }
 
 // --- Rolling summary + questions (db-persist model) ------------------------
-
-#[test]
-fn rolling_summary_round_trips() {
-    let storage = store();
-    let session = storage.create_session(new_session("system", Utc::now())).unwrap();
-    assert!(storage.load_rolling_summary(session.id).unwrap().is_none());
-
-    storage.save_rolling_summary(session.id, "notes so far", 5).unwrap();
-    let s = storage.load_rolling_summary(session.id).unwrap().unwrap();
-    assert_eq!(s.summary_text, "notes so far");
-    assert_eq!(s.last_sequence_no, 5);
-
-    // Overwriting replaces the summary.
-    storage.save_rolling_summary(session.id, "updated notes", 7).unwrap();
-    let s = storage.load_rolling_summary(session.id).unwrap().unwrap();
-    assert_eq!(s.summary_text, "updated notes");
-    assert_eq!(s.last_sequence_no, 7);
-}
 
 #[test]
 fn live_notes_override_and_latest() {

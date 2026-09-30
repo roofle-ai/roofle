@@ -1,58 +1,17 @@
-//! Rolling-summary + question + live-note persistence ([`QuestionStore`]).
+//! Question + live-note persistence ([`QuestionStore`]).
 //! Child module of `sqlite` so it shares the private connection handle.
 
 use rusqlite::params;
 
-use crate::storage::{
-    LiveNote, Question, QuestionStatus, QuestionStore, RollingSummary, StorageError,
-};
+use crate::storage::{LiveNote, Question, QuestionStatus, QuestionStore, StorageError};
 
 use super::sql::{
-    INSERT_QUESTION, SELECT_LATEST_LIVE_NOTE, SELECT_QUESTIONS, SELECT_ROLLING_SUMMARY,
-    UPDATE_QUESTION_RESOLVE, UPDATE_QUESTIONS_STALE, UPSERT_LIVE_NOTE, UPSERT_ROLLING_SUMMARY,
+    INSERT_QUESTION, SELECT_LATEST_LIVE_NOTE, SELECT_QUESTIONS, UPDATE_QUESTION_RESOLVE,
+    UPDATE_QUESTIONS_STALE, UPSERT_LIVE_NOTE,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
 impl QuestionStore for SqliteStorage {
-    fn load_rolling_summary(&self, session_id: i64) -> Result<Option<RollingSummary>, StorageError> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(SELECT_ROLLING_SUMMARY)?;
-        let mut rows = stmt.query_map(params![session_id], |r| {
-            Ok((
-                r.get::<_, i64>(0)?,
-                r.get::<_, String>(1)?,
-                r.get::<_, i64>(2)?,
-                r.get::<_, String>(3)?,
-            ))
-        })?;
-        match rows.next() {
-            Some(row) => {
-                let (sid, text, seq, updated) = row?;
-                Ok(Some(RollingSummary {
-                    session_id: sid,
-                    summary_text: text,
-                    last_sequence_no: seq,
-                    updated_at: parse_utc(&updated)?,
-                }))
-            }
-            None => Ok(None),
-        }
-    }
-
-    fn save_rolling_summary(
-        &self,
-        session_id: i64,
-        summary_text: &str,
-        last_sequence_no: i64,
-    ) -> Result<(), StorageError> {
-        let conn = self.conn.lock().unwrap();
-        conn.execute(
-            UPSERT_ROLLING_SUMMARY,
-            params![session_id, summary_text, last_sequence_no, to_rfc3339(chrono::Utc::now())],
-        )?;
-        Ok(())
-    }
-
     fn list_questions(&self, session_id: i64) -> Result<Vec<Question>, StorageError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(SELECT_QUESTIONS)?;

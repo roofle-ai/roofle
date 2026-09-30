@@ -1,14 +1,14 @@
-//! Derives the essay/paragraph view from ordered, sentence-level segments.
+//! Derives the essay/paragraph view from ordered, sentence-level audio segments.
 
-use crate::storage::TranscriptSegment;
+use crate::storage::AudioSegment;
 
-/// Render ordered segments as meeting-notes text.
+/// Render ordered audio segments as meeting-notes text.
 ///
 /// Segments are VAD utterances (sentence-sized). Joining them with a single
 /// space reads as flowing prose; a segment that ends with sentence punctuation
 /// closes the current paragraph, so the transcript reads as one sentence per
 /// paragraph.
-pub fn render_paragraph(segments: &[TranscriptSegment]) -> String {
+pub fn render_paragraph(segments: &[AudioSegment]) -> String {
     let mut out = String::new();
 
     for seg in segments {
@@ -33,13 +33,15 @@ mod tests {
     use super::*;
     use chrono::Utc;
 
-    fn seg(text: &str) -> TranscriptSegment {
-        TranscriptSegment {
+    fn seg(text: &str) -> AudioSegment {
+        AudioSegment {
             id: 0,
             session_id: 1,
-            seq: 0,
-            start_secs: 0.0,
+            source: crate::storage::AudioSource::Mic,
             text: text.to_string(),
+            start_ms: 0,
+            end_ms: 0,
+            confidence: None,
             created_at: Utc::now(),
         }
     }

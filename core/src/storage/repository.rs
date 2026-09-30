@@ -4,7 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use std::fmt;
 
-use crate::storage::{NewSegment, NewSession, Session, SessionDetail, SessionSummary};
+use crate::storage::{NewSession, Session, SessionDetail, SessionSummary};
 
 /// Persistence error. Backend-facing; callers map it to a user-facing string.
 #[derive(Debug)]
@@ -57,9 +57,6 @@ pub trait SessionRepository {
     /// Open a session row; returns it with its generated id.
     fn create_session(&self, input: NewSession) -> Result<Session, StorageError>;
 
-    /// Append finalized utterances, atomically, in one transaction.
-    fn append_segments(&self, segments: &[NewSegment]) -> Result<(), StorageError>;
-
     /// Close a session: set `ended_at`, duration and status.
     fn finalize_session(
         &self,
@@ -72,9 +69,6 @@ pub trait SessionRepository {
     /// bump `updated_at`, and return its accumulated duration (used as the
     /// timestamp offset for the new block).
     fn continue_session(&self, id: i64) -> Result<f64, StorageError>;
-
-    /// Highest segment sequence of a session (0 when it has no segments).
-    fn last_seq(&self, session_id: i64) -> Result<i64, StorageError>;
 
     /// Sessions by most recent activity, with a first-words preview; `limit`
     /// caps the row count when set.

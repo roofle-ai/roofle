@@ -1,7 +1,7 @@
-//! Rolling summary + follow-up question persistence (db-persist).
+//! Follow-up question + live-note persistence (db-persist).
 //!
-//! [`RollingSummary`]: one row per session, overwritten per chunk.
 //! [`Question`]: one row per follow-up, with an `open`→`answered`/`stale` cycle.
+//! [`LiveNote`]: the session's running notes document, overridden per chunk.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -15,16 +15,6 @@ pub enum QuestionStatus {
     Open,
     Answered,
     Stale,
-}
-
-/// Rolling summary state — one row per session, overwritten on each chunk.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RollingSummary {
-    pub session_id: i64,
-    pub summary_text: String,
-    /// Last `transcript_log` sequence folded into the summary.
-    pub last_sequence_no: i64,
-    pub updated_at: DateTime<Utc>,
 }
 
 /// The session's live note — one row per session, overridden each generation.
@@ -58,18 +48,6 @@ pub struct Question {
 
 /// Persistence for rolling summaries and follow-up questions.
 pub trait QuestionStore {
-    /// Load a session's rolling summary, if one has been produced.
-    fn load_rolling_summary(&self, session_id: i64) -> Result<Option<RollingSummary>, StorageError>;
-
-    /// Overwrite a session's rolling summary, recording the last sequence
-    /// folded in.
-    fn save_rolling_summary(
-        &self,
-        session_id: i64,
-        summary_text: &str,
-        last_sequence_no: i64,
-    ) -> Result<(), StorageError>;
-
     /// A session's questions, newest first.
     fn list_questions(&self, session_id: i64) -> Result<Vec<Question>, StorageError>;
 

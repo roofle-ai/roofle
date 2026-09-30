@@ -9,7 +9,6 @@ pub struct SessionStart {
     pub id: i64,
     /// Accumulated duration of a continued session (0 for a fresh one).
     pub timestamp_offset: f64,
-    pub last_seq: i64,
 }
 
 /// Open a fresh session row, or reopen a stored one for continuation.
@@ -23,7 +22,6 @@ pub fn prepare(
         None => open_new(app, source).map(|id| SessionStart {
             id,
             timestamp_offset: 0.0,
-            last_seq: 0,
         }),
     }
 }
@@ -34,7 +32,6 @@ fn continue_existing(app: &AppHandle, id: i64) -> Result<SessionStart, String> {
     Ok(SessionStart {
         id,
         timestamp_offset: storage.continue_session(id).map_err(context)?,
-        last_seq: storage.last_seq(id).map_err(context)?,
     })
 }
 

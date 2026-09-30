@@ -16,18 +16,6 @@ CREATE TABLE IF NOT EXISTS sessions (
     notes         TEXT    NOT NULL DEFAULT ''
 );
 
-CREATE TABLE IF NOT EXISTS segments (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    seq        INTEGER NOT NULL,
-    start_secs REAL    NOT NULL,
-    text       TEXT    NOT NULL,
-    created_at TEXT    NOT NULL,
-    UNIQUE (session_id, seq)
-);
-
-CREATE INDEX IF NOT EXISTS idx_segments_session ON segments (session_id, seq);
-
 -- Single per-session paragraph, overridden as it accumulates (db-persist).
 -- On finalize its text moves to transcript_log and the row resets.
 CREATE TABLE IF NOT EXISTS paragraphs (
@@ -72,14 +60,6 @@ CREATE TABLE IF NOT EXISTS transcript_log (
 
 CREATE INDEX IF NOT EXISTS idx_transcript_log_session_seq
     ON transcript_log (session_id, sequence_no);
-
--- Rolling summary state, one row per session, overwritten per chunk.
-CREATE TABLE IF NOT EXISTS rolling_summaries (
-    session_id       INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
-    summary_text     TEXT    NOT NULL DEFAULT '',
-    last_sequence_no INTEGER NOT NULL DEFAULT 0,
-    updated_at       TEXT    NOT NULL
-);
 
 -- Live notes, one row per session, overridden per note generation.
 CREATE TABLE IF NOT EXISTS live_notes (

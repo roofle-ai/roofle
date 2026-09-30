@@ -22,18 +22,20 @@ export interface SessionSummary extends Session {
   preview: string; // first words of the transcript
 }
 
-export interface TranscriptSegment {
+export interface AudioSegment {
   id: number;
   session_id: number;
-  seq: number;
-  start_secs: number;
+  source: "mic" | "system";
   text: string;
+  start_ms: number;
+  end_ms: number;
+  confidence: number | null;
   created_at: string;
 }
 
 export interface SessionDetail {
   session: Session;
-  segments: TranscriptSegment[];
+  segments: AudioSegment[];
   transcript: string; // essay-paragraph rendering of the segments
   notes: string; // the editable notes document (seed + user edits)
 }
@@ -43,7 +45,7 @@ export function listSessions(): Promise<SessionSummary[]> {
   return invoke<SessionSummary[]>("list_sessions");
 }
 
-/** One session with its segments and rendered paragraph transcript. */
+/** One session with its source-tagged audio segments and rendered transcript. */
 export function getSession(id: number): Promise<SessionDetail | null> {
   return invoke<SessionDetail | null>("get_session", { id });
 }
