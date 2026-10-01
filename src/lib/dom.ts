@@ -34,6 +34,8 @@ export const dom = {
   questionsEmpty: query<HTMLDivElement>("#questions-empty"),
   questionsEmptyHint: query<HTMLParagraphElement>("#questions-empty-hint"),
   questionsPanel: query<HTMLElement>("#questions-panel"),
+  questionsRail: query<HTMLButtonElement>("#questions-rail"),
+  qRailBadge: query<HTMLSpanElement>("#q-rail-badge"),
   qLive: query<HTMLSpanElement>("#q-live"),
   summaryCard: query<HTMLDivElement>("#summary-card"),
   summaryStats: query<HTMLDivElement>("#summary-stats"),
@@ -51,9 +53,6 @@ export const dom = {
   analysisDashboard: query<HTMLDivElement>("#analysis-dashboard"),
   analysisBody: query<HTMLDivElement>("#analysis-body"),
   analysisClose: query<HTMLButtonElement>("#analysis-close"),
-  exportControl: query<HTMLDivElement>("#export-control"),
-  exportBtn: query<HTMLButtonElement>("#export-btn"),
-  exportMenu: query<HTMLDivElement>("#export-menu"),
 };
 
 export function create<K extends keyof HTMLElementTagNameMap>(

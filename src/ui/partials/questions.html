@@ -4,7 +4,16 @@
       <h2 class="panel-h2">Follow-up questions</h2>
       <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
     </div>
+    <button id="toggle-questions" type="button" class="icon-btn" aria-label="Collapse questions panel" aria-pressed="true" aria-controls="questions-panel" title="Toggle questions panel">
+      <i data-lucide="panel-right" aria-hidden="true"></i>
+    </button>
   </div>
+
+  <!-- Collapsed rail: one icon (click to expand) with a count badge. -->
+  <button id="questions-rail" type="button" class="questions-rail" aria-label="Show follow-up questions" title="Follow-up questions">
+    <i data-lucide="message-square-quote" aria-hidden="true"></i>
+    <span id="q-rail-badge" class="rail-badge" hidden></span>
+  </button>
 
   <!-- Post-meeting analysis summary — one compact row, questions lead -->
   <div id="summary-card" class="summary-card" hidden>

@@ -1,4 +1,4 @@
-use live_agent::notes::{agent_notes, log_step, logging_enabled};
+use live_agent::notes::{agent_notes, log_step, logging_enabled, NotesOutcome};
 use roofle_core::storage::QuestionStore;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -35,9 +35,17 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
             .map(|n| n.text)
             .unwrap_or_default();
 
-        match agent_notes(&client, &new_text, &existing, log) {
-            Ok(text) => {
-                log_step(log, &tag, &format!("final notes = {} chars", text.chars().count()));
+        let state = &app.state::<AppState>();
+        let prior = state.note_kinds.lock().unwrap().get(&session_id).copied();
+
+        match agent_notes(&client, &new_text, &existing, prior, log) {
+            Ok(NotesOutcome { notes: text, kind }) => {
+                state.note_kinds.lock().unwrap().insert(session_id, kind);
+                log_step(
+                    log,
+                    &tag,
+                    &format!("final notes = {} chars, kind={}", text.chars().count(), kind.kind.as_str()),
+                );
                 let _ = storage.save_note(session_id, seq, &text);
                 let _ = app.emit(events::NOTES, NotesUpdate { seq, text });
             }

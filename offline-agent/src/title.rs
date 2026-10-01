@@ -13,7 +13,7 @@ pub const TITLE_SYSTEM: &str = include_str!("../metadata/title-generator.txt");
 /// Generate a conversation title from `notes`. Returns the trimmed title
 /// (may be empty if the model replied with nothing usable).
 pub fn generate_title(client: &dyn CompletionClient, notes: &str) -> Result<String, String> {
-    let user = format!("Meeting notes:\n{notes}");
+    let user = format!("Notes:\n{notes}");
     let reply = client.complete(TITLE_SYSTEM, &user)?;
     Ok(parse_title(&reply))
 }

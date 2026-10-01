@@ -32,6 +32,21 @@
             <span class="assist-item-desc">Review your conversation to know the good and bad.</span>
           </span>
         </button>
+        <div class="assist-sep" role="separator"></div>
+        <button type="button" role="menuitem" data-export="transcript">
+          <i data-lucide="download" aria-hidden="true"></i>
+          <span class="assist-item-text">
+            <span class="assist-item-label">Export transcription</span>
+            <span class="assist-item-desc">Save the full transcript as a .txt file.</span>
+          </span>
+        </button>
+        <button type="button" role="menuitem" data-export="notes">
+          <i data-lucide="download" aria-hidden="true"></i>
+          <span class="assist-item-text">
+            <span class="assist-item-label">Export notes</span>
+            <span class="assist-item-desc">Save your meeting notes as a .txt file.</span>
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -57,9 +72,9 @@
     <span id="model-progress-text"></span>
   </div>
 
-  <!-- Floating transport control: centered when idle, docks to the
-       bottom of the notes once a session is active -->
-  <div id="floating-control" class="floating-control">
+  <!-- Floating transport control: hidden until a recording starts, then
+       centered over the notes and draggable -->
+  <div id="floating-control" class="floating-control is-idle">
     <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
       <span class="record-btn-inner">
         <svg id="record-icon-play" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
@@ -91,20 +106,6 @@
       </button>
     </div>
     <div id="analysis-body" class="analysis-body"></div>
-  </div>
-
-  <!-- Minimal export control pinned to the bottom of the notes panel. Not a
-       loud button — a subtle link that opens a small menu to choose between
-       exporting the full transcription or the meeting notes. -->
-  <div id="export-control" class="export-control">
-    <button id="export-btn" type="button" class="export-btn" aria-haspopup="menu" aria-expanded="false">
-      <i data-lucide="download" aria-hidden="true"></i>
-      <span>Export</span>
-    </button>
-    <div id="export-menu" class="export-menu" role="menu" aria-label="Export options" hidden>
-      <button type="button" role="menuitem" data-export="transcript">Full transcription</button>
-      <button type="button" role="menuitem" data-export="notes">Meeting notes</button>
-    </div>
   </div>
 </section>
 

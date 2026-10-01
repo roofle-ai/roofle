@@ -10,5 +10,8 @@ pub mod notes;
 pub mod watcher;
 
 pub use challenge::{agent_challenges, ChallengeContext, ChallengeResult};
-pub use notes::{agent_notes, log_step, logging_enabled, CompletionClient};
+pub use notes::{
+    agent_notes, log_step, logging_enabled, CompletionClient, ConversationKind, KindState,
+    NotesOutcome,
+};
 pub use watcher::{ParagraphWatcher, DEFAULT_CHAR_LIMIT};

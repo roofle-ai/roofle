@@ -111,8 +111,36 @@ function initFloatingControl(): void {
   window.addEventListener("pointercancel", release);
 }
 
+/** Header buttons collapse / restore a side panel; the choice persists across launches. */
+function initPanelToggles(): void {
+  const label = { history: "conversations", questions: "questions" };
+  for (const side of ["history", "questions"] as const) {
+    const btn = document.getElementById(`toggle-${side}`);
+    if (!btn) continue;
+    const key = `roofle-${side}-collapsed`;
+    const apply = (collapsed: boolean) => {
+      dom.workspace.classList.toggle(`${side}-collapsed`, collapsed);
+      btn.setAttribute("aria-pressed", String(!collapsed));
+      btn.setAttribute(
+        "aria-label",
+        `${collapsed ? "Show" : "Collapse"} ${label[side]} panel`,
+      );
+    };
+    const toggle = () => {
+      const collapsed = !dom.workspace.classList.contains(`${side}-collapsed`);
+      apply(collapsed);
+      storeSet(key, collapsed ? "1" : "0");
+      window.dispatchEvent(new Event("resize")); // re-center the floating control
+    };
+    apply(storeGet(key) === "1");
+    btn.addEventListener("click", toggle);
+    if (side === "questions") dom.questionsRail.addEventListener("click", toggle);
+  }
+}
+
 export function initLayout(): void {
   restoreWidths();
+  initPanelToggles();
   document.querySelectorAll<HTMLElement>(".resizer").forEach(setupResizer);
   initFloatingControl();
 }

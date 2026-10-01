@@ -10,14 +10,8 @@ import { getSession } from "../transcripts";
 type ExportKind = "transcript" | "notes";
 
 function closeMenu(): void {
-  dom.exportMenu.hidden = true;
-  dom.exportBtn.setAttribute("aria-expanded", "false");
-}
-
-function toggleMenu(): void {
-  const open = dom.exportMenu.hidden;
-  dom.exportMenu.hidden = !open;
-  dom.exportBtn.setAttribute("aria-expanded", String(open));
+  dom.assistMenu.hidden = true;
+  dom.assistBtn.setAttribute("aria-expanded", "false");
 }
 
 async function contentFor(kind: ExportKind): Promise<string> {
@@ -50,18 +44,9 @@ async function runExport(kind: ExportKind): Promise<void> {
   }
 }
 
+/** Export lives in the Assist menu; wire its two export items. */
 export function initExport(): void {
-  dom.exportBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleMenu();
-  });
-  document.addEventListener("click", (e) => {
-    if (!dom.exportControl.contains(e.target as Node)) closeMenu();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeMenu();
-  });
-  dom.exportMenu.querySelectorAll<HTMLButtonElement>("[data-export]").forEach((item) => {
+  dom.assistMenu.querySelectorAll<HTMLButtonElement>("[data-export]").forEach((item) => {
     item.addEventListener("click", () => void runExport(item.dataset.export as ExportKind));
   });
 }

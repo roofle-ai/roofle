@@ -9,54 +9,88 @@
       </button>
     </div>
 
-    <section class="settings-section">
-      <h3 class="settings-section-title">Live Session Settings</h3>
+    <div class="settings-body">
+      <nav class="settings-nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
+        <button type="button" role="tab" class="settings-nav-item active" data-pane="person" aria-selected="true" aria-controls="settings-pane-person">
+          <i data-lucide="user-round" aria-hidden="true"></i><span>Person Info</span>
+        </button>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="llm" aria-selected="false" aria-controls="settings-pane-llm">
+          <i data-lucide="cpu" aria-hidden="true"></i><span>LLM Configuration</span>
+        </button>
+      </nav>
 
-      <div class="settings-field">
-        <span class="settings-field-label">Triggers</span>
-        <label for="char-limit" class="settings-field-desc">
-          Generate questions after this many new characters
-        </label>
-        <input id="char-limit" type="number" min="50" max="5000" step="10" value="200" class="settings-input" />
-        <p class="settings-field-hint">Default 200. Lower values surface questions sooner.</p>
+      <div class="settings-content">
+        <div id="settings-pane-person" class="settings-pane active" role="tabpanel" data-pane="person">
+          <header class="pane-head">
+            <h3 class="pane-title">Person Info</h3>
+            <p class="pane-desc">Tell Roofle who you are so it can tailor questions and reviews to you.</p>
+          </header>
+
+          <div class="settings-field">
+            <label for="person-name" class="settings-field-label">Name</label>
+            <input id="person-name" type="text" class="settings-input" placeholder="Your name" autocomplete="name" />
+          </div>
+
+          <div class="settings-field">
+            <label for="person-persona" class="settings-field-label">Persona</label>
+            <select id="person-persona" class="settings-input">
+              <option value="">Select a persona…</option>
+              <option>Sales rep</option>
+              <option>Interviewer</option>
+              <option>Presenter</option>
+              <option>Facilitator</option>
+              <option>Other</option>
+            </select>
+            <p class="settings-field-hint">The role you usually play in conversations.</p>
+          </div>
+        </div>
+
+        <div id="settings-pane-llm" class="settings-pane" role="tabpanel" data-pane="llm">
+          <header class="pane-head">
+            <h3 class="pane-title">LLM Configuration</h3>
+            <p class="pane-desc">Connect any OpenAI-compatible model and tune how often questions are generated.</p>
+          </header>
+
+          <div class="settings-group">
+            <h4 class="group-title">Live session</h4>
+            <div class="settings-field">
+              <label for="char-limit" class="settings-field-label">Question trigger</label>
+              <input id="char-limit" type="number" min="50" max="5000" step="10" value="200" class="settings-input" />
+              <p class="settings-field-hint">Generate questions after this many new characters. Default 200; lower values surface questions sooner.</p>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h4 class="group-title">Model connection</h4>
+            <div class="settings-field">
+              <label for="ai-base-url" class="settings-field-label">Base URL</label>
+              <input id="ai-base-url" type="text" class="settings-input" placeholder="https://api.openai.com/v1" />
+              <p class="settings-field-hint">OpenAI, OpenRouter, Groq, Ollama or any compatible endpoint.</p>
+            </div>
+
+            <div class="settings-field">
+              <label for="ai-model" class="settings-field-label">Model</label>
+              <input id="ai-model" type="text" class="settings-input" placeholder="gpt-4o" />
+            </div>
+
+            <div class="settings-field">
+              <label for="ai-api-key" class="settings-field-label">API key</label>
+              <input id="ai-api-key" type="password" class="settings-input" placeholder="sk-…" autocomplete="off" />
+              <p id="ai-key-state" class="settings-field-hint"></p>
+            </div>
+
+            <div class="ai-settings-actions">
+              <span id="ai-test-result" class="ai-test-result" role="status" aria-live="polite"></span>
+              <button id="ai-test" type="button" class="btn-ghost btn-outline">Test connection</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
-
-    <section class="settings-section">
-      <h3 class="settings-section-title">AI (OpenAI-compatible)</h3>
-
-      <div class="settings-field">
-        <span class="settings-field-label">Base URL</span>
-        <label for="ai-base-url" class="settings-field-desc">
-          Any OpenAI-compatible endpoint (OpenAI, OpenRouter, Groq, Ollama…)
-        </label>
-        <input id="ai-base-url" type="text" class="settings-input" placeholder="https://api.openai.com/v1" />
-      </div>
-
-      <div class="settings-field">
-        <span class="settings-field-label">Model</span>
-        <label for="ai-model" class="settings-field-desc">e.g. gpt-4o, llama3.1</label>
-        <input id="ai-model" type="text" class="settings-input" placeholder="gpt-4o" />
-      </div>
-
-      <div class="settings-field">
-        <span class="settings-field-label">API key</span>
-        <label for="ai-api-key" class="settings-field-desc">
-          Stored in the OS keychain, never on disk
-        </label>
-        <input id="ai-api-key" type="password" class="settings-input" placeholder="sk-…" autocomplete="off" />
-        <p id="ai-key-state" class="settings-field-hint"></p>
-      </div>
-
-      <div class="ai-settings-actions">
-        <span id="ai-test-result" class="ai-test-result" role="status" aria-live="polite"></span>
-        <button id="ai-test" type="button" class="btn-ghost">Test connection</button>
-      </div>
-    </section>
+    </div>
 
     <div class="settings-actions">
       <button id="settings-cancel" type="button" class="btn-ghost">Cancel</button>
-      <button id="settings-save" type="button" class="btn-primary">Save</button>
+      <button id="settings-save" type="button" class="btn-primary">Save changes</button>
     </div>
   </div>
 </div>

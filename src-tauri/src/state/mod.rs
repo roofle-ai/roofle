@@ -1,8 +1,10 @@
 mod payloads;
 
+use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
+use live_agent::KindState;
 use roofle_core::storage::SqliteStorage;
 
 use crate::engine::{Control, SourceKind};
@@ -25,6 +27,9 @@ pub struct AppState {
     /// Renderer-supplied key captured at recording start for the live agents.
     /// Never persisted.
     pub api_key: Mutex<String>,
+    /// Per live session: the notes classifier's verdict so far (meeting,
+    /// conversation or presentation). In memory only; a restart re-derives it.
+    pub note_kinds: Mutex<HashMap<i64, KindState>>,
 }
 
 impl AppState {
@@ -44,6 +49,7 @@ impl AppState {
             tray: Mutex::new(None),
             storage,
             api_key: Mutex::new(String::new()),
+            note_kinds: Mutex::new(HashMap::new()),
         }
     }
 }

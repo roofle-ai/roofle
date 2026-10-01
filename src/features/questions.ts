@@ -136,6 +136,8 @@ export function resetQuestions(): void {
   dom.questionsEmptyHint.textContent = LISTENING_HINT;
   dom.qLive.className = "live-badge";
   dom.qLive.textContent = "";
+  dom.qRailBadge.hidden = true;
+  dom.questionsRail.classList.remove("is-live");
 }
 
 export function setQuestionsHint(): void {
@@ -147,6 +149,11 @@ export function setQuestionsHint(): void {
 
 function updateLiveBadge(): void {
   const count = questions.length;
+  // Collapsed-rail badge: unresolved questions (all of them while live).
+  const pending = analysisMode ? questions.filter((q) => !q.resolved).length : count;
+  dom.qRailBadge.hidden = pending === 0;
+  dom.qRailBadge.textContent = pending > 9 ? "9+" : String(pending);
+  dom.questionsRail.classList.toggle("is-live", !analysisMode && count > 0);
   if (analysisMode) {
     const unresolved = questions.filter((q) => !q.resolved).length;
     dom.qLive.className = "live-badge show analysis";

@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { loadStoredApiKey } from "../ai";
 import { session, type SessionState } from "../app/state";
 import { dom } from "../lib/dom";
-import { describeError, setStatus, showToast } from "../lib/status";
+import { describeError, setStatus } from "../lib/status";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
 import { refreshNotesTitle, saveNotesNow } from "./notes";
@@ -29,8 +29,11 @@ export function setSessionState(state: SessionState): void {
   dom.recordBtn.classList.toggle("recording", state === "recording");
   dom.recordBtn.classList.toggle("paused", state === "paused");
   dom.recordBtn.setAttribute("aria-label", RECORD_LABEL[state]);
-  dom.recordIconPlay.toggleAttribute("hidden", state === "recording");
+  // The play glyph is only the resume affordance while paused; recording starts
+  // from "New conversation" (or the tray / Cmd+R).
+  dom.recordIconPlay.toggleAttribute("hidden", state !== "paused");
   dom.recordIconPause.toggleAttribute("hidden", state !== "recording");
+  dom.floatingControl.classList.toggle("is-idle", state === "idle");
   dom.stopBtn.hidden = state === "idle";
 
   if (state === "recording") startTimer();
@@ -99,7 +102,7 @@ async function newSession(): Promise<void> {
   updateAnalyseVisibility();
   refreshNotesTitle();
   resetView();
-  showToast("New conversation");
+  await start();
 }
 
 function initShortcuts(): void {
