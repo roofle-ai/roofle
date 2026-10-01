@@ -61,10 +61,6 @@ export async function initEvents(): Promise<void> {
     ingestChallenges(e.payload.questions, session.elapsedSec),
   );
   await listen<NotesUpdate>("notes-update", (e) => applyGeneratedNotes(e.payload.text));
-  await listen<number>("level", (e) => {
-    const pct = Math.min(100, Math.max(0, e.payload * 100));
-    dom.levelFill.style.width = `${pct}%`;
-  });
   await listen<ModelProgress>("model-progress", (e) => onModelProgress(e.payload));
   await listen<boolean>("recording-state", (e) => onRecordingState(e.payload));
   await listen<string>("app-status", (e) => setStatus("error", e.payload));

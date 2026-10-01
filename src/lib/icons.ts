@@ -13,12 +13,13 @@ import {
   PanelRight,
   Plus,
   Rewind,
+  Save,
   Settings,
   Sparkles,
   Sun,
   Trash,
   UserRound,
-  WandSparkles,
+  WandSparkles
 } from "lucide";
 
 const ICONS = {
@@ -27,6 +28,7 @@ const ICONS = {
   Moon,
   PanelLeft,
   PanelRight,
+  Save,
   Sun,
   MessageSquareQuote,
   Sparkles,

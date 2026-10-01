@@ -6,7 +6,7 @@ import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
-import { refreshNotesTitle, saveNotesNow } from "./notes";
+import { refreshNotesTitle, saveNotesNow, updateNotesSaveVisibility } from "./notes";
 import { resetQuestions, setAnalysisMode, setQuestionsHint } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
 import { resetView } from "./view";
@@ -42,6 +42,7 @@ export function setSessionState(state: SessionState): void {
 
   setQuestionsHint();
   updateAnalyseVisibility();
+  updateNotesSaveVisibility();
 }
 
 async function command(name: "pause_recording" | "resume_recording", next: SessionState): Promise<void> {
@@ -100,6 +101,7 @@ async function newSession(): Promise<void> {
   if (session.state !== "idle") await stop();
   session.viewedId = null;
   updateAnalyseVisibility();
+  updateNotesSaveVisibility();
   refreshNotesTitle();
   resetView();
   await start();

@@ -11,7 +11,7 @@ import {
   type SessionSummary,
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
-import { refreshNotesTitle } from "./notes";
+import { refreshNotesTitle, updateNotesSaveVisibility } from "./notes";
 import { ingestChallenges, resetQuestions, setAnalysisMode } from "./questions";
 import { resetView } from "./view";
 
@@ -78,6 +78,7 @@ function renderDeleteButton(id: number): HTMLButtonElement {
           refreshNotesTitle();
           resetView();
           updateAnalyseVisibility();
+          updateNotesSaveVisibility();
         }
         void loadHistory();
       })
@@ -93,6 +94,7 @@ export async function openSession(id: number): Promise<void> {
 
     session.viewedId = id;
     updateAnalyseVisibility();
+    updateNotesSaveVisibility();
 
     resetView();
     // Prefer the persisted title (agent-renamed) over the transcript's first words.
