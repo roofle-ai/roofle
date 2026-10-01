@@ -1698,7 +1698,7 @@ body {
 }
 
 /* Explicit `display` overrides the `hidden` attribute; restore hiding. */
-.analyse-btn[hidden],
+.assist-control[hidden],
 .analyse-overlay[hidden],
 .analysis-dashboard[hidden] {
   display: none;
@@ -1715,7 +1715,12 @@ body {
   gap: 0.75rem;
 }
 
-.analyse-btn {
+/* Assist actions: a menu trigger in the transcript header. */
+.assist-control {
+  position: relative;
+}
+
+.assist-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1730,23 +1735,108 @@ body {
   transition: background 150ms ease, transform 150ms var(--ease);
 }
 
-.analyse-btn:hover {
+.assist-btn:hover,
+.assist-btn[aria-expanded="true"] {
   background: color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
-.analyse-btn:active {
+.assist-btn:active {
   transform: scale(0.96);
 }
 
-.analyse-btn:focus-visible {
+.assist-btn:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
-.analyse-btn [data-lucide],
-.analyse-btn svg {
+.assist-btn [data-lucide],
+.assist-btn svg {
   width: 14px;
   height: 14px;
+}
+
+.assist-chevron {
+  transition: transform 150ms var(--ease);
+}
+
+.assist-btn[aria-expanded="true"] .assist-chevron {
+  transform: rotate(180deg);
+}
+
+/* Assist menu (Review, and future actions). */
+.assist-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px rgba(2, 6, 23, 0.16);
+  z-index: 30;
+}
+
+.assist-menu[hidden] {
+  display: none;
+}
+
+.assist-menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.assist-menu button:hover {
+  background: var(--brand-tint);
+}
+
+.assist-menu button:hover .assist-item-label {
+  color: var(--brand-strong);
+}
+
+/* Subtle divider between stacked menu actions. */
+.assist-menu button + button {
+  margin-top: 0.4rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.assist-menu button [data-lucide] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--brand-strong);
+}
+
+.assist-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assist-item-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.assist-item-desc {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--faint);
+  font-weight: 400;
 }
 
 /* Analyse modal (perspective + context) */

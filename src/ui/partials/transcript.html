@@ -1,10 +1,39 @@
 <section class="panel transcript" id="transcript-panel">
   <div class="transcript-head">
     <h2 id="chat-title" class="new-title">Notes</h2>
-    <button id="analyse-btn" type="button" class="analyse-btn" hidden>
-      <i data-lucide="sparkles" aria-hidden="true"></i>
-      <span>Review</span>
-    </button>
+    <!-- Assist actions: a trigger that opens a small popover of AI helpers. -->
+    <div id="assist-control" class="assist-control" hidden>
+      <button id="assist-btn" type="button" class="assist-btn" aria-haspopup="menu" aria-expanded="false">
+        <i data-lucide="wand-sparkles" aria-hidden="true"></i>
+        <span>Assist</span>
+        <svg class="assist-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      <div id="assist-menu" class="assist-menu" role="menu" aria-label="Assist options" hidden>
+        <button type="button" role="menuitem" data-assist="last-30s">
+          <i data-lucide="rewind" aria-hidden="true"></i>
+          <span class="assist-item-text">
+            <span class="assist-item-label">Last 30s</span>
+            <span class="assist-item-desc">What did they say in the last 30s?</span>
+          </span>
+        </button>
+        <button type="button" role="menuitem" data-assist="numbers">
+          <i data-lucide="hash" aria-hidden="true"></i>
+          <span class="assist-item-text">
+            <span class="assist-item-label">What numbers did they mention?</span>
+            <span class="assist-item-desc">Figures, dates and names they've said so far.</span>
+          </span>
+        </button>
+        <button type="button" role="menuitem" data-assist="review">
+          <i data-lucide="clipboard-check" aria-hidden="true"></i>
+          <span class="assist-item-text">
+            <span class="assist-item-label">Review</span>
+            <span class="assist-item-desc">Review your conversation to know the good and bad.</span>
+          </span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Editable notes page: live transcription auto-appends here; the user can

@@ -8,16 +8,16 @@ import { syncQuestionsPanel } from "./questions";
 const PERSPECTIVES = ["Sales rep", "Interviewer", "Presenter", "Facilitator"];
 const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
 
-/** Analyse is offered only once recording has stopped and a session is in view. */
+/** Assist is offered only once recording has stopped and a session is in view. */
 export function updateAnalyseVisibility(): void {
-  dom.analyseBtn.hidden = !(session.state === "idle" && session.viewedId !== null);
-  void refreshAnalyseLabel();
+  dom.assistControl.hidden = !(session.state === "idle" && session.viewedId !== null);
+  void refreshReviewLabel();
 }
 
-/** Label flips to "View review" once the viewed session has a stored review. */
-async function refreshAnalyseLabel(): Promise<void> {
+/** The review action flips to "View review" once the viewed session has a stored review. */
+async function refreshReviewLabel(): Promise<void> {
   const id = session.viewedId;
-  if (id === null || dom.analyseBtn.hidden) return;
+  if (id === null || dom.assistControl.hidden) return;
   let stored = false;
   try {
     stored = (await getSessionAnalysis(id)) !== null;
@@ -26,7 +26,7 @@ async function refreshAnalyseLabel(): Promise<void> {
   }
   // Ignore if the user switched sessions while the lookup was in flight.
   if (session.viewedId !== id) return;
-  dom.analyseBtnLabel.textContent = stored ? "View review" : "Review";
+  dom.assistReviewLabel.textContent = stored ? "View review" : "Review";
 }
 
 export function hideDashboard(): void {
@@ -83,7 +83,7 @@ async function runAnalysis(): Promise<void> {
   try {
     const result = await analyseSession(session.viewedId, perspective, context, loadStoredApiKey());
     renderAnalysis(result);
-    dom.analyseBtnLabel.textContent = "View review";
+    dom.assistReviewLabel.textContent = "View review";
   } catch (err) {
     dom.analysisBody.replaceChildren(create("p", "analysis-error", String(err)));
   }
@@ -153,8 +153,32 @@ function appendList(parent: HTMLElement, title: string, items: string[], itemCla
   parent.append(create("h4", "analysis-block-title", title), list);
 }
 
+function closeAssistMenu(): void {
+  dom.assistMenu.hidden = true;
+  dom.assistBtn.setAttribute("aria-expanded", "false");
+}
+
+function toggleAssistMenu(): void {
+  const open = dom.assistMenu.hidden;
+  dom.assistMenu.hidden = !open;
+  dom.assistBtn.setAttribute("aria-expanded", String(open));
+}
+
 export function initAnalysis(): void {
-  dom.analyseBtn.addEventListener("click", () => void onAnalyseClick());
+  dom.assistBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleAssistMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!dom.assistControl.contains(e.target as Node)) closeAssistMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAssistMenu();
+  });
+  dom.assistReviewItem.addEventListener("click", () => {
+    closeAssistMenu();
+    void onAnalyseClick();
+  });
   dom.analyseClose.addEventListener("click", closeModal);
   dom.analyseCancel.addEventListener("click", closeModal);
   dom.analyseSubmit.addEventListener("click", () => void runAnalysis());

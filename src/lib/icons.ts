@@ -1,16 +1,20 @@
 import {
   CircleCheck,
   CircleDot,
+  ClipboardCheck,
   CornerDownRight,
   createIcons,
   Download,
+  Hash,
   MessageSquareQuote,
   Moon,
   Plus,
+  Rewind,
   Settings,
   Sparkles,
   Sun,
   Trash,
+  WandSparkles,
 } from "lucide";
 
 const ICONS = {
@@ -25,6 +29,10 @@ const ICONS = {
   CornerDownRight,
   Trash,
   Download,
+  ClipboardCheck,
+  WandSparkles,
+  Rewind,
+  Hash,
 };
 
 export function refreshIcons(): void {
