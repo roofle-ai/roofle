@@ -2,6 +2,7 @@ mod payloads;
 
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
+use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
 use live_agent::KindState;
@@ -30,6 +31,8 @@ pub struct AppState {
     /// Per live session: the notes classifier's verdict so far (meeting,
     /// conversation or presentation). In memory only; a restart re-derives it.
     pub note_kinds: Mutex<HashMap<i64, KindState>>,
+    /// Whether the follow-up questions agent may call the LLM. Toggled from the UI.
+    pub followups_enabled: AtomicBool,
 }
 
 impl AppState {
@@ -50,6 +53,7 @@ impl AppState {
             storage,
             api_key: Mutex::new(String::new()),
             note_kinds: Mutex::new(HashMap::new()),
+            followups_enabled: AtomicBool::new(true),
         }
     }
 }

@@ -27,6 +27,7 @@ pub fn run() {
             recording::pause_recording,
             recording::resume_recording,
             recording::stop_recording,
+            recording::set_followups_enabled,
             models::list_models,
             models::select_model,
             models::selected_model,

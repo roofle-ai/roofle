@@ -6,8 +6,8 @@ import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
-import { refreshNotesTitle, saveNotesNow, updateNotesSaveVisibility } from "./notes";
-import { resetQuestions, setAnalysisMode, setQuestionsHint } from "./questions";
+import { refreshNotesTitle, saveNotesNow, setNotesPreview, updateNotesSaveVisibility } from "./notes";
+import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
 import { resetView } from "./view";
 
@@ -25,6 +25,8 @@ const STATUS_TEXT: Record<SessionState, string> = {
 
 export function setSessionState(state: SessionState): void {
   session.state = state;
+  if (state === "idle") session.activeId = null;
+  else session.activeId ??= session.viewedId;
 
   dom.recordBtn.classList.toggle("recording", state === "recording");
   dom.recordBtn.classList.toggle("paused", state === "paused");
@@ -35,6 +37,9 @@ export function setSessionState(state: SessionState): void {
   dom.recordIconPause.toggleAttribute("hidden", state !== "recording");
   dom.floatingControl.classList.toggle("is-idle", state === "idle");
   dom.stopBtn.hidden = state === "idle";
+
+  // Live text is appended to the editor, so it must be showing while a session is active.
+  if (state !== "idle") setNotesPreview(false);
 
   if (state === "recording") startTimer();
   else stopTimer();
@@ -74,6 +79,7 @@ async function start(): Promise<void> {
     });
     if (continueId === null) await adoptActiveSession();
     else refreshNotesTitle();
+    await syncFollowups();
     setSessionState("recording");
   } catch (err) {
     setStatus("error", describeError(err));
@@ -130,5 +136,6 @@ export function initTransport(openSettings: () => void): void {
   dom.stopBtn.addEventListener("click", () => void stop());
   dom.newSessionBtn?.addEventListener("click", () => void newSession());
   dom.settingsBtn?.addEventListener("click", openSettings);
+  initFollowupToggle();
   initShortcuts();
 }

@@ -46,8 +46,8 @@ function onModelProgress({ id, downloaded, total }: ModelProgress): void {
 /** Stay in sync with recordings started or stopped from the tray menu. */
 async function onRecordingState(recording: boolean): Promise<void> {
   if (recording) {
-    setSessionState("recording");
     await adoptActiveSession();
+    setSessionState("recording");
   } else {
     setSessionState("idle");
     setAnalysisMode(true);
@@ -58,7 +58,7 @@ async function onRecordingState(recording: boolean): Promise<void> {
 export async function initEvents(): Promise<void> {
   await listen<Segment>("transcript-update", (e) => onTranscript(e.payload));
   await listen<ChallengeUpdate>("challenge-update", (e) =>
-    ingestChallenges(e.payload.questions, session.elapsedSec),
+    ingestChallenges(e.payload.questions),
   );
   await listen<NotesUpdate>("notes-update", (e) => applyGeneratedNotes(e.payload.text));
   await listen<ModelProgress>("model-progress", (e) => onModelProgress(e.payload));

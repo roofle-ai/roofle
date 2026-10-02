@@ -3,6 +3,8 @@ use live_agent::notes::{log_step, logging_enabled};
 use roofle_core::storage::{
     AudioSource, ParagraphStore, QuestionStatus, QuestionStore, TranscriptStore,
 };
+use std::sync::atomic::Ordering;
+
 use tauri::{AppHandle, Emitter, Manager};
 
 use super::client::configured_client;
@@ -20,6 +22,10 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
     std::thread::spawn(move || {
         let log = logging_enabled();
         let tag = format!("challenge #{seq} session={session_id}");
+        if !app.state::<AppState>().followups_enabled.load(Ordering::Relaxed) {
+            log_step(log, &tag, "follow-ups disabled; skipping");
+            return;
+        }
         let new_chars = new_text.chars().count();
 
         let client = match configured_client(&app) {

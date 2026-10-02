@@ -1,137 +1,89 @@
+import { invoke } from "@tauri-apps/api/core";
+
 import { session } from "../app/state";
 import { create, dom } from "../lib/dom";
-import { formatTime } from "../lib/format";
 import { refreshIcons } from "../lib/icons";
 import type { QuestionView } from "../types";
-import { scrollNotesToEnd } from "./notes";
 
 interface FollowUp extends QuestionView {
-  timestamp: number;
   resolved: boolean;
 }
 
 const LISTENING_HINT =
-  "Roofle is listening… follow-up questions will appear here as the conversation unfolds.";
+  "Roofle listens for gaps, assumptions and open points, then suggests questions worth asking.";
 
 let questions: FollowUp[] = [];
 let analysisMode = false;
+/** Ids already shown, so only genuinely new cards play the entrance animation. */
+const seen = new Set<number>();
 
-const stateLabel = (resolved: boolean) => (resolved ? "Resolved" : "Unanswered");
+type Status = FollowUp["status"];
 
-const resolveIcon = (resolved: boolean) =>
-  `<i data-lucide="${resolved ? "circle-check" : "circle-dot"}" aria-hidden="true"></i>`;
+/** Display order and copy for each group of questions. */
+const GROUPS: { status: Status; title: string; answerLabel?: string }[] = [
+  { status: "open", title: "Suggestions" },
+  { status: "answered", title: "Answered in conversation", answerLabel: "From the conversation" },
+  { status: "stale", title: "No longer relevant", answerLabel: "Why" },
+];
 
-const cardFor = (id: number) => document.querySelector<HTMLElement>(`[data-qid="${id}"]`);
+const statusIcon = (status: Status) =>
+  status === "answered" ? "circle-check" : status === "stale" ? "clock" : "circle-dot";
 
 /** Reconcile the backend's full question list into the panel, by id. */
-export function ingestChallenges(incoming: QuestionView[], timestamp: number): void {
+export function ingestChallenges(incoming: QuestionView[]): void {
   if (incoming.length === 0) return;
-  const ids = new Set(incoming.map((q) => q.id));
+  questions = incoming.map((q) => ({ ...q, resolved: q.status !== "open" }));
+  renderQuestions();
+  updateLiveBadge();
+}
 
-  for (const q of questions) {
-    if (!ids.has(q.id)) cardFor(q.id)?.remove();
-  }
-  questions = questions.filter((q) => ids.has(q.id));
-
-  for (const q of incoming) {
-    const existing = questions.find((x) => x.id === q.id);
-    if (existing) {
-      updateQuestion(existing, q);
-    } else {
-      const fresh: FollowUp = { ...q, timestamp, resolved: q.status !== "open" };
-      questions.push(fresh);
-      renderQuestion(fresh);
-    }
-  }
+/** Rebuild the grouped list. Lists are short, so a full render keeps it simple and consistent. */
+function renderQuestions(): void {
   dom.questionsEmpty.hidden = questions.length !== 0;
-  updateLiveBadge();
-  if (analysisMode) renderSummary();
-}
+  const scrollTop = dom.questionsList.scrollTop;
+  dom.questionsList.replaceChildren();
 
-function updateQuestion(existing: FollowUp, q: QuestionView): void {
-  existing.text = q.text;
-  existing.status = q.status;
-  existing.reason = q.reason;
-  existing.resolved = q.status !== "open";
-  const card = cardFor(q.id);
-  if (!card) return;
-  card.classList.toggle("resolved", existing.resolved);
-  const label = card.querySelector<HTMLElement>(".q-state");
-  if (label) label.textContent = stateLabel(existing.resolved);
-  syncAnswer(card, existing.reason);
-}
+  for (const group of GROUPS) {
+    // Newest first within a group.
+    const items = questions.filter((q) => q.status === group.status).sort((x, y) => y.id - x.id);
+    if (items.length === 0) continue;
 
-/** Keep the card's answer block in step with the agent's resolution text. */
-function syncAnswer(card: HTMLElement, reason: string | null): void {
-  const el = card.querySelector<HTMLElement>(".qanswer");
-  if (!reason) {
-    el?.remove();
-    return;
+    const section = create("section", `qgroup ${group.status}`);
+    const head = create("h3", "qgroup-title");
+    head.append(create("span", undefined, group.title), create("span", "qgroup-count", String(items.length)));
+    section.append(head);
+    for (const q of items) section.append(renderQuestion(q, group.answerLabel));
+    dom.questionsList.append(section);
   }
-  if (el) {
-    el.textContent = reason;
-    return;
-  }
-  const fresh = create("p", "qanswer", reason);
-  const meta = card.querySelector<HTMLElement>(".qmeta");
-  if (meta) meta.before(fresh);
-  else card.append(fresh);
-}
-
-function renderQuestion(q: FollowUp): void {
-  dom.questionsEmpty.hidden = true;
-  const card = create("article", "qcard");
-  card.dataset.qid = String(q.id);
-
-  const top = create("div", "qcard-top");
-  top.append(create("span", "chip Open", "Open"), create("span", "timestamp", formatTime(q.timestamp)));
-
-  const label = create("span", "q-state", stateLabel(q.resolved));
-  const metaLeft = create("div", "qmeta-left");
-  metaLeft.append(label);
-
-  const jumpBtn = create("button", "qaction jump");
-  jumpBtn.type = "button";
-  jumpBtn.setAttribute("aria-label", "Jump to context in transcript");
-  jumpBtn.innerHTML = `<i data-lucide="corner-down-right" aria-hidden="true"></i>`;
-  jumpBtn.addEventListener("click", () => {
-    dom.notesInput.focus();
-    scrollNotesToEnd();
-  });
-
-  const resolveBtn = create("button", "qaction resolve");
-  resolveBtn.type = "button";
-  const paintResolveBtn = () => {
-    resolveBtn.setAttribute("aria-label", q.resolved ? "Mark unanswered" : "Mark resolved");
-    resolveBtn.innerHTML = resolveIcon(q.resolved);
-  };
-  paintResolveBtn();
-  resolveBtn.addEventListener("click", () => {
-    q.resolved = !q.resolved;
-    card.classList.toggle("resolved", q.resolved);
-    label.textContent = stateLabel(q.resolved);
-    paintResolveBtn();
-    refreshIcons();
-    if (analysisMode) renderSummary();
-  });
-
-  const actions = create("div", "qactions");
-  actions.append(jumpBtn, resolveBtn);
-  const meta = create("div", "qmeta");
-  meta.append(metaLeft, actions);
-
-  card.append(top, create("p", "qtext", q.text));
-  if (q.reason) card.append(create("p", "qanswer", q.reason));
-  card.append(meta);
-  dom.questionsList.prepend(card);
+  dom.questionsList.scrollTop = scrollTop;
+  questions.forEach((q) => seen.add(q.id));
   refreshIcons();
-  updateLiveBadge();
+}
+
+function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
+  const card = create("article", `qcard ${q.status}`);
+  card.dataset.qid = String(q.id);
+  if (!seen.has(q.id)) card.classList.add("is-new");
+
+  const head = create("div", "qcard-head");
+  const icon = create("i");
+  icon.dataset.lucide = statusIcon(q.status);
+  icon.setAttribute("aria-hidden", "true");
+  head.append(icon, create("p", "qtext", q.text));
+  card.append(head);
+
+  if (q.reason) {
+    const answer = create("div", "qanswer");
+    answer.append(create("span", "qanswer-label", answerLabel), create("p", "qanswer-text", q.reason));
+    card.append(answer);
+  }
+  return card;
 }
 
 export function resetQuestions(): void {
   questions = [];
-  dom.questionsList.querySelectorAll(".qcard").forEach((el) => el.remove());
-  dom.summaryCard.hidden = true;
+  seen.clear();
+  dom.questionsList.replaceChildren();
   dom.questionsEmpty.hidden = false;
   dom.questionsEmptyHint.textContent = LISTENING_HINT;
   dom.qLive.className = "live-badge";
@@ -140,10 +92,38 @@ export function resetQuestions(): void {
   dom.questionsRail.classList.remove("is-live");
 }
 
+let followupsEnabled = true;
+
+/** Push the toggle's value to the backend; failures leave the UI state as is. */
+export function syncFollowups(): Promise<void> {
+  return invoke<void>("set_followups_enabled", { enabled: followupsEnabled }).catch(() => {});
+}
+
+export function initFollowupToggle(): void {
+  dom.followupToggle.addEventListener("change", () => {
+    followupsEnabled = dom.followupToggle.checked;
+    void syncFollowups();
+    setQuestionsHint();
+  });
+}
+
+const viewingActiveSession = () =>
+  session.state !== "idle" && session.activeId !== null && session.viewedId === session.activeId;
+
+/** Enabled only while the session being recorded is the one on screen. */
+export function updateFollowupToggle(): void {
+  dom.followupToggle.disabled = !viewingActiveSession();
+}
+
 export function setQuestionsHint(): void {
+    updateFollowupToggle();
+  if (viewingActiveSession() && !followupsEnabled) {
+    dom.questionsEmptyHint.textContent = "Suggestions are turned off for this session.";
+    return;
+  }
   dom.questionsEmptyHint.textContent =
     session.state === "paused"
-      ? "Paused — follow-up questions will resume when you resume recording."
+      ? "Recording is paused. Suggestions resume when you do."
       : LISTENING_HINT;
 }
 
@@ -157,48 +137,16 @@ function updateLiveBadge(): void {
   if (analysisMode) {
     const unresolved = questions.filter((q) => !q.resolved).length;
     dom.qLive.className = "live-badge show analysis";
-    dom.qLive.textContent = count === 0 ? "" : unresolved === 0 ? "All resolved" : `${unresolved} open`;
+    dom.qLive.textContent = count === 0 ? "" : unresolved === 0 ? "All answered" : `${unresolved} to ask`;
   } else {
     dom.qLive.className = "live-badge show live";
-    dom.qLive.textContent = count === 0 ? "" : `${count} live`;
+    dom.qLive.textContent = count === 0 ? "" : `${count} suggested`;
   }
-}
-
-function renderSummary(): void {
-  if (questions.length === 0) {
-    dom.summaryCard.hidden = true;
-    return;
-  }
-  dom.summaryCard.hidden = false;
-  const count = (status: FollowUp["status"]) => questions.filter((q) => q.status === status).length;
-  const open = count("open");
-  const answered = count("answered");
-  const stale = count("stale");
-
-  dom.summaryStats.replaceChildren();
-  const addStat = (n: number, label: "open" | "answered" | "stale") => {
-    const stat = create("div", `stat ${label}`);
-    stat.append(
-      create("span", "stat-dot"),
-      create("b", undefined, String(n)),
-      create("span", undefined, label),
-    );
-    dom.summaryStats.append(stat);
-  };
-  if (open) addStat(open, "open");
-  if (answered) addStat(answered, "answered");
-  if (stale) addStat(stale, "stale");
-  updateLiveBadge();
 }
 
 export function setAnalysisMode(on: boolean): void {
   analysisMode = on;
-  if (on) {
-    renderSummary();
-  } else {
-    dom.summaryCard.hidden = true;
-    updateLiveBadge();
-  }
+  updateLiveBadge();
 }
 
 /** The questions panel belongs to the notes view; hide it behind the analysis dashboard. */

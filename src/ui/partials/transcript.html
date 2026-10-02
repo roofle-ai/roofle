@@ -1,7 +1,14 @@
 <section class="panel transcript" id="transcript-panel">
   <div class="transcript-head">
     <h2 id="chat-title" class="new-title">Notes</h2>
+    <span id="notes-editing" class="notes-editing" role="status">
+      <span class="notes-editing-dot" aria-hidden="true"></span>Editing
+    </span>
     <div id="notes-save" class="notes-save" hidden>
+      <button id="notes-discard-btn" type="button" class="save-btn discard-btn">
+        <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+        <span>Discard changes</span>
+      </button>
       <button id="notes-save-btn" type="button" class="save-btn">
         <i data-lucide="save" aria-hidden="true"></i>
         <span>Save changes</span>
@@ -61,6 +68,7 @@
        edit/overwrite freely. The textarea holds the final notes (seed +
        user edits) and is what gets persisted per session. -->
   <div id="notes-page" class="notes-page">
+    <time id="notes-meta" class="notes-meta"></time>
     <textarea
       id="notes-input"
       class="notes-input"
@@ -68,6 +76,7 @@
       aria-label="Conversation notes"
       placeholder="Start recording or type your notes here…"
     ></textarea>
+    <div id="notes-preview" class="notes-preview markdown-body" aria-label="Rendered notes" hidden></div>
   </div>
 
   <!-- Model download progress -->

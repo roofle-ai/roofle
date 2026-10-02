@@ -1,13 +1,22 @@
 <aside class="panel questions" id="questions-panel">
   <div class="panel-head">
     <div class="panel-title">
-      <h2 class="panel-h2">Follow-up questions</h2>
-      <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
+      <div class="panel-title-row">
+        <h2 class="panel-h2">Follow-up questions</h2>
+        <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
+      </div>
+      <p class="panel-sub">Suggested by Roofle to challenge the conversation.</p>
     </div>
     <button id="toggle-questions" type="button" class="icon-btn" aria-label="Collapse questions panel" aria-pressed="true" aria-controls="questions-panel" title="Toggle questions panel">
       <i data-lucide="panel-right" aria-hidden="true"></i>
     </button>
   </div>
+
+  <label class="followup-toggle" title="Let Roofle suggest questions while you record. Available for the session being recorded.">
+    <span class="followup-text">Suggest questions</span>
+    <input id="followup-toggle" type="checkbox" role="switch" checked disabled />
+    <span class="followup-track" aria-hidden="true"></span>
+  </label>
 
   <!-- Collapsed rail: one icon (click to expand) with a count badge. -->
   <button id="questions-rail" type="button" class="questions-rail" aria-label="Show follow-up questions" title="Follow-up questions">
@@ -15,23 +24,13 @@
     <span id="q-rail-badge" class="rail-badge" hidden></span>
   </button>
 
-  <!-- Post-meeting analysis summary — one compact row, questions lead -->
-  <div id="summary-card" class="summary-card" hidden>
-    <div class="summary-head">
-      <span class="summary-title">
-        <span>Insights</span>
-      </span>
-      <div id="summary-stats" class="summary-stats" aria-live="polite"></div>
-    </div>
-  </div>
-
   <div id="questions-empty" class="questions-empty">
     <span class="empty-orb insight" aria-hidden="true">
       <i data-lucide="message-square-quote"></i>
     </span>
-    <strong class="empty-title">Stay sharp in the moment</strong>
-    <p id="questions-empty-hint">Roofle listens for what's left unsaid — follow-up questions will surface here as the conversation unfolds.</p>
+    <strong class="empty-title">Challenge the conversation</strong>
+    <p id="questions-empty-hint">Roofle listens for gaps, assumptions and open points, then suggests questions worth asking.</p>
   </div>
 
-  <div id="questions-list" class="questions-list"></div>
+  <div id="questions-list" class="questions-list" aria-label="Suggested follow-up questions"></div>
 </aside>

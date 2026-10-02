@@ -30,6 +30,12 @@ pub async fn start_recording(
     Ok(())
 }
 
+/// Turn the follow-up questions agent on or off; while off, no LLM calls are made for it.
+#[tauri::command]
+pub fn set_followups_enabled(state: State<'_, AppState>, enabled: bool) {
+    state.followups_enabled.store(enabled, std::sync::atomic::Ordering::Relaxed);
+}
+
 #[tauri::command]
 pub async fn stop_recording(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     request(&state, |reply| Control::Stop { reply })?;

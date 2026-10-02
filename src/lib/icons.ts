@@ -2,6 +2,7 @@ import {
   CircleCheck,
   CircleDot,
   ClipboardCheck,
+  Clock,
   CornerDownRight,
   Cpu,
   createIcons,
@@ -13,6 +14,7 @@ import {
   PanelRight,
   Plus,
   Rewind,
+  RotateCcw,
   Save,
   Settings,
   Sparkles,
@@ -34,6 +36,7 @@ const ICONS = {
   Sparkles,
   CircleDot,
   CircleCheck,
+  Clock,
   CornerDownRight,
   Trash,
   UserRound,
@@ -42,6 +45,7 @@ const ICONS = {
   ClipboardCheck,
   WandSparkles,
   Rewind,
+  RotateCcw,
   Hash,
 };
 

@@ -11,8 +11,8 @@ import {
   type SessionSummary,
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
-import { refreshNotesTitle, updateNotesSaveVisibility } from "./notes";
-import { ingestChallenges, resetQuestions, setAnalysisMode } from "./questions";
+import { refreshNotesTitle, showLoadedNotes, updateNotesSaveVisibility } from "./notes";
+import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
 import { resetView } from "./view";
 
 export async function loadHistory(): Promise<void> {
@@ -103,14 +103,16 @@ export async function openSession(id: number): Promise<void> {
       (detail.transcript?.trim() ? previewWords(detail.transcript) : undefined);
     refreshNotesTitle(new Date(detail.session.started_at));
     dom.notesInput.value = detail.notes ?? "";
+    showLoadedNotes();
 
     resetQuestions();
     setAnalysisMode(true);
     try {
-      ingestChallenges(await listSessionQuestions(id), 0);
+      ingestChallenges(await listSessionQuestions(id));
     } catch {
       // Live updates will populate the panel if the stored list can't load.
     }
+    updateFollowupToggle();
     await loadHistory();
   } catch (err) {
     setStatus("error", String(err));
