@@ -1,6 +1,7 @@
 use live_agent::notes::{log_step, logging_enabled};
+use live_agent::recap::{recap_recent, Recap, Utterance};
 use offline_agent::analysis::{analyse, AnalysisResult};
-use roofle_core::storage::SessionRepository;
+use roofle_core::storage::{AudioSource, SessionRepository};
 use tauri::{AppHandle, Manager};
 
 use crate::ai::{self, AiClient, AiConfig, AiConfigView, ChatMessage, NotesClient, ProviderKind};
@@ -129,4 +130,49 @@ pub fn get_session_analysis(app: AppHandle, id: i64) -> Result<Option<AnalysisVi
             Ok(AnalysisView { context: s.context, result })
         })
         .transpose()
+}
+
+/// Recap the last `window_secs` of a session (live or finished). `None` when
+/// nothing has been said yet.
+#[tauri::command]
+pub async fn recap_session(
+    app: AppHandle,
+    id: i64,
+    window_secs: u32,
+    api_key: String,
+) -> Result<Option<Recap>, String> {
+    let config = ai::load_for(&app)?;
+    // Same key the live notes agent uses (captured at recording start); the
+    // renderer's key only covers sessions viewed without a recording this run.
+    let live_key = app.state::<AppState>().api_key.lock().unwrap().clone();
+    let api_key = if live_key.trim().is_empty() { ai::resolve_api_key(&api_key) } else { live_key };
+    if !config.is_usable_with(&api_key) {
+        return Err(NOT_CONFIGURED.to_string());
+    }
+
+    let segments = app
+        .state::<AppState>()
+        .storage
+        .get_session(id)
+        .map_err(|e| e.to_string())?
+        .map(|d| d.segments)
+        .unwrap_or_default();
+    let utterances: Vec<Utterance> = segments
+        .into_iter()
+        .map(|s| Utterance {
+            speaker: match s.source {
+                AudioSource::Mic => "You",
+                AudioSource::System => "Others",
+            },
+            text: s.text,
+            end_ms: s.end_ms,
+        })
+        .collect();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = NotesClient::new(config, api_key);
+        recap_recent(&client, &utterances, window_secs)
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))?
 }

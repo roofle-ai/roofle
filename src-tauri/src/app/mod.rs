@@ -42,7 +42,8 @@ pub fn run() {
             ai::save_ai_config,
             ai::test_ai_connection,
             ai::analyse_session,
-            ai::get_session_analysis
+            ai::get_session_analysis,
+            ai::recap_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

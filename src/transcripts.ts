@@ -112,3 +112,15 @@ export interface AnalysisView {
 export function getSessionAnalysis(id: number): Promise<AnalysisView | null> {
   return invoke<AnalysisView | null>("get_session_analysis", { id });
 }
+
+/** A short catch-up on the most recent part of a conversation. */
+export interface Recap {
+  summary: string;
+  /** Seconds covered: the requested window, or less in a young conversation. */
+  covered_secs: number;
+}
+
+/** Recap the last `windowSecs` of a session; null when nothing has been said yet. */
+export function recapSession(id: number, windowSecs: number, apiKey: string): Promise<Recap | null> {
+  return invoke<Recap | null>("recap_session", { id, windowSecs, apiKey });
+}

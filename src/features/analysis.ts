@@ -8,13 +8,14 @@ import { syncQuestionsPanel } from "./questions";
 const PERSPECTIVES = ["Sales rep", "Interviewer", "Presenter", "Facilitator"];
 const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
 
-/** Assist is offered only once recording has stopped and a session is in view. */
+/** Assist is offered whenever a session is in view; the review needs it to be finished. */
 export function updateAnalyseVisibility(): void {
-  dom.assistControl.hidden = !(session.state === "idle" && session.viewedId !== null);
+  dom.assistControl.hidden = session.viewedId === null;
+  dom.assistReviewItem.disabled = session.state !== "idle";
   void refreshReviewLabel();
 }
 
-/** The review action flips to "View review" once the viewed session has a stored review. */
+/** The review action flips to "View conversation review" once the viewed session has a stored review. */
 async function refreshReviewLabel(): Promise<void> {
   const id = session.viewedId;
   if (id === null || dom.assistControl.hidden) return;
@@ -22,11 +23,11 @@ async function refreshReviewLabel(): Promise<void> {
   try {
     stored = (await getSessionAnalysis(id)) !== null;
   } catch {
-    // Lookup failure keeps the default "Review" label.
+    // Lookup failure keeps the default "Conversation review" label.
   }
   // Ignore if the user switched sessions while the lookup was in flight.
   if (session.viewedId !== id) return;
-  dom.assistReviewLabel.textContent = stored ? "View review" : "Review";
+  dom.assistReviewLabel.textContent = stored ? "View conversation review" : "Conversation review";
 }
 
 export function hideDashboard(): void {
@@ -83,7 +84,7 @@ async function runAnalysis(): Promise<void> {
   try {
     const result = await analyseSession(session.viewedId, perspective, context, loadStoredApiKey());
     renderAnalysis(result);
-    dom.assistReviewLabel.textContent = "View review";
+    dom.assistReviewLabel.textContent = "View conversation review";
   } catch (err) {
     dom.analysisBody.replaceChildren(create("p", "analysis-error", String(err)));
   }
@@ -153,7 +154,7 @@ function appendList(parent: HTMLElement, title: string, items: string[], itemCla
   parent.append(create("h4", "analysis-block-title", title), list);
 }
 
-function closeAssistMenu(): void {
+export function closeAssistMenu(): void {
   dom.assistMenu.hidden = true;
   dom.assistBtn.setAttribute("aria-expanded", "false");
 }

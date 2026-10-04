@@ -4,16 +4,6 @@
     <span id="notes-editing" class="notes-editing" role="status">
       <span class="notes-editing-dot" aria-hidden="true"></span>Editing
     </span>
-    <div id="notes-save" class="notes-save" hidden>
-      <button id="notes-discard-btn" type="button" class="save-btn discard-btn">
-        <i data-lucide="rotate-ccw" aria-hidden="true"></i>
-        <span>Discard changes</span>
-      </button>
-      <button id="notes-save-btn" type="button" class="save-btn">
-        <i data-lucide="save" aria-hidden="true"></i>
-        <span>Save changes</span>
-      </button>
-    </div>
     <!-- Assist actions: a trigger that opens a small popover of AI helpers. -->
     <div id="assist-control" class="assist-control" hidden>
       <button id="assist-btn" type="button" class="assist-btn" aria-haspopup="menu" aria-expanded="false">
@@ -27,57 +17,104 @@
         <button type="button" role="menuitem" data-assist="last-30s">
           <i data-lucide="rewind" aria-hidden="true"></i>
           <span class="assist-item-text">
-            <span class="assist-item-label">Last 30s</span>
-            <span class="assist-item-desc">What did they say in the last 30s?</span>
+            <span class="assist-item-label">Recap last 30 seconds</span>
+            <span class="assist-item-desc">A brief summary of what was just discussed.</span>
           </span>
         </button>
         <button type="button" role="menuitem" data-assist="numbers">
           <i data-lucide="hash" aria-hidden="true"></i>
           <span class="assist-item-text">
-            <span class="assist-item-label">What numbers did they mention?</span>
-            <span class="assist-item-desc">Figures, dates and names they've said so far.</span>
+            <span class="assist-item-label">Key figures and dates</span>
+            <span class="assist-item-desc">Numbers, dates and names mentioned so far.</span>
           </span>
         </button>
         <button type="button" role="menuitem" data-assist="review">
           <i data-lucide="clipboard-check" aria-hidden="true"></i>
           <span class="assist-item-text">
-            <span class="assist-item-label">Review</span>
-            <span class="assist-item-desc">Review your conversation to know the good and bad.</span>
+            <span class="assist-item-label">Conversation review</span>
+            <span class="assist-item-desc">Strengths and areas to improve in your conversation.</span>
           </span>
         </button>
         <div class="assist-sep" role="separator"></div>
         <button type="button" role="menuitem" data-export="transcript">
           <i data-lucide="download" aria-hidden="true"></i>
           <span class="assist-item-text">
-            <span class="assist-item-label">Export transcription</span>
-            <span class="assist-item-desc">Save the full transcript as a .txt file.</span>
+            <span class="assist-item-label">Export transcript</span>
+            <span class="assist-item-desc">Download the full transcript as a .txt file.</span>
           </span>
         </button>
         <button type="button" role="menuitem" data-export="notes">
           <i data-lucide="download" aria-hidden="true"></i>
           <span class="assist-item-text">
             <span class="assist-item-label">Export notes</span>
-            <span class="assist-item-desc">Save your meeting notes as a .txt file.</span>
+            <span class="assist-item-desc">Download your meeting notes as a .txt file.</span>
           </span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Editable notes page: live transcription auto-appends here; the user can
-       edit/overwrite freely. The textarea holds the final notes (seed +
-       user edits) and is what gets persisted per session. -->
   <div id="notes-page" class="notes-page">
-    <time id="notes-meta" class="notes-meta"></time>
-    <textarea
-      id="notes-input"
-      class="notes-input"
-      spellcheck="true"
-      aria-label="Conversation notes"
-      placeholder="Start recording or type your notes here…"
-    ></textarea>
-    <div id="notes-preview" class="notes-preview markdown-body" aria-label="Rendered notes" hidden></div>
+    <!-- Notes / Transcription switch. Centred over the page; only notes are editable. -->
+    <div class="notes-tabs" role="tablist" aria-label="Meeting content">
+      <button id="tab-notes" type="button" class="notes-tab active" role="tab" aria-selected="true" aria-controls="notes-pane" data-tab="notes">Notes</button>
+      <button id="tab-transcription" type="button" class="notes-tab" role="tab" aria-selected="false" aria-controls="transcription-pane" data-tab="transcription">Transcription</button>
+    </div>
+    <!-- Editable notes: the textarea holds the final notes (agent output +
+         user edits) and is what gets persisted per session. -->
+    <div id="notes-pane" class="notes-pane" role="tabpanel" aria-labelledby="tab-notes">
+      <time id="notes-meta" class="notes-meta"></time>
+      <textarea
+        id="notes-input"
+        class="notes-input"
+        spellcheck="true"
+        aria-label="Conversation notes"
+        placeholder="Start recording or type your notes here…"
+      ></textarea>
+      <div id="notes-preview" class="notes-preview markdown-body" aria-label="Rendered notes" hidden></div>
+    </div>
+    <!-- Read-only transcription, each utterance labelled with its source. -->
+    <div id="transcription-pane" class="transcription-pane" role="tabpanel" aria-labelledby="tab-transcription" hidden>
+      <ol id="transcription-list" class="transcription-list" aria-label="Transcription (read-only)"></ol>
+      <p id="transcription-empty" class="transcription-empty" hidden>No transcription yet.</p>
+    </div>
   </div>
+
+  <!-- Save/Discard: bottom-right of the panel, shown only with unsaved edits. -->
+  <div id="notes-save" class="notes-save" hidden>
+    <button id="notes-discard-btn" type="button" class="save-btn discard-btn">
+      <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+      <span>Discard changes</span>
+    </button>
+    <button id="notes-save-btn" type="button" class="save-btn">
+      <i data-lucide="save" aria-hidden="true"></i>
+      <span>Save changes</span>
+    </button>
+  </div>
+
+  <!-- Recap card: the answer to Assist → Recap last 30 seconds. -->
+  <aside id="recap-card" class="recap-card" role="status" aria-live="polite" hidden>
+    <header class="recap-head">
+      <span class="recap-icon" aria-hidden="true"><i data-lucide="rewind"></i></span>
+      <div class="recap-heading">
+        <h3 id="recap-title" class="recap-title"></h3>
+        <span id="recap-meta" class="recap-meta"></span>
+      </div>
+      <button id="recap-close" type="button" class="recap-close" aria-label="Dismiss recap">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="recap-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p id="recap-body" class="recap-body"></p>
+    <footer class="recap-actions">
+      <button id="recap-copy" type="button" class="recap-action">
+        <i data-lucide="copy" aria-hidden="true"></i><span>Copy</span>
+      </button>
+      <button id="recap-refresh" type="button" class="recap-action">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i><span>Refresh</span>
+      </button>
+    </footer>
+  </aside>
 
   <!-- Model download progress -->
   <div id="model-progress" class="model-progress" role="status" aria-live="polite" hidden>

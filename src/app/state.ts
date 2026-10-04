@@ -1,3 +1,4 @@
+export type NotesTab = "notes" | "transcription";
 export type SessionState = "idle" | "recording" | "paused";
 
 /** Mutable UI state shared across features. */
@@ -6,6 +7,8 @@ export const session = {
   viewedId: null as number | null,
   /** The session being recorded (null while idle); may differ from `viewedId`. */
   activeId: null as number | null,
+  /** Which view of the meeting the centre panel shows. */
+  notesTab: "notes" as NotesTab,
   elapsedSec: 0,
   /** First words of the live transcription, used as the panel title. */
   titleFromTranscript: undefined as string | undefined,

@@ -772,9 +772,126 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
   padding-top: 1.1rem;
   background: var(--bg);
   --notes-pad-x: max(var(--gutter), calc((100% - 780px) / 2));
+}
+
+/* Notes / Transcription switch: centred at the top of the page, out of the
+   flow so it takes no space. */
+.notes-tabs {
+  position: absolute;
+  left: 50%;
+  top: 0.5rem;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--brand) 6%, var(--bg));
+}
+
+/* While the notes editor has focus the switch gets out of the way. */
+.transcript:has(.notes-editing.on) .notes-tabs {
+  display: none;
+}
+
+.notes-tab {
+  padding: 0.2rem 0.65rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.notes-tab:hover {
+  color: var(--brand-strong);
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+}
+
+.notes-tab.active {
+  color: var(--brand-strong);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+
+.notes-pane,
+.transcription-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-pane[hidden],
+.transcription-pane[hidden] {
+  display: none;
+}
+
+/* Read-only transcription: one row per utterance, tagged with its source. */
+.transcription-pane {
+  overflow-y: auto;
+  padding: 1.6rem var(--notes-pad-x) 1.5rem;
+}
+
+.transcription-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.transcription-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  column-gap: 0.6rem;
+  align-items: baseline;
+}
+
+.source-label {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--brand-faint);
+  color: var(--brand-strong);
+}
+
+.source-label.source-system {
+  background: color-mix(in srgb, var(--insight) 14%, transparent);
+  color: var(--insight);
+}
+
+.transcription-time {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.transcription-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.04rem;
+  line-height: 1.7;
+  color: var(--ink);
+  user-select: text;
+}
+
+.transcription-empty {
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.9rem;
 }
 
 .notes-meta {
@@ -914,9 +1031,12 @@ body {
   border-radius: 4px;
 }
 
-/* Save control: sits in the transcript header next to Assist. */
+/* Save control: floats in the bottom-right corner of the transcript panel. */
 .notes-save {
-  flex: 0 0 auto;
+  position: absolute;
+  right: var(--gutter);
+  bottom: 1.25rem;
+  z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1698,7 +1818,12 @@ body {
   cursor: pointer;
 }
 
-.assist-menu button:hover {
+.assist-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.assist-menu button:hover:not(:disabled) {
   background: var(--brand-tint);
 }
 
@@ -2669,4 +2794,204 @@ select.settings-input {
 
 .questions-collapsed #questions-panel .followup-toggle {
   display: none;
+}
+
+/* Recap card: a compact floating answer under the header, top-right. */
+.recap-card {
+  position: absolute;
+  top: 4.25rem;
+  right: var(--gutter);
+  z-index: 4;
+  width: min(23rem, calc(100% - 2 * var(--gutter)));
+  padding: 0.8rem 0.9rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, var(--line));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--brand) 4%, var(--surface));
+  box-shadow: var(--shadow-3);
+  animation: recap-in 0.18s var(--ease);
+}
+
+.recap-card[hidden] {
+  display: none;
+}
+
+@keyframes recap-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.recap-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.recap-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand-strong);
+}
+
+.recap-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.recap-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.recap-title {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.recap-meta {
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+
+.recap-meta:empty {
+  display: none;
+}
+
+.recap-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.recap-close:hover {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+}
+
+.recap-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.recap-body {
+  margin: 0.65rem 0 0;
+  max-height: 14rem;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ink);
+  user-select: text;
+}
+
+.recap-body:empty {
+  display: none;
+}
+
+.recap-card[data-state="empty"] .recap-body {
+  color: var(--muted);
+}
+
+.recap-card[data-state="error"] .recap-body {
+  color: var(--record);
+}
+
+/* Loading placeholder: three shimmering lines instead of a spinner. */
+.recap-skeleton {
+  display: none;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.recap-card[data-state="loading"] .recap-skeleton {
+  display: flex;
+}
+
+.recap-skeleton span {
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ink) 7%, transparent),
+    color-mix(in srgb, var(--ink) 14%, transparent),
+    color-mix(in srgb, var(--ink) 7%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: recap-shimmer 1.2s linear infinite;
+}
+
+.recap-skeleton span:nth-child(2) { width: 90%; }
+.recap-skeleton span:nth-child(3) { width: 60%; }
+
+@keyframes recap-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.recap-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid color-mix(in srgb, var(--brand) 10%, var(--line));
+}
+
+.recap-card[data-state="loading"] .recap-actions {
+  display: none;
+}
+
+.recap-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.recap-action[hidden] {
+  display: none;
+}
+
+.recap-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  color: var(--brand-strong);
+}
+
+.recap-action svg {
+  width: 13px;
+  height: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-card,
+  .recap-skeleton span {
+    animation: none;
+  }
 }

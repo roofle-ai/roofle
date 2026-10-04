@@ -134,7 +134,8 @@ function discardChanges(): void {
 
 /** Show the Save control only when editing a finished session with unsaved edits. */
 export function updateNotesSaveVisibility(): void {
-  const editable = session.state === "idle" && session.viewedId !== null && dirty;
+  const editable =
+    session.state === "idle" && session.notesTab === "notes" && session.viewedId !== null && dirty;
   dom.notesSave.hidden = !editable;
 }
 

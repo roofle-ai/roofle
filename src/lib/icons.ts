@@ -3,6 +3,7 @@ import {
   CircleDot,
   ClipboardCheck,
   Clock,
+  Copy,
   CornerDownRight,
   Cpu,
   createIcons,
@@ -12,6 +13,7 @@ import {
   Moon,
   PanelLeft,
   PanelRight,
+  RefreshCw,
   Plus,
   Rewind,
   RotateCcw,
@@ -21,7 +23,8 @@ import {
   Sun,
   Trash,
   UserRound,
-  WandSparkles
+  WandSparkles,
+  X
 } from "lucide";
 
 const ICONS = {
@@ -47,6 +50,9 @@ const ICONS = {
   Rewind,
   RotateCcw,
   Hash,
+  Copy,
+  RefreshCw,
+  X,
 };
 
 export function refreshIcons(): void {
