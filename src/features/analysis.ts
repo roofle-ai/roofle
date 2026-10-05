@@ -96,28 +96,36 @@ function renderAnalysis(r: AnalysisResult): void {
 
   const dims = Object.entries(r.dimensions);
   if (!r.call_summary && dims.length === 0 && r.caveats.length === 0) {
-    body.append(create("p", "analysis-error", "Not enough dialogue to review"));
+    body.append(create("p", "analysis-error", "There isn\u2019t enough dialogue to review yet."));
     return;
   }
 
-  const overall = create("div", "analysis-overall");
-  overall.append(create("b", undefined, formatScore(r.overall_score)), create("span", undefined, "Overall score"));
-  if (r.lowest_scoring_dimension) {
-    overall.append(create("small", undefined, `Work on: ${humanizeKey(r.lowest_scoring_dimension)}`));
-  }
-  body.append(overall);
+  const lowestKey = r.lowest_scoring_dimension;
+  const lowest = lowestKey ? r.dimensions[lowestKey] : undefined;
 
-  if (r.call_summary) body.append(create("p", "analysis-summary", r.call_summary));
+  if (r.call_summary) {
+    body.append(create("h4", "analysis-block-title", "Summary"), create("p", "analysis-summary", r.call_summary));
+  }
+
+  if (lowestKey && lowest) {
+    const focus = create("div", "analysis-focus");
+    focus.append(create("span", "analysis-focus-label", "Worth improving"), create("strong", undefined, humanizeKey(lowestKey)));
+    if (lowest.reasoning) focus.append(create("p", undefined, lowest.reasoning));
+    body.append(focus);
+  }
+
+  appendList(body, "Things to keep in mind", r.caveats, "analysis-warn");
 
   if (dims.length > 0) {
+    const details = create("details", "analysis-details");
+    details.open = true;
+    const summary = create("summary", undefined, "Score breakdown");
+    summary.append(create("span", "analysis-overall-chip", `Overall ${formatScore(r.overall_score)}`));
     const grid = create("div", "analysis-scores");
-    for (const [key, dim] of dims) {
-      grid.append(renderDimension(key, dim, r.lowest_scoring_dimension === key));
-    }
-    body.append(grid);
+    for (const [key, dim] of dims) grid.append(renderDimension(key, dim, lowestKey === key));
+    details.append(summary, grid);
+    body.append(details);
   }
-
-  appendList(body, "Caveats", r.caveats, "analysis-warn");
 }
 
 function renderDimension(key: string, dim: AnalysisResult["dimensions"][string], lowest: boolean): HTMLElement {

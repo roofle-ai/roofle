@@ -30,7 +30,7 @@ function renderItem(s: SessionSummary): HTMLElement {
   item.classList.toggle("is-active", s.id === session.viewedId);
   item.classList.toggle("is-recording", s.status === "recording");
 
-  const title = create("span", "history-title", s.title || s.preview || "(untitled)");
+  const title = create("span", "history-title", s.title || s.preview || "Untitled conversation");
   const meta = create(
     "span",
     "history-meta",
@@ -47,7 +47,7 @@ function renderItem(s: SessionSummary): HTMLElement {
 
   item.tabIndex = 0;
   item.setAttribute("role", "button");
-  item.setAttribute("aria-label", `Open session ${title.textContent}`);
+  item.setAttribute("aria-label", `Open conversation ${title.textContent}`);
   item.addEventListener("click", (e) => {
     if ((e.target as HTMLElement).closest(".history-delete")) return;
     void openSession(s.id);
@@ -66,8 +66,8 @@ function renderItem(s: SessionSummary): HTMLElement {
 function renderDeleteButton(id: number): HTMLButtonElement {
   const del = create("button", "history-delete");
   del.type = "button";
-  del.title = "Delete session";
-  del.setAttribute("aria-label", "Delete session");
+  del.title = "Delete conversation";
+  del.setAttribute("aria-label", "Delete conversation");
   del.innerHTML = `<i data-lucide="trash" aria-hidden="true"></i>`;
   del.addEventListener("click", (e) => {
     e.stopPropagation();
