@@ -38,12 +38,8 @@ function renderItem(s: SessionSummary): HTMLElement {
   );
   item.append(title, meta);
 
-  // Compact avatar shown only when the panel is collapsed to a rail.
   const label = title.textContent ?? "";
-  const avatar = create("span", "history-avatar", (label.match(/[\p{L}\p{N}]/u)?.[0] ?? "#").toUpperCase());
-  avatar.setAttribute("aria-hidden", "true");
-  item.title = label;
-  item.prepend(avatar);
+  item.title = `${label}\n${meta.textContent}`;
 
   item.tabIndex = 0;
   item.setAttribute("role", "button");

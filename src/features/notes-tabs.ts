@@ -26,10 +26,22 @@ function renderSegment(segment: AudioSegment): HTMLLIElement {
   return row;
 }
 
+/** Within this many px of the bottom counts as "following" the live transcript. */
+const FOLLOW_THRESHOLD_PX = 48;
+
+/** Follow new lines until the user scrolls up; scrolling back down resumes. */
+let following = true;
+
+function scrollToLatest(): void {
+  const pane = dom.transcriptionPane;
+  pane.scrollTop = pane.scrollHeight;
+}
+
 /** Replace the read-only list with the given segments. */
 function renderTranscription(segments: AudioSegment[]): void {
   dom.transcriptionList.replaceChildren(...segments.map(renderSegment));
   dom.transcriptionEmpty.hidden = segments.length > 0;
+  if (following) scrollToLatest();
 }
 
 /** Reload the transcription of the viewed session (no-op unless it's showing). */
@@ -65,6 +77,11 @@ export function resetNotesTabs(): void {
 }
 
 export function initNotesTabs(): void {
+  dom.transcriptionPane.addEventListener("scroll", () => {
+    const pane = dom.transcriptionPane;
+    if (pane.hidden) return;
+    following = pane.scrollHeight - pane.scrollTop - pane.clientHeight <= FOLLOW_THRESHOLD_PX;
+  });
   dom.notesTabs.forEach((btn) =>
     btn.addEventListener("click", () => setNotesTab(btn.dataset.tab as NotesTab)),
   );

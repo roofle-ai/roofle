@@ -838,7 +838,10 @@ body {
 /* Read-only transcription: one row per utterance, tagged with its source. */
 .transcription-pane {
   overflow-y: auto;
-  padding: 1.6rem var(--notes-pad-x) 1.5rem;
+  /* Inset like the notes editor so scrolled rows clip short of the panel edges. */
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem var(--notes-pad-x) 4.5rem;
+  scroll-padding-bottom: 4.5rem;
 }
 
 .transcription-list {
@@ -876,7 +879,7 @@ body {
 .transcription-time {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
-  color: var(--faint);
+  color: var(--muted, var(--faint));
 }
 
 .transcription-text {
@@ -911,13 +914,16 @@ body {
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
-  margin: 0;
   resize: none;
   border: none;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  padding: 0.5rem var(--notes-pad-x) 1.5rem;
+  /* Inset the scroller top and bottom so scrolled text clips short of the panel
+     edges; the extra bottom padding is the blank space the Save button sits in. */
+  margin: 0.75rem 0 1rem;
+  padding: 0.5rem var(--notes-pad-x) 4.5rem;
+  scroll-padding-bottom: 4.5rem;
   font-family: var(--font-serif);
   font-size: 1.04rem;
   line-height: 1.75;
@@ -1021,14 +1027,32 @@ body {
 }
 
 .notes-input::-webkit-scrollbar,
-.notes-preview::-webkit-scrollbar {
-  width: 8px;
+.notes-preview::-webkit-scrollbar,
+.transcription-pane::-webkit-scrollbar {
+  width: 12px;
 }
 
+.notes-input::-webkit-scrollbar-track,
+.notes-preview::-webkit-scrollbar-track,
+.transcription-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Thumb is inset from the edge by a transparent border so it never touches it. */
 .notes-input::-webkit-scrollbar-thumb,
-.notes-preview::-webkit-scrollbar-thumb {
+.notes-preview::-webkit-scrollbar-thumb,
+.transcription-pane::-webkit-scrollbar-thumb {
   background: var(--line);
-  border-radius: 4px;
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 6px;
+}
+
+.notes-input::-webkit-scrollbar-thumb:hover,
+.notes-preview::-webkit-scrollbar-thumb:hover,
+.transcription-pane::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
+  background-clip: padding-box;
 }
 
 /* Save control: floats in the bottom-right corner of the transcript panel. */
@@ -1063,12 +1087,12 @@ body {
 
 .save-btn.discard-btn {
   border-color: var(--line);
-  background: transparent;
+  background: var(--surface);
   color: var(--muted, var(--faint));
 }
 
 .save-btn.discard-btn:hover {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface));
   color: var(--ink);
 }
 
@@ -1283,13 +1307,9 @@ body {
 /* Open cards get a brand accent bar + soft shadow; resolved cards shift to green. */
 
 /* Collapsed panels (toggled from the header). The right panel leaves the
-   layout; the left one shrinks to a Slack-style rail of conversation avatars. */
+   layout; the left one shrinks to a slim rail with just the new-chat button. */
 .workspace.questions-collapsed .resizer[data-resizer="questions"],
 .workspace.history-collapsed .resizer[data-resizer="history"] {
-  display: none;
-}
-
-.history-avatar {
   display: none;
 }
 
@@ -1322,49 +1342,9 @@ body {
   padding: 0;
 }
 
+/* Rail shows only the + button; history is visible when expanded. */
 .history-collapsed .history-list {
-  width: 100%;
-  align-items: center;
-  overflow-x: hidden;
-}
-
-.history-collapsed .history-item {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-
-.history-collapsed .history-item.is-active {
-  box-shadow: none;
-  background: var(--brand-tint);
-  outline: 2px solid var(--brand);
-  outline-offset: -2px;
-}
-
-.history-collapsed .history-avatar {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  border-radius: 10px;
-  background: var(--surface-2);
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--brand-strong);
-}
-
-.history-collapsed .history-item.is-recording::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--record);
+  display: none;
 }
 
 .icon-btn[aria-pressed="false"] {
@@ -2291,10 +2271,6 @@ body {
   background: color-mix(in srgb, var(--brand) 20%, transparent);
 }
 
-.history-collapsed .history-avatar {
-  background: color-mix(in srgb, var(--brand) 16%, var(--bg));
-}
-
 /* Centre: a calm, near-neutral canvas so the note "paper" lifts off it. */
 .panel.transcript {
   background: color-mix(in srgb, var(--brand) 3%, var(--bg));
@@ -3025,4 +3001,21 @@ select.settings-input {
   .recap-skeleton span {
     animation: none;
   }
+}
+
+/* Theme + settings live at the bottom of the left panel; stacked in the rail. */
+.history-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.history-collapsed .history-footer {
+  flex-direction: column;
+  width: 100%;
+  justify-content: center;
 }
