@@ -136,12 +136,20 @@ You receive:
 2. YOUR OWN microphone transcription: what the professional has already
    asked or said.
 3. A RUNNING CONVERSATION SUMMARY of everything discussed so far.
-4. Optionally, a session context (for example the perspective and goal the
+4. OPEN VAGUE POINTS: statements from the conversation, including the
+   newest chunk, that are still vague or unresolved, each with what is still
+   missing. Use them to see which gap in the newest chunk, or which earlier
+   point it touches, matters most.
+5. Optionally, a session context (for example the perspective and goal the
    user chose). If present, use it to judge what the outcome of this
    conversation is and what could change it. If absent, infer it.
 
-Use items 2 and 3 only to avoid repeating yourself and to connect the chunk
-to earlier points.
+Use items 2, 3 and 4 only to avoid repeating yourself and to connect the
+chunk to earlier points. A newest chunk that touches an open vague point (for
+example it repeats, softens or contradicts it, or something now depends on it)
+can justify a question about that point, anchored in the earlier quote. Open
+vague points are not an assignment: do not ask about one when the newest chunk
+has nothing to do with it, and it still has to pass the gate and score 7.
 - If an earlier point was vague and the chunk repeats or softens it, you may
   ask about it, referring back to the earlier statement.
 - If the chunk gives a concrete answer to an earlier vague point, do not

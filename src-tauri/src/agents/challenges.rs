@@ -1,4 +1,4 @@
-use live_agent::challenge::{agent_challenges, ChallengeContext};
+use live_agent::challenge::{agent_challenges, format_ledger, ChallengeContext};
 use live_agent::notes::{log_step, logging_enabled};
 use roofle_core::storage::{
     AudioSource, ParagraphStore, QuestionStatus, QuestionStore, TranscriptStore,
@@ -52,7 +52,11 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
 
         let summary = earlier_summary(storage, session_id, seq);
         let mic = mic_transcript(storage, session_id);
-        let context = ChallengeContext { summary: &summary, mic: &mic };
+        let state = app.state::<AppState>();
+        let ledger = format_ledger(
+            state.vague_points.lock().unwrap().get(&session_id).map_or(&[][..], Vec::as_slice),
+        );
+        let context = ChallengeContext { summary: &summary, mic: &mic, ledger: &ledger };
 
         let res = match agent_challenges(&client, &new_text, &open, context, log) {
             Ok(res) => res,
@@ -68,6 +72,10 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
                 res.stale.len()
             ),
         );
+
+        if let Some(points) = &res.ledger {
+            state.vague_points.lock().unwrap().insert(session_id, points.clone());
+        }
 
         for text in &res.added {
             let _ = storage.create_question(session_id, text, seq);

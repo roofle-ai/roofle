@@ -11,6 +11,9 @@ You receive:
 - A RUNNING CONVERSATION SUMMARY: a compressed record of everything discussed
   so far in the whole conversation, including earlier chunks you cannot see
   directly
+- OPEN VAGUE POINTS: statements, including from the newest chunk, still
+  unresolved. They show what was left vague. They are never an answer and
+  never evidence.
 - A list of open questions. Each has an id and the question text, and may
   also carry:
   - `trigger_quote`: the vague words that caused the question
@@ -156,15 +159,15 @@ was asked but not all, so the question stays open) carries:
 
 Example:
 ```json
-{{
+{
   "answered": [
-    {{"id": "Q4", "evidence": "nine days, we'd like it under two", "reason": "9 days today, target under 2"}}
+    {"id": "Q4", "evidence": "nine days, we'd like it under two", "reason": "9 days today, target under 2"}
   ],
   "stale": [
-    {{"id": "Q2", "reason": "requirement dropped from scope"}}
+    {"id": "Q2", "reason": "requirement dropped from scope"}
   ],
   "partial": [
-    {{"id": "Q1", "reason": "role given (IT), no named person or start date"}}
+    {"id": "Q1", "reason": "role given (IT), no named person or start date"}
   ]
-}}
+}
 ```

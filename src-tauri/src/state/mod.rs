@@ -31,6 +31,9 @@ pub struct AppState {
     /// Per live session: the notes classifier's verdict so far (meeting,
     /// conversation or presentation). In memory only; a restart re-derives it.
     pub note_kinds: Mutex<HashMap<i64, KindState>>,
+    /// Per live session: the follow-up agents' open vague points (statements
+    /// still unresolved), carried from one chunk to the next. In memory only.
+    pub vague_points: Mutex<HashMap<i64, Vec<String>>>,
     /// Whether the follow-up questions agent may call the LLM. Toggled from the UI.
     pub followups_enabled: AtomicBool,
 }
@@ -53,6 +56,7 @@ impl AppState {
             storage,
             api_key: Mutex::new(String::new()),
             note_kinds: Mutex::new(HashMap::new()),
+            vague_points: Mutex::new(HashMap::new()),
             followups_enabled: AtomicBool::new(true),
         }
     }

@@ -10,7 +10,7 @@ pub mod notes;
 pub mod recap;
 pub mod watcher;
 
-pub use challenge::{agent_challenges, ChallengeContext, ChallengeResult};
+pub use challenge::{agent_challenges, format_ledger, ChallengeContext, ChallengeResult};
 pub use notes::{
     agent_notes, log_step, logging_enabled, CompletionClient, ConversationKind, KindState,
     NotesOutcome,
