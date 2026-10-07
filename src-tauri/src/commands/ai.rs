@@ -50,7 +50,6 @@ pub async fn test_ai_connection(app: AppHandle, api_key: String) -> Result<Strin
 pub async fn analyse_session(
     app: AppHandle,
     id: i64,
-    perspective: String,
     context: String,
     api_key: String,
 ) -> Result<AnalysisResult, String> {
@@ -75,7 +74,7 @@ pub async fn analyse_session(
         log,
         "offline/analyse",
         &format!(
-            "session={id} model={} perspective={perspective} context={context} transcript={} chars",
+            "session={id} model={} context={context} transcript={} chars",
             config.model,
             transcript.chars().count(),
         ),
@@ -84,7 +83,7 @@ pub async fn analyse_session(
     let stored_context = context.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let client = NotesClient::new(config, api_key);
-        analyse(&client, &transcript, &perspective, &context)
+        analyse(&client, &transcript, &context)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))??;

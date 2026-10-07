@@ -32,3 +32,15 @@ design.md
 *.log
 
 design-system/*
+# Signing material: never commit
+*.p12
+*.cer
+*.p8
+*.mobileprovision
+.env
+.env.*
+
+call_*
+call.txt
+read_aloud.sh
+clips/*

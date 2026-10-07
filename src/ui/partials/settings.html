@@ -11,41 +11,13 @@
 
     <div class="settings-body">
       <nav class="settings-nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
-        <button type="button" role="tab" class="settings-nav-item active" data-pane="person" aria-selected="true" aria-controls="settings-pane-person">
-          <i data-lucide="user-round" aria-hidden="true"></i><span>Person Info</span>
-        </button>
-        <button type="button" role="tab" class="settings-nav-item" data-pane="llm" aria-selected="false" aria-controls="settings-pane-llm">
+        <button type="button" role="tab" class="settings-nav-item active" data-pane="llm" aria-selected="true" aria-controls="settings-pane-llm">
           <i data-lucide="cpu" aria-hidden="true"></i><span>LLM Configuration</span>
         </button>
       </nav>
 
       <div class="settings-content">
-        <div id="settings-pane-person" class="settings-pane active" role="tabpanel" data-pane="person">
-          <header class="pane-head">
-            <h3 class="pane-title">Person Info</h3>
-            <p class="pane-desc">Tell Roofle who you are so it can tailor questions and reviews to you.</p>
-          </header>
-
-          <div class="settings-field">
-            <label for="person-name" class="settings-field-label">Name</label>
-            <input id="person-name" type="text" class="settings-input" placeholder="Your name" autocomplete="name" />
-          </div>
-
-          <div class="settings-field">
-            <label for="person-persona" class="settings-field-label">Persona</label>
-            <select id="person-persona" class="settings-input">
-              <option value="">Select a persona…</option>
-              <option>Sales rep</option>
-              <option>Interviewer</option>
-              <option>Presenter</option>
-              <option>Facilitator</option>
-              <option>Other</option>
-            </select>
-            <p class="settings-field-hint">The role you usually play in conversations.</p>
-          </div>
-        </div>
-
-        <div id="settings-pane-llm" class="settings-pane" role="tabpanel" data-pane="llm">
+        <div id="settings-pane-llm" class="settings-pane active" role="tabpanel" data-pane="llm">
           <header class="pane-head">
             <h3 class="pane-title">LLM Configuration</h3>
             <p class="pane-desc">Connect any OpenAI-compatible model and tune how often questions are generated.</p>

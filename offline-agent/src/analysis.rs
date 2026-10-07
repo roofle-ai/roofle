@@ -1,7 +1,7 @@
 //! Offline analysis logic — pure, HTTP-free, driven by a [`CompletionClient`].
 //!
 //! ```text
-//! transcript + perspective + context
+//! transcript + context
 //!   -> LLM (prompts/sales-seller.txt | sales-buyer.txt)
 //!   -> AnalysisResult { call_summary, caveats, dimensions, overall_score, ... }
 //! ```
@@ -10,11 +10,11 @@ use serde::{Deserialize, Serialize};
 
 use live_agent::notes::CompletionClient;
 
-/// Evaluates a conversation from the perspective of the person selling.
+/// Evaluates a conversation from the seller's side.
 /// Loaded from `prompts/sales-seller.txt` at compile time.
 pub const SALES_SELLER_SYSTEM: &str = include_str!("../prompts/sales-seller.txt");
 
-/// Evaluates a conversation from the perspective of the person buying.
+/// Evaluates a conversation from the buyer's side.
 /// Loaded from `prompts/sales-buyer.txt` at compile time.
 pub const SALES_BUYER_SYSTEM: &str = include_str!("../prompts/sales-buyer.txt");
 
@@ -56,15 +56,14 @@ fn system_for(context: &str) -> &'static str {
     }
 }
 
-/// Evaluate `transcript` from the given `perspective` with `context` background.
+/// Evaluate `transcript` with `context` background.
 pub fn analyse(
     client: &dyn CompletionClient,
     transcript: &str,
-    perspective: &str,
     context: &str,
 ) -> Result<AnalysisResult, String> {
     let system = system_for(context);
-    let user = build_user(system, transcript, perspective, context);
+    let user = build_user(system, transcript, context);
     let reply = client.complete(system, &user)?;
     parse_json(&reply)
 }
@@ -72,10 +71,8 @@ pub fn analyse(
 /// Build the user message. The seller prompt is grounded in the whole
 /// conversation, so the transcript is repeated into the context section too
 /// (the prompt file itself is left untouched).
-fn build_user(system: &str, transcript: &str, perspective: &str, context: &str) -> String {
-    let base = format!(
-        "Perspective: {perspective}\n\nContext: {context}\n\nTranscript:\n{transcript}"
-    );
+fn build_user(system: &str, transcript: &str, context: &str) -> String {
+    let base = format!("Context: {context}\n\nTranscript:\n{transcript}");
     if system == SALES_SELLER_SYSTEM {
         format!("{base}\n\nContext (full conversation):\n{transcript}")
     } else {
@@ -113,7 +110,7 @@ mod tests {
 
     #[test]
     fn parses_analysis_json() {
-        let result = analyse(&Stub, "hi", "sales", "Selling a product").unwrap();
+        let result = analyse(&Stub, "hi", "Selling a product").unwrap();
         assert_eq!(result.call_summary, "Rough call, little structure.");
         assert_eq!(result.caveats.len(), 1);
         assert_eq!(result.dimensions.len(), 2);
@@ -135,7 +132,7 @@ mod tests {
 
     #[test]
     fn tolerates_code_fence_and_missing_fields() {
-        let result = analyse(&Fenced, "hi", "sales", "Selling a product").unwrap();
+        let result = analyse(&Fenced, "hi", "Selling a product").unwrap();
         assert_eq!(result.call_summary, "ok");
         assert_eq!(result.overall_score, 80.0);
         // Missing fields fall back to defaults instead of failing.
@@ -148,7 +145,7 @@ mod tests {
     /// it back with `from_str`; this must be a lossless round trip.
     #[test]
     fn analysis_result_round_trips_through_json() {
-        let result = analyse(&Stub, "hi", "sales", "Selling a product").unwrap();
+        let result = analyse(&Stub, "hi", "Selling a product").unwrap();
 
         let json = serde_json::to_string(&result).unwrap();
         let back: AnalysisResult = serde_json::from_str(&json).unwrap();

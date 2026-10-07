@@ -5,7 +5,6 @@ import { formatScore, humanizeKey } from "../lib/format";
 import { analyseSession, getSessionAnalysis, type AnalysisResult } from "../transcripts";
 import { syncQuestionsPanel } from "./questions";
 
-const PERSPECTIVES = ["Sales rep", "Interviewer", "Presenter", "Facilitator"];
 const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
 
 /** Assist is offered whenever a session is in view; the review needs it to be finished. */
@@ -40,7 +39,7 @@ function showDashboard(): void {
   syncQuestionsPanel();
 }
 
-/** Show a stored analysis if there is one; otherwise ask for perspective/context. */
+/** Show a stored analysis if there is one; otherwise ask for the conversation type. */
 async function onAnalyseClick(): Promise<void> {
   if (session.viewedId === null) return;
   try {
@@ -53,7 +52,6 @@ async function onAnalyseClick(): Promise<void> {
   } catch {
     // A failed lookup falls through to the modal.
   }
-  fillSelect(dom.perspectiveSelect, PERSPECTIVES);
   fillSelect(dom.contextSelect, CONTEXTS);
   dom.analyseModal.hidden = false;
 }
@@ -74,7 +72,6 @@ function fillSelect(select: HTMLSelectElement, options: string[]): void {
 
 async function runAnalysis(): Promise<void> {
   if (session.viewedId === null) return;
-  const perspective = dom.perspectiveSelect.value;
   const context = dom.contextSelect.value;
   closeModal();
 
@@ -82,7 +79,7 @@ async function runAnalysis(): Promise<void> {
   showDashboard();
 
   try {
-    const result = await analyseSession(session.viewedId, perspective, context, loadStoredApiKey());
+    const result = await analyseSession(session.viewedId, context, loadStoredApiKey());
     renderAnalysis(result);
     dom.assistReviewLabel.textContent = "View conversation review";
   } catch (err) {

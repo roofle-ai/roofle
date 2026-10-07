@@ -23,7 +23,6 @@ import {
   Sparkles,
   Sun,
   Trash,
-  UserRound,
   WandSparkles,
   X
 } from "lucide";
@@ -44,7 +43,6 @@ const ICONS = {
   Clock,
   CornerDownRight,
   Trash,
-  UserRound,
   Cpu,
   Download,
   ClipboardCheck,

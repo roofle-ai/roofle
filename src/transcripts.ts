@@ -90,14 +90,13 @@ export interface AnalysisResult {
   overall_score: number;
 }
 
-/** Evaluate a finished session from a perspective + context; returns the dashboard. */
+/** Evaluate a finished session for a conversation type; returns the dashboard. */
 export function analyseSession(
   id: number,
-  perspective: string,
   context: string,
   apiKey: string,
 ): Promise<AnalysisResult> {
-  return invoke<AnalysisResult>("analyse_session", { id, perspective, context, apiKey });
+  return invoke<AnalysisResult>("analyse_session", { id, context, apiKey });
 }
 
 /** A persisted offline analysis for a session (context it was run with + result). */

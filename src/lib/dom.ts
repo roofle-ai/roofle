@@ -65,7 +65,6 @@ export const dom = {
   analyseClose: query<HTMLButtonElement>("#analyse-close"),
   analyseCancel: query<HTMLButtonElement>("#analyse-cancel"),
   analyseSubmit: query<HTMLButtonElement>("#analyse-submit"),
-  perspectiveSelect: query<HTMLSelectElement>("#analyse-perspective"),
   contextSelect: query<HTMLSelectElement>("#analyse-context"),
   analysisDashboard: query<HTMLDivElement>("#analysis-dashboard"),
   analysisBody: query<HTMLDivElement>("#analysis-body"),

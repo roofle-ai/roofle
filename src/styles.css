@@ -1899,7 +1899,7 @@ body {
   font-weight: 400;
 }
 
-/* Analyse modal (perspective + context) */
+/* Analyse modal (conversation type) */
 .analyse-overlay {
   position: fixed;
   inset: 0;

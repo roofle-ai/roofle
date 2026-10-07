@@ -1,16 +1,9 @@
-// Settings — Live Session Settings (glossary) + AI client configuration.
+// Settings — live-session trigger + AI client configuration.
 // Owns its modal HTML partial, persists the char-limit and the AI API key to
 // localStorage, and routes the non-secret AI config to the Rust-side store.
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import { refreshIcons } from "./lib/icons";
 import settingsHtml from "./ui/partials/settings.html?raw";
-
-export interface PersonInfo {
-  name: string;
-  persona: string;
-}
-
-const PERSON_KEY = "roofle-person-info";
 
 export interface LiveSessionSettings {
   charLimit: number;
@@ -23,8 +16,6 @@ const MAX_CHAR_LIMIT = 5000;
 
 let modal: HTMLElement;
 let input: HTMLInputElement;
-let personName: HTMLInputElement;
-let personPersona: HTMLSelectElement;
 let aiBaseUrl: HTMLInputElement;
 let aiModel: HTMLInputElement;
 let aiApiKey: HTMLInputElement;
@@ -45,16 +36,6 @@ export function loadLiveSessionSettings(): LiveSessionSettings {
     return { charLimit: clamp(Number(parsed.charLimit) || DEFAULT_CHAR_LIMIT) };
   } catch {
     return { charLimit: DEFAULT_CHAR_LIMIT };
-  }
-}
-
-/// Read the saved person info (name + persona); empty strings when unset.
-export function loadPersonInfo(): PersonInfo {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(PERSON_KEY) ?? "{}") as Partial<PersonInfo>;
-    return { name: parsed.name?.trim() ?? "", persona: parsed.persona ?? "" };
-  } catch {
-    return { name: "", persona: "" };
   }
 }
 
@@ -110,10 +91,7 @@ async function runAiTest(): Promise<void> {
 /// Open the settings modal, seeding both char-limit and AI config.
 export function openSettings(): void {
   input.value = String(loadLiveSessionSettings().charLimit);
-  const person = loadPersonInfo();
-  personName.value = person.name;
-  personPersona.value = person.persona;
-  showPane("person");
+  showPane("llm");
   loadAiConfigFields();
   modal.classList.add("open");
 }
@@ -125,10 +103,6 @@ function closeSettings(): void {
 function saveSettings(): void {
   const charLimit = clamp(parseInt(input.value, 10) || DEFAULT_CHAR_LIMIT);
   localStorage.setItem(KEY, JSON.stringify({ charLimit } satisfies LiveSessionSettings));
-  localStorage.setItem(
-    PERSON_KEY,
-    JSON.stringify({ name: personName.value.trim(), persona: personPersona.value } satisfies PersonInfo),
-  );
   saveAiConfigFields()
     .catch((err) => {
       aiKeyState.textContent = String(err);
@@ -141,8 +115,6 @@ function init(): void {
 
   modal = document.getElementById("settings-modal")!;
   input = document.getElementById("char-limit") as HTMLInputElement;
-  personName = document.getElementById("person-name") as HTMLInputElement;
-  personPersona = document.getElementById("person-persona") as HTMLSelectElement;
   modal.querySelectorAll<HTMLElement>(".settings-nav-item").forEach((el) =>
     el.addEventListener("click", () => showPane(el.dataset.pane!)),
   );

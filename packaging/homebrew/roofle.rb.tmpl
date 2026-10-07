@@ -1,0 +1,23 @@
+cask "roofle" do
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  url "@URL_PREFIX@/v#{version}/Roofle_#{version}_aarch64.dmg"
+  name "Roofle"
+  desc "Real-time meeting transcription, notes and suggested questions"
+  homepage "@HOMEPAGE@"
+
+  # The DMG is built for Apple Silicon; system-audio capture needs ScreenCaptureKit.
+  depends_on arch: :arm64
+  depends_on macos: ">= :ventura"
+
+  app "Roofle.app"
+
+  zap trash: [
+    "~/Library/Application Support/com.roofle.app",
+    "~/Library/Caches/com.roofle.app",
+    "~/Library/Preferences/com.roofle.app.plist",
+    "~/Library/Saved Application State/com.roofle.app.savedState",
+    "~/Library/WebKit/com.roofle.app",
+  ]
+end
