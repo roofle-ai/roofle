@@ -1080,12 +1080,16 @@ body {
 
 .notes-input::-webkit-scrollbar,
 .notes-preview::-webkit-scrollbar,
+.history-list::-webkit-scrollbar,
+.questions-list::-webkit-scrollbar,
 .transcription-pane::-webkit-scrollbar {
   width: 12px;
 }
 
 .notes-input::-webkit-scrollbar-track,
 .notes-preview::-webkit-scrollbar-track,
+.history-list::-webkit-scrollbar-track,
+.questions-list::-webkit-scrollbar-track,
 .transcription-pane::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -1093,6 +1097,8 @@ body {
 /* Thumb is inset from the edge by a transparent border so it never touches it. */
 .notes-input::-webkit-scrollbar-thumb,
 .notes-preview::-webkit-scrollbar-thumb,
+.history-list::-webkit-scrollbar-thumb,
+.questions-list::-webkit-scrollbar-thumb,
 .transcription-pane::-webkit-scrollbar-thumb {
   background: var(--line);
   background-clip: padding-box;
@@ -1102,6 +1108,8 @@ body {
 
 .notes-input::-webkit-scrollbar-thumb:hover,
 .notes-preview::-webkit-scrollbar-thumb:hover,
+.history-list::-webkit-scrollbar-thumb:hover,
+.questions-list::-webkit-scrollbar-thumb:hover,
 .transcription-pane::-webkit-scrollbar-thumb:hover {
   background: var(--faint);
   background-clip: padding-box;
