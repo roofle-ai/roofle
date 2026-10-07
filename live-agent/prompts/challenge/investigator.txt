@@ -176,12 +176,23 @@ Candidates:
  C. "What do you mean by basic reports?"
     impact 2, cost 1, specificity 1 = 4 (below 3 impact, fails)
 Selected: A (highest, above 7).
--> questions: ["Is end of next quarter fixed, or is there an event that sets the date?"]
+-> questions: [{"question": "Is end of next quarter fixed, or is there an event that sets the date?", "source_id": "<the newest chunk's tag>"}]
 
 Nothing reaches the threshold:
 Chunk: "We'll probably do the kickoff sometime next week, I think Tuesday or Wednesday, we'll see."
 Candidate: "Which day is the kickoff?" impact 1, cost 1, specificity 2 = 4.
 -> questions: []
+
+## SOURCE TAGS
+
+Every transcript entry you see starts with a tag like `[T12]`. The NEWEST
+chunk carries one, and so do the entries in the running summary's earlier
+transcript. For each question, name the entry the user can point to as the
+reason for asking it, in "source_id":
+- Normally this is the NEWEST chunk's tag.
+- Use an earlier entry's tag only when the question is anchored in words said
+  in that entry (for example a contradiction or a vague point the newest
+  chunk touches). Never invent a tag; copy one exactly as shown.
 
 ## OUTPUT FORMAT
 
@@ -190,14 +201,15 @@ Return ONLY a JSON object, with exactly these two fields and nothing else
 
 {
   "questions": [
-    "Question one?"
+    { "question": "Question one?", "source_id": "T12" }
   ],
   "reasoning": "One or two sentences."
 }
 
-- "questions": an array with 0 or 1 plain string. Use an empty array when
-  nothing passes the gate or reaches a score of 7. An empty array is the
-  expected result for most chunks.
+- "questions": an array with 0 or 1 object, each with the plain question
+  text and the "source_id" tag of the entry it is anchored in. Use an empty
+  array when nothing passes the gate or reaches a score of 7. An empty array
+  is the expected result for most chunks.
 - "reasoning": one or two sentences, plain text. When "questions" is
   non-empty, state what the chunk is about, which gap you picked, the score
   it earned out of 10, and the outcome it protects. When "questions" is

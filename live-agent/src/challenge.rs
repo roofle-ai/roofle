@@ -45,11 +45,20 @@ const MAX_LEDGER_POINTS: usize = 8;
 /// the expected result, so a pass never adds more than one.
 const MAX_QUESTIONS_PER_CHUNK: usize = 1;
 
+/// A newly approved question and the transcript entry it came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddedQuestion {
+    pub text: String,
+    /// `transcript_log` sequence of the entry the question is anchored in:
+    /// the newest chunk, or an earlier entry it refers back to.
+    pub source_seq: i64,
+}
+
 /// What a challenge pass concluded, ready to persist.
 #[derive(Debug, Default)]
 pub struct ChallengeResult {
     /// Newly approved questions to insert as open.
-    pub added: Vec<String>,
+    pub added: Vec<AddedQuestion>,
     /// Existing open question ids resolved as answered, with the answer.
     pub answered: Vec<(i64, String)>,
     /// Existing open question ids resolved as stale, with a short reason.
@@ -78,17 +87,23 @@ pub struct ChallengeContext<'a> {
 
 /// Run the three-agent follow-up-question update for one paragraph boundary.
 ///
-/// `paragraph` is the newly accumulated transcript chunk; `open_questions` are
+/// `paragraph` is the newly accumulated transcript chunk, logged as entry
+/// `seq`; every transcript entry the agents see carries its `[T<seq>]` tag so
+/// the investigator can name the entry a question comes from. `open_questions` are
 /// the session's currently-open questions as `(id, text)`, so the resolver can
 /// reference them by id. `context` carries the earlier-conversation summary and
 /// the user's own speech. Returns the questions to add and the resolutions.
 pub fn agent_challenges(
     client: &dyn CompletionClient,
     paragraph: &str,
+    seq: i64,
     open_questions: &[(i64, String)],
     context: ChallengeContext<'_>,
     log: bool,
 ) -> Result<ChallengeResult, String> {
+    let tagged = tag_entry(seq, paragraph);
+    let paragraph = tagged.as_str();
+
     // 0. Ledger: fold the newest chunk into the open vague points first, so
     // every later agent sees them. If it fails, carry on with the previous
     // ledger and report `None` so the caller keeps it.
@@ -127,15 +142,22 @@ pub fn agent_challenges(
         "challenge/investigator",
         &format!("reasoning: {}", inv.reasoning.trim()),
     );
-    let candidates: Vec<String> = inv
+    let candidates: Vec<(String, i64)> = inv
         .questions
         .into_iter()
-        .filter(|q| !q.trim().is_empty())
+        .map(|q| {
+            let (text, source) = q.into_parts();
+            // A missing or out-of-range id falls back to the newest chunk, which
+            // every question must trace to anyway.
+            let source_seq = source.filter(|id| (1..=seq).contains(id)).unwrap_or(seq);
+            (text.trim().to_string(), source_seq)
+        })
+        .filter(|(text, _)| !text.is_empty())
         .take(MAX_QUESTIONS_PER_CHUNK)
         .collect();
 
     // 2. Validator: filter the drafts against the paragraph and context.
-    let added: Vec<String> = if candidates.is_empty() {
+    let added: Vec<AddedQuestion> = if candidates.is_empty() {
         Vec::new()
     } else {
         crate::notes::log_step(log, "challenge/validator", "checking drafts against paragraph");
@@ -145,7 +167,7 @@ pub fn agent_challenges(
             "{}\n\nQuestions already open (do not approve a duplicate):\n{}\n\nCandidate questions:\n{}",
             context_block(paragraph, context),
             or_none(&numbered_with_ids(open_questions)),
-            numbered(&candidates),
+            numbered(&candidates.iter().map(|(text, _)| text.clone()).collect::<Vec<_>>()),
         );
         let validated = client.complete(VALIDATOR_SYSTEM, &validator_user)?;
         crate::notes::log_step(
@@ -164,7 +186,14 @@ pub fn agent_challenges(
         val.results
             .into_iter()
             .filter(|r| r.approved && !r.question.trim().is_empty())
-            .map(|r| r.question.trim().to_string())
+            .map(|r| {
+                let text = r.question.trim().to_string();
+                let source_seq = candidates
+                    .iter()
+                    .find(|(candidate, _)| *candidate == text)
+                    .map_or(seq, |(_, source)| *source);
+                AddedQuestion { text, source_seq }
+            })
             .take(MAX_QUESTIONS_PER_CHUNK)
             .collect()
     };
@@ -271,10 +300,38 @@ struct LedgerOut {
     points: Option<Vec<String>>,
 }
 
+/// A candidate question: a bare string, or an object naming its source entry.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum InvestigatorQuestion {
+    Plain(String),
+    Sourced {
+        question: String,
+        #[serde(default)]
+        source_id: Option<serde_json::Value>,
+    },
+}
+
+impl InvestigatorQuestion {
+    fn into_parts(self) -> (String, Option<i64>) {
+        match self {
+            Self::Plain(text) => (text, None),
+            Self::Sourced { question, source_id } => {
+                let id = source_id.and_then(|v| match v {
+                    serde_json::Value::Number(n) => n.as_i64(),
+                    serde_json::Value::String(s) => parse_id(&s),
+                    _ => None,
+                });
+                (question, id)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Default, Deserialize)]
 struct InvestigatorOut {
     #[serde(default)]
-    questions: Vec<String>,
+    questions: Vec<InvestigatorQuestion>,
     #[serde(default)]
     reasoning: String,
 }
@@ -339,6 +396,11 @@ fn context_block(paragraph: &str, context: ChallengeContext<'_>) -> String {
     )
 }
 
+/// Prefix a transcript entry with its `[T<seq>]` tag, the id agents cite.
+pub fn tag_entry(seq: i64, text: &str) -> String {
+    format!("[T{seq}] {}", text.trim())
+}
+
 fn or_none(s: &str) -> &str {
     if s.is_empty() {
         "(none)"
@@ -399,12 +461,13 @@ mod tests {
         let out = agent_challenges(
             &JsonProbe,
             "para",
+            9,
             &[(1, "open one".into()), (4, "open two".into())],
             ChallengeContext::default(),
             false,
         )
         .unwrap();
-        assert_eq!(out.added, vec!["Q1".to_string()]);
+        assert_eq!(out.added, vec![AddedQuestion { text: "Q1".into(), source_seq: 9 }]);
         assert_eq!(
             out.answered,
             vec![(1, "delivered by Friday".to_string())],
@@ -436,7 +499,7 @@ mod tests {
                 }
             }
         }
-        let out = agent_challenges(&EmptyProbe, "para", &[], ChallengeContext::default(), false).unwrap();
+        let out = agent_challenges(&EmptyProbe, "para", 1, &[], ChallengeContext::default(), false).unwrap();
         assert!(out.added.is_empty());
         assert!(out.answered.is_empty());
         assert!(out.stale.is_empty());
@@ -466,7 +529,7 @@ mod tests {
             mic: "MY-OWN-WORDS",
             ledger: "1. \"soon\": no date",
         };
-        agent_challenges(&rec, "NEW-CHUNK", &[(7, "open seven".into())], ctx, false).unwrap();
+        agent_challenges(&rec, "NEW-CHUNK", 5, &[(7, "open seven".into())], ctx, false).unwrap();
 
         let calls = rec.0.lock().unwrap();
         assert_eq!(calls.len(), 4, "ledger, investigator, validator and resolver all run");
@@ -501,8 +564,8 @@ mod tests {
                 }
             }
         }
-        let out = agent_challenges(&Two, "para", &[], ChallengeContext::default(), false).unwrap();
-        assert_eq!(out.added, vec!["A".to_string()]);
+        let out = agent_challenges(&Two, "para", 1, &[], ChallengeContext::default(), false).unwrap();
+        assert_eq!(out.added, vec![AddedQuestion { text: "A".into(), source_seq: 1 }]);
     }
 
     #[test]
@@ -521,7 +584,7 @@ mod tests {
         }
         let c = Junk(Mutex::new(Vec::new()));
         let ctx = ChallengeContext { ledger: "1. \"old\": missing", ..Default::default() };
-        let out = agent_challenges(&c, "para", &[], ctx, false).unwrap();
+        let out = agent_challenges(&c, "para", 1, &[], ctx, false).unwrap();
         assert_eq!(out.ledger, None);
         assert!(c.0.lock().unwrap()[0].contains("\"old\": missing"), "investigator falls back to the old ledger");
     }
@@ -539,7 +602,7 @@ mod tests {
                 }
             }
         }
-        let out = agent_challenges(&Many, "para", &[], ChallengeContext::default(), false).unwrap();
+        let out = agent_challenges(&Many, "para", 1, &[], ChallengeContext::default(), false).unwrap();
         assert_eq!(out.ledger.unwrap().len(), MAX_LEDGER_POINTS);
     }
 
@@ -554,7 +617,41 @@ mod tests {
             }
         }
         let c = Counter(AtomicUsize::new(0));
-        agent_challenges(&c, "para", &[], ChallengeContext::default(), false).unwrap();
+        agent_challenges(&c, "para", 1, &[], ChallengeContext::default(), false).unwrap();
         assert_eq!(c.0.load(Ordering::SeqCst), 2, "only the ledger and investigator run");
+    }
+
+    #[test]
+    fn newest_chunk_is_tagged_and_question_keeps_its_cited_source() {
+        use std::sync::Mutex;
+        struct Cites(Mutex<Vec<String>>, &'static str);
+        impl CompletionClient for Cites {
+            fn complete(&self, system: &str, user: &str) -> Result<String, String> {
+                if system == INVESTIGATOR_SYSTEM {
+                    self.0.lock().unwrap().push(user.to_string());
+                    Ok(self.1.to_string())
+                } else if system == LEDGER_SYSTEM {
+                    Ok(r#"{"points":[]}"#.to_string())
+                } else {
+                    Ok(r#"{"results":[{"question":"Q?","approved":true}]}"#.to_string())
+                }
+            }
+        }
+        let run = |reply: &'static str| {
+            let c = Cites(Mutex::new(Vec::new()), reply);
+            let out = agent_challenges(&c, "NEW", 6, &[], ChallengeContext::default(), false).unwrap();
+            let prompt = c.0.lock().unwrap()[0].clone();
+            (out.added, prompt)
+        };
+
+        let (added, prompt) = run(r#"{"questions":[{"question":"Q?","source_id":"T3"}],"reasoning":"x"}"#);
+        assert!(prompt.contains("[T6] NEW"), "{prompt}");
+        assert_eq!(added[0].source_seq, 3, "an earlier cited entry is kept");
+
+        let (added, _) = run(r#"{"questions":[{"question":"Q?","source_id":99}],"reasoning":"x"}"#);
+        assert_eq!(added[0].source_seq, 6, "an unknown id falls back to the newest chunk");
+
+        let (added, _) = run(r#"{"questions":["Q?"],"reasoning":"x"}"#);
+        assert_eq!(added[0].source_seq, 6, "a bare string falls back to the newest chunk");
     }
 }

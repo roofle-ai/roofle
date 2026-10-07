@@ -1,7 +1,7 @@
-use roofle_core::storage::{QuestionStore, SessionDetail, SessionRepository, SessionSummary};
+use roofle_core::storage::{SessionDetail, SessionRepository, SessionSummary};
 use tauri::State;
 
-use crate::state::{AppState, QuestionView};
+use crate::state::{question_views, AppState, QuestionView};
 
 fn describe(e: impl std::fmt::Display) -> String {
     e.to_string()
@@ -33,6 +33,5 @@ pub fn list_session_questions(
     state: State<AppState>,
     id: i64,
 ) -> Result<Vec<QuestionView>, String> {
-    let questions = state.storage.list_questions(id).map_err(describe)?;
-    Ok(questions.iter().map(QuestionView::from).collect())
+    question_views(&state.storage, id).map_err(describe)
 }

@@ -43,6 +43,7 @@ mod tests {
             end_ms: 0,
             confidence: None,
             created_at: Utc::now(),
+            log_seq: None,
         }
     }
 

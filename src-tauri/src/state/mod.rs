@@ -11,7 +11,9 @@ use roofle_core::storage::SqliteStorage;
 use crate::engine::{Control, SourceKind};
 use crate::models::ModelManager;
 
-pub use payloads::{ChallengeUpdate, NotesUpdate, QuestionView, TitleUpdate, TranscriptCue};
+pub use payloads::{
+    question_views, ChallengeUpdate, NotesUpdate, QuestionView, TitleUpdate, TranscriptCue,
+};
 
 pub struct AppState {
     /// Control channel to the engine thread (None once it has shut down).

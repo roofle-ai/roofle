@@ -65,10 +65,16 @@ VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 
 /// A session's audio segments in recognition order (`id` is insertion order).
 pub(super) const SELECT_AUDIO_SEGMENTS: &str = r#"
-SELECT id, session_id, source, text, start_ms, end_ms, confidence, created_at
+SELECT id, session_id, source, text, start_ms, end_ms, confidence, created_at, log_seq
 FROM audio_segments
 WHERE session_id = ?1
 ORDER BY id
+"#;
+
+/// Tag the session's still-unassigned segments with the log entry they were
+/// just folded into.
+pub(super) const ASSIGN_SEGMENTS_TO_LOG: &str = r#"
+UPDATE audio_segments SET log_seq = ?1 WHERE session_id = ?2 AND log_seq IS NULL
 "#;
 
 /// A session's audio-segment texts from one source, oldest first.
@@ -96,10 +102,13 @@ VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?6)
 "#;
 
 /// Fold a segment into the paragraph: append text and extend end_ms.
-/// The separator space is skipped when the paragraph was just reset (empty).
+/// A just-reset (empty) paragraph skips the separator space and takes this
+/// segment's start (?5) and source (?6) as its own.
 pub(super) const UPDATE_PARAGRAPH_APPEND: &str = r#"
 UPDATE paragraphs
-SET text = CASE WHEN text = '' THEN ?1 ELSE text || ' ' || ?1 END,
+SET start_ms = CASE WHEN text = '' THEN ?5 ELSE start_ms END,
+    source = CASE WHEN text = '' THEN ?6 ELSE source END,
+    text = CASE WHEN text = '' THEN ?1 ELSE text || ' ' || ?1 END,
     end_ms = ?2, updated_at = ?3
 WHERE session_id = ?4
 "#;

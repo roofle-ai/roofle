@@ -172,10 +172,11 @@ impl SessionRepository for SqliteStorage {
                     r.get::<_, i64>(5)?,
                     r.get::<_, Option<f64>>(6)?,
                     r.get::<_, String>(7)?,
+                    r.get::<_, Option<i64>>(8)?,
                 ))
             })?
             .map(|r| {
-                let (id, session_id, source, text, start_ms, end_ms, confidence, created_at) = r?;
+                let (id, session_id, source, text, start_ms, end_ms, confidence, created_at, log_seq) = r?;
                 Ok(AudioSegment {
                     id,
                     session_id,
@@ -185,6 +186,7 @@ impl SessionRepository for SqliteStorage {
                     end_ms,
                     confidence,
                     created_at: parse_utc(&created_at)?,
+                    log_seq,
                 })
             })
             .collect::<Result<Vec<_>, StorageError>>()?;

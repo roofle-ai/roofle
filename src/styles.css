@@ -876,6 +876,58 @@ body {
   color: var(--insight);
 }
 
+/* Spotlight: dim everything except the passage the question came from. */
+.transcription-row {
+  transition: opacity 200ms var(--ease);
+}
+
+.transcription-list.has-source .transcription-row:not(.is-source) {
+  opacity: 0.35;
+}
+
+.transcription-row.is-source .transcription-text {
+  font-size: 1.16rem;
+  font-weight: 700;
+}
+
+.source-pill {
+  order: -1;
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+  padding: 0.1rem 0.2rem 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.source-pill-clear {
+  display: grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.source-pill-clear:hover {
+  background: rgb(255 255 255 / 0.25);
+}
+
 .transcription-time {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
@@ -2705,6 +2757,49 @@ select.settings-input {
 .qcard.stale .qtext {
   font-weight: 400;
   color: var(--muted);
+}
+
+/* Compact jump-to-source pill under the question. */
+.qsource {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 1.4rem;
+  padding: 0.18rem 0.6rem 0.18rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease), background 160ms var(--ease);
+}
+
+.qsource [data-lucide],
+.qsource svg {
+  width: 12px;
+  height: 12px;
+}
+
+.qsource-time {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.qsource:hover,
+.qsource:focus-visible,
+.qcard.is-viewing .qsource {
+  color: var(--brand);
+  border-color: var(--brand);
+  background: var(--brand-faint);
+}
+
+.qcard.is-viewing {
+  border-color: var(--brand);
 }
 
 /* The brief answer lifted from the conversation. */

@@ -24,6 +24,9 @@ pub struct AudioSegment {
     /// ASR confidence score, if available.
     pub confidence: Option<f64>,
     pub created_at: DateTime<Utc>,
+    /// `transcript_log` sequence of the paragraph this segment was folded into;
+    /// `None` while it is still in the open paragraph.
+    pub log_seq: Option<i64>,
 }
 
 /// Input for inserting one recognized audio segment.

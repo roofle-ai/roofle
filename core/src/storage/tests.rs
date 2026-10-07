@@ -22,8 +22,8 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
-    // The current schema is V2 (adds `session_analysis`).
-    assert_eq!(storage.schema_version().unwrap(), 2);
+    // The current schema is V4 (repairs `transcript_log` start times).
+    assert_eq!(storage.schema_version().unwrap(), 4);
 }
 
 #[test]
@@ -282,6 +282,23 @@ fn audio_texts_returns_one_source_in_time_order() {
 }
 
 #[test]
+fn finalize_links_segments_to_their_log_entry() {
+    let storage = store();
+    let session = storage.create_session(new_session("both", Utc::now())).unwrap();
+
+    storage.add_segment(&new_segment(session.id, "one", 0, 100)).unwrap();
+    storage.add_segment(&new_segment(session.id, "two", 100, 200)).unwrap();
+    storage.finalize_paragraph(session.id).unwrap();
+    storage.add_segment(&new_segment(session.id, "three", 300, 400)).unwrap();
+    storage.finalize_paragraph(session.id).unwrap();
+    storage.add_segment(&new_segment(session.id, "pending", 500, 600)).unwrap();
+
+    let detail = storage.get_session(session.id).unwrap().unwrap();
+    let links: Vec<_> = detail.segments.iter().map(|s| s.log_seq).collect();
+    assert_eq!(links, vec![Some(1), Some(1), Some(2), None]);
+}
+
+#[test]
 fn finalize_paragraph_moves_text_to_log_and_resets() {
     let storage = store();
     let session = storage.create_session(new_session("system", Utc::now())).unwrap();
@@ -299,6 +316,10 @@ fn finalize_paragraph_moves_text_to_log_and_resets() {
     let (seq, text) = storage.finalize_paragraph(session.id).unwrap().unwrap();
     assert_eq!(seq, 2);
     assert_eq!(text, "again");
+    // Each entry keeps its own first segment's start, not the reset zero.
+    let entries = storage.transcript_after(session.id, 0).unwrap();
+    assert_eq!(entries[0].start_ms, 0);
+    assert_eq!(entries[1].start_ms, 200);
     assert_eq!(storage.last_transcript_sequence(session.id).unwrap(), 2);
 
     let after = storage.transcript_after(session.id, 1).unwrap();

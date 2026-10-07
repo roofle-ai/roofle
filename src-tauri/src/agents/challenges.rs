@@ -1,4 +1,4 @@
-use live_agent::challenge::{agent_challenges, format_ledger, ChallengeContext};
+use live_agent::challenge::{agent_challenges, format_ledger, tag_entry, ChallengeContext};
 use live_agent::notes::{log_step, logging_enabled};
 use roofle_core::storage::{
     AudioSource, ParagraphStore, QuestionStatus, QuestionStore, TranscriptStore,
@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager};
 
 use super::client::configured_client;
-use crate::state::{AppState, ChallengeUpdate, QuestionView};
+use crate::state::{question_views, AppState, ChallengeUpdate};
 use crate::{events, notify};
 
 /// Caps keep every agent prompt bounded on long meetings; the newest text wins.
@@ -58,7 +58,7 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
         );
         let context = ChallengeContext { summary: &summary, mic: &mic, ledger: &ledger };
 
-        let res = match agent_challenges(&client, &new_text, &open, context, log) {
+        let res = match agent_challenges(&client, &new_text, seq, &open, context, log) {
             Ok(res) => res,
             Err(e) => return log_step(log, &tag, &e),
         };
@@ -77,8 +77,8 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
             state.vague_points.lock().unwrap().insert(session_id, points.clone());
         }
 
-        for text in &res.added {
-            let _ = storage.create_question(session_id, text, seq);
+        for q in &res.added {
+            let _ = storage.create_question(session_id, &q.text, q.source_seq);
         }
         for (id, reason) in &res.answered {
             let _ = storage.resolve_question(*id, QuestionStatus::Answered, reason, Some(seq));
@@ -87,14 +87,10 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
             let _ = storage.resolve_question(*id, QuestionStatus::Stale, reason, None);
         }
 
-        let questions = storage
-            .list_questions(session_id)
-            .unwrap_or_default()
-            .iter()
-            .map(QuestionView::from)
-            .collect();
+        let questions = question_views(storage, session_id).unwrap_or_default();
         let _ = app.emit(events::CHALLENGES, ChallengeUpdate { seq, questions });
-        notify::notify_new_questions(&app, &res.added);
+        let added: Vec<String> = res.added.into_iter().map(|q| q.text).collect();
+        notify::notify_new_questions(&app, &added);
     });
 }
 
@@ -120,7 +116,7 @@ fn earlier_summary<S: QuestionStore + TranscriptStore>(
         .unwrap_or_default()
         .into_iter()
         .filter(|e| e.sequence_no < seq)
-        .map(|e| e.text)
+        .map(|e| tag_entry(e.sequence_no, &e.text))
         .collect();
     if !earlier.is_empty() {
         let tail = tail_chars(&earlier.join("\n\n"), EARLIER_TRANSCRIPT_CHARS);

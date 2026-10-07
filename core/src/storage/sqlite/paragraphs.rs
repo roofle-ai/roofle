@@ -9,7 +9,7 @@ use crate::storage::{
 };
 
 use super::sql::{
-    INSERT_AUDIO_SEGMENT, INSERT_PARAGRAPH, INSERT_TRANSCRIPT, RESET_PARAGRAPH,
+    ASSIGN_SEGMENTS_TO_LOG, INSERT_AUDIO_SEGMENT, INSERT_PARAGRAPH, INSERT_TRANSCRIPT, RESET_PARAGRAPH,
     SELECT_AUDIO_TEXTS, SELECT_LAST_TRANSCRIPT_SEQ, SELECT_PARAGRAPH, UPDATE_PARAGRAPH_APPEND,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
@@ -26,7 +26,14 @@ impl ParagraphStore for SqliteStorage {
         if paragraph_exists(&tx, seg.session_id)? {
             tx.execute(
                 UPDATE_PARAGRAPH_APPEND,
-                params![seg.text, seg.end_ms, now, seg.session_id],
+                params![
+                    seg.text,
+                    seg.end_ms,
+                    now,
+                    seg.session_id,
+                    seg.start_ms,
+                    source_str(seg.source),
+                ],
             )?;
         } else {
             tx.execute(
@@ -83,6 +90,7 @@ impl ParagraphStore for SqliteStorage {
                 to_rfc3339(chrono::Utc::now()),
             ],
         )?;
+        tx.execute(ASSIGN_SEGMENTS_TO_LOG, params![seq, session_id])?;
         tx.execute(
             RESET_PARAGRAPH,
             params![seq, to_rfc3339(chrono::Utc::now()), session_id],

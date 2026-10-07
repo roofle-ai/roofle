@@ -5,6 +5,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
+import type { QuestionView } from "./types";
+
 export interface Session {
   id: number;
   title: string;
@@ -31,6 +33,8 @@ export interface AudioSegment {
   end_ms: number;
   confidence: number | null;
   created_at: string;
+  /** Transcript-log entry this segment was folded into; null while still pending. */
+  log_seq: number | null;
 }
 
 export interface SessionDetail {
@@ -61,13 +65,7 @@ export function deleteSession(id: number): Promise<void> {
 }
 
 /** A session's persisted follow-up question, as shown in the right panel. */
-export interface SessionQuestion {
-  id: number;
-  text: string;
-  status: "open" | "answered" | "stale";
-  /** Agent-written resolution: the answer when `answered`, the reason when `stale`. */
-  reason: string | null;
-}
+export type SessionQuestion = QuestionView;
 
 /** A session's persisted follow-up questions (for the right panel on open). */
 export function listSessionQuestions(id: number): Promise<SessionQuestion[]> {

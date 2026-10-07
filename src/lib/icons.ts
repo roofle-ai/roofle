@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   CircleCheck,
   CircleDot,
   ClipboardCheck,
@@ -28,6 +29,7 @@ import {
 } from "lucide";
 
 const ICONS = {
+  AudioLines,
   Plus,
   Settings,
   Moon,

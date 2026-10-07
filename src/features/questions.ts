@@ -2,8 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { session } from "../app/state";
 import { create, dom } from "../lib/dom";
+import { formatTime } from "../lib/format";
+import { revealTranscriptSource, SOURCE_EVENT } from "./notes-tabs";
 import { refreshIcons } from "../lib/icons";
-import type { QuestionView } from "../types";
+import type { QuestionSource, QuestionView } from "../types";
 
 interface FollowUp extends QuestionView {
   resolved: boolean;
@@ -14,6 +16,15 @@ const LISTENING_HINT =
 
 let questions: FollowUp[] = [];
 let analysisMode = false;
+/** Question whose source is spotlit in the transcription, marked in the list. */
+let viewingSourceOf: number | null = null;
+
+document.addEventListener(SOURCE_EVENT, (e) => {
+  viewingSourceOf = (e as CustomEvent<number | null>).detail;
+  dom.questionsList.querySelectorAll<HTMLElement>(".qcard").forEach((card) => {
+    card.classList.toggle("is-viewing", card.dataset.qid === String(viewingSourceOf));
+  });
+});
 /** Ids already shown, so only genuinely new cards play the entrance animation. */
 const seen = new Set<number>();
 
@@ -64,6 +75,7 @@ function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
   const card = create("article", `qcard ${q.status}`);
   card.dataset.qid = String(q.id);
   if (!seen.has(q.id)) card.classList.add("is-new");
+  if (q.id === viewingSourceOf) card.classList.add("is-viewing");
 
   const head = create("div", "qcard-head");
   const icon = create("i");
@@ -72,12 +84,27 @@ function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
   head.append(icon, create("p", "qtext", q.text));
   card.append(head);
 
+  if (q.source) card.append(renderSource(q, q.source));
+
   if (q.reason) {
     const answer = create("div", "qanswer");
     answer.append(create("span", "qanswer-label", answerLabel), create("p", "qanswer-text", q.reason));
     card.append(answer);
   }
   return card;
+}
+
+/** Compact button that jumps to the transcript passage the question came from. */
+function renderSource(q: FollowUp, src: QuestionSource): HTMLElement {
+  const btn = create("button", "qsource");
+  btn.type = "button";
+  const icon = create("i");
+  icon.dataset.lucide = "audio-lines";
+  icon.setAttribute("aria-hidden", "true");
+  btn.append(icon, create("span", undefined, "Source"), create("span", "qsource-time", formatTime(src.start_ms / 1000)));
+  btn.title = "Show where in the transcription this question came from";
+  btn.addEventListener("click", () => revealTranscriptSource(src, q.id));
+  return btn;
 }
 
 export function resetQuestions(): void {
