@@ -1,0 +1,8 @@
+# Synthetic sample, not a real call. Replace/add real transcripts here as
+# <name>.txt with <name>.labels.json, then record <name>.cache.json (see README).
+00:05 Presenter: Today I want to agree whether we stay on Glue for the nightly load or move it to Fivetran.
+00:30 Other: Glue works but the job fails about once a week and someone reruns it by hand.
+01:15 Presenter: The plan is Glue loads the tables, then we call the dbt trigger from a Lambda.
+01:50 Other: And if the trigger call fails after the load succeeded, we have not decided what happens.
+02:40 Presenter: Fivetran would be simpler to run, and it should be cheaper over time, we think.
+03:20 Other: Let's pick a direction by the end of the month.

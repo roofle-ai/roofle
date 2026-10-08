@@ -23,10 +23,12 @@ pub fn load_ai_config(app: AppHandle) -> Result<AiConfigView, String> {
 
 #[tauri::command]
 pub fn save_ai_config(app: AppHandle, base_url: String, model: String) -> Result<(), String> {
+    // Keep the per-stage models, which this form does not edit.
     let config = AiConfig {
         kind: ProviderKind::OpenAiCompat,
         base_url,
         model,
+        ..ai::load_for(&app)?
     };
     ai::save(&ai::data_dir(&app)?, &config)
 }

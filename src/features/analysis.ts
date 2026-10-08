@@ -6,6 +6,12 @@ import { analyseSession, getSessionAnalysis, type AnalysisResult } from "../tran
 import { syncQuestionsPanel } from "./questions";
 
 const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
+/** The only contexts the sales-lens review fits. */
+const SALES_CONTEXTS = ["Discovery", "Demo"];
+
+function updateLensNote(): void {
+  dom.analyseLensNote.hidden = SALES_CONTEXTS.includes(dom.contextSelect.value);
+}
 
 /** Assist is offered whenever a session is in view; the review needs it to be finished. */
 export function updateAnalyseVisibility(): void {
@@ -53,6 +59,7 @@ async function onAnalyseClick(): Promise<void> {
     // A failed lookup falls through to the modal.
   }
   fillSelect(dom.contextSelect, CONTEXTS);
+  updateLensNote();
   dom.analyseModal.hidden = false;
 }
 
@@ -187,6 +194,7 @@ export function initAnalysis(): void {
   });
   dom.analyseClose.addEventListener("click", closeModal);
   dom.analyseCancel.addEventListener("click", closeModal);
+  dom.contextSelect.addEventListener("change", updateLensNote);
   dom.analyseSubmit.addEventListener("click", () => void runAnalysis());
   dom.analysisClose.addEventListener("click", hideDashboard);
 }

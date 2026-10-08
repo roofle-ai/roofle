@@ -13,6 +13,7 @@ pub struct TranscriptCue {
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct NotesUpdate {
+    pub session_id: i64,
     pub seq: i64,
     pub text: String,
 }
@@ -52,6 +53,8 @@ pub struct QuestionView {
     pub reason: Option<String>,
     /// Where in the transcript it came from; `None` if the entry is gone.
     pub source: Option<QuestionSource>,
+    /// The user's feedback (`asked` or `dismissed`), if any.
+    pub feedback: Option<String>,
 }
 
 /// A session's questions, each linked to its source transcript entry.
@@ -69,6 +72,10 @@ pub fn question_views<S: QuestionStore + TranscriptStore>(
                 .iter()
                 .find(|e| e.sequence_no == q.source_sequence_no)
                 .map(QuestionSource::new);
+            // Pipeline questions know the exact line's time, not just the paragraph's.
+            if let (Some(ts), Some(source)) = (q.source_ts_ms, view.source.as_mut()) {
+                source.start_ms = ts;
+            }
             view
         })
         .collect())
@@ -86,12 +93,14 @@ impl From<&Question> for QuestionView {
             },
             reason: q.resolution_reason.clone(),
             source: None,
+            feedback: q.feedback.clone(),
         }
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ChallengeUpdate {
+    pub session_id: i64,
     pub seq: i64,
     pub questions: Vec<QuestionView>,
 }

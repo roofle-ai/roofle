@@ -8,6 +8,7 @@ mod events;
 mod export;
 mod models;
 mod notify;
+mod session_worker;
 mod state;
 
 pub use app::run;

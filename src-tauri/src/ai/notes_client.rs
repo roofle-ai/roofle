@@ -35,6 +35,32 @@ impl CompletionClient for NotesClient {
         }
         result
     }
+
+    fn complete_json(
+        &self,
+        system: &str,
+        user: &str,
+        schema: &serde_json::Value,
+    ) -> Result<String, String> {
+        let messages = vec![
+            ChatMessage::new("system", system),
+            ChatMessage::new("user", user),
+        ];
+        let result = AiClient::new().chat_json(&self.config, &self.api_key, messages, schema);
+        let result = result.map(|(text, usage)| {
+            if logging_enabled() {
+                eprintln!(
+                    "[roofle] llm tokens in={} out={} latency={}ms",
+                    usage.tokens_in, usage.tokens_out, usage.latency_ms
+                );
+            }
+            text
+        });
+        if logging_enabled() {
+            log_exchange(system, user, &result);
+        }
+        result
+    }
 }
 
 fn log_exchange(system: &str, user: &str, result: &Result<String, String>) {

@@ -59,10 +59,12 @@ async function onRecordingState(recording: boolean): Promise<void> {
 
 export async function initEvents(): Promise<void> {
   await listen<Segment>("transcript-update", (e) => onTranscript(e.payload));
-  await listen<ChallengeUpdate>("challenge-update", (e) =>
-    ingestChallenges(e.payload.questions),
-  );
-  await listen<NotesUpdate>("notes-update", (e) => applyGeneratedNotes(e.payload.text));
+  await listen<ChallengeUpdate>("challenge-update", (e) => {
+    if (e.payload.session_id === session.viewedId) ingestChallenges(e.payload.questions);
+  });
+  await listen<NotesUpdate>("notes-update", (e) => {
+    if (e.payload.session_id === session.viewedId) applyGeneratedNotes(e.payload.text);
+  });
   await listen<ModelProgress>("model-progress", (e) => onModelProgress(e.payload));
   await listen<boolean>("recording-state", (e) => onRecordingState(e.payload));
   await listen<string>("app-status", (e) => setStatus("error", e.payload));

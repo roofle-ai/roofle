@@ -10,7 +10,11 @@
 //! appends it to `transcript_log`.
 
 /// Default number of *new* characters that trigger a paragraph boundary.
-pub const DEFAULT_CHAR_LIMIT: usize = 200;
+pub const DEFAULT_CHAR_LIMIT: usize = 500;
+
+/// Default wall-clock span after which buffered text is finalized even if it
+/// is short, so a slow talker still gets analysed.
+pub const DEFAULT_TIME_LIMIT_MS: i64 = 60_000;
 
 /// A per-session, incremental paragraph-boundary detector.
 ///
@@ -24,6 +28,9 @@ pub struct ParagraphWatcher {
     char_limit: usize,
     /// Characters accumulated since the last finalized paragraph.
     pending_chars: usize,
+    /// Clock time (ms) of the first utterance buffered in this paragraph.
+    first_ms: Option<i64>,
+    time_limit_ms: i64,
 }
 
 impl ParagraphWatcher {
@@ -33,7 +40,33 @@ impl ParagraphWatcher {
         Self {
             char_limit,
             pending_chars: 0,
+            first_ms: None,
+            time_limit_ms: DEFAULT_TIME_LIMIT_MS,
         }
+    }
+
+    /// Like [`push`](Self::push), but also stamps the paragraph's first
+    /// utterance with `now_ms` and fires on the time limit too.
+    pub fn push_at(&mut self, text: &str, now_ms: i64) -> bool {
+        if text.trim().is_empty() {
+            return false;
+        }
+        self.first_ms.get_or_insert(now_ms);
+        self.push(text);
+        self.due(now_ms)
+    }
+
+    /// Whether the buffered text hit the char limit or has waited
+    /// `time_limit_ms`. Call on a timer too: silence produces no `push`.
+    pub fn due(&self, now_ms: i64) -> bool {
+        self.pending_chars >= self.char_limit
+            || (self.has_pending()
+                && self.first_ms.is_some_and(|t| now_ms - t >= self.time_limit_ms))
+    }
+
+    /// Characters buffered, so callers can skip flushing a trivial tail.
+    pub fn pending_chars(&self) -> usize {
+        self.pending_chars
     }
 
     /// Consume one finalized utterance. Returns true when a paragraph boundary
@@ -50,6 +83,7 @@ impl ParagraphWatcher {
     /// Reset the pending counter after a paragraph was finalized.
     pub fn reset(&mut self) {
         self.pending_chars = 0;
+        self.first_ms = None;
     }
 
     /// Whether any un-finalized content remains (for the stop-time flush).
@@ -94,6 +128,22 @@ mod tests {
         let mut w = ParagraphWatcher::new(100);
         assert!(!w.push(&block(60)));
         assert!(w.push(&block(40)));
+    }
+
+    #[test]
+    fn time_limit_fires_for_short_text() {
+        let mut w = ParagraphWatcher::new(DEFAULT_CHAR_LIMIT);
+        assert!(!w.push_at(&block(50), 1_000));
+        assert!(!w.due(60_999));
+        assert!(w.due(61_000));
+        w.reset();
+        assert!(!w.due(200_000));
+    }
+
+    #[test]
+    fn push_at_fires_on_chars_before_time() {
+        let mut w = ParagraphWatcher::new(100);
+        assert!(w.push_at(&block(100), 0));
     }
 
     #[test]

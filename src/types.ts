@@ -12,6 +12,7 @@ export interface ModelProgress {
 }
 
 export interface NotesUpdate {
+  session_id: number;
   seq: number;
   text: string;
 }
@@ -33,9 +34,12 @@ export interface QuestionView {
   reason: string | null;
   /** Where in the transcript the question came from; null if unknown. */
   source: QuestionSource | null;
+  /** The user's feedback, if any. */
+  feedback: "asked" | "dismissed" | null;
 }
 
 export interface ChallengeUpdate {
+  session_id: number;
   seq: number;
   questions: QuestionView[];
 }

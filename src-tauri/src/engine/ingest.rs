@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use live_agent::{ParagraphWatcher, DEFAULT_CHAR_LIMIT};
+use live_agent::pipeline::{Line, Speaker};
+use live_agent::ParagraphWatcher;
 use roofle_core::asr::SegmentKind;
 use roofle_core::pipeline::Pipeline;
 use roofle_core::storage::{AudioSource, NewAudioSegment, ParagraphStore};
@@ -11,6 +12,7 @@ use super::clock::RecordingClock;
 use super::transcript_log::log_utterance;
 use crate::agents;
 use crate::events;
+use crate::session_worker;
 use crate::state::{AppState, TranscriptCue};
 
 /// Turns pipeline output into UI events, stored segments and paragraphs; each
@@ -23,12 +25,18 @@ pub struct Ingest {
     /// recorded on the first partial and cleared on the final. Lets the stored
     /// `start_ms` reflect the utterance onset instead of the finalize time.
     utterance_start: HashMap<AudioSource, f64>,
+    /// Utterances of the open paragraph, handed to the question pipeline with
+    /// their own times when it closes.
+    lines: Vec<Line>,
+    next_line_id: u32,
 }
 
 impl Ingest {
-    pub fn begin_session(&mut self, timestamp_offset: f64) {
+    pub fn begin_session(&mut self, timestamp_offset: f64, char_limit: usize) {
         self.timestamp_offset = timestamp_offset;
-        self.watcher = Some(ParagraphWatcher::new(DEFAULT_CHAR_LIMIT));
+        self.watcher = Some(ParagraphWatcher::new(char_limit));
+        self.lines.clear();
+        self.next_line_id = 1;
     }
 
     /// Relay pending segments and levels to the UI, persisting finalized ones.
@@ -74,6 +82,14 @@ impl Ingest {
                 }
             }
         }
+        // Silence produces no utterance, so check the 60 s limit on every poll.
+        if let (Some(sid), Some(watcher)) = (session_id, self.watcher.as_mut()) {
+            let now_ms = ((self.timestamp_offset + clock.elapsed_secs()) * 1000.0) as i64;
+            if watcher.due(now_ms) {
+                finalize_paragraph(app, sid, std::mem::take(&mut self.lines));
+                watcher.reset();
+            }
+        }
         for level in pipeline.levels().try_iter() {
             let _ = app.emit(events::LEVEL, level);
         }
@@ -85,9 +101,12 @@ impl Ingest {
         let Some(watcher) = self.watcher.take() else {
             return;
         };
-        if let (true, Some(sid)) = (watcher.has_pending(), session_id) {
-            finalize_paragraph(app, sid);
+        let Some(sid) = session_id else { return };
+        if watcher.has_pending() {
+            finalize_paragraph(app, sid, std::mem::take(&mut self.lines));
         }
+        // After the final chunk: the pipeline's end-of-meeting pass.
+        app.state::<AppState>().sessions.flush(sid);
     }
 
     fn ingest_utterance(
@@ -116,21 +135,34 @@ impl Ingest {
             return eprintln!("[roofle] persist audio segment: {e}");
         }
 
+        self.lines.push(Line {
+            id: self.next_line_id,
+            // Presenter = the party being questioned (what the other side says
+            // is what gets challenged); Other = the user's own voice.
+            speaker: match source {
+                AudioSource::System => Speaker::Presenter,
+                AudioSource::Mic => Speaker::Other,
+            },
+            ts_ms: start_ms,
+            text: text.to_string(),
+        });
+        self.next_line_id += 1;
+
         if let Some(watcher) = self.watcher.as_mut() {
-            if watcher.push(text) {
-                finalize_paragraph(app, session_id);
+            if watcher.push_at(text, (end_secs * 1000.0) as i64) {
+                finalize_paragraph(app, session_id, std::mem::take(&mut self.lines));
                 watcher.reset();
             }
         }
     }
 }
 
-fn finalize_paragraph(app: &AppHandle, session_id: i64) {
+fn finalize_paragraph(app: &AppHandle, session_id: i64, lines: Vec<Line>) {
     let storage = &app.state::<AppState>().storage;
     match storage.finalize_paragraph(session_id) {
         Ok(Some((seq, text))) => {
             agents::notes::generate(app.clone(), session_id, seq, text.clone());
-            agents::challenges::generate(app.clone(), session_id, seq, text);
+            session_worker::submit_chunk(app, session_id, seq, lines);
         }
         Ok(None) => {}
         Err(e) => eprintln!("[roofle] finalize paragraph: {e}"),

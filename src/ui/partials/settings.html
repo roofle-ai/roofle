@@ -27,8 +27,13 @@
             <h4 class="group-title">Live session</h4>
             <div class="settings-field">
               <label for="char-limit" class="settings-field-label">Question trigger</label>
-              <input id="char-limit" type="number" min="50" max="5000" step="10" value="200" class="settings-input" />
-              <p class="settings-field-hint">Generate questions after this many new characters. Default 200; lower values surface questions sooner.</p>
+              <input id="char-limit" type="number" min="50" max="5000" step="10" value="500" class="settings-input" />
+              <p class="settings-field-hint">Generate questions after this many new characters. Default 500; lower values surface questions sooner.</p>
+            </div>
+            <div class="settings-field">
+              <label for="max-open" class="settings-field-label">Questions on screen</label>
+              <input id="max-open" type="number" min="1" max="5" step="1" value="2" class="settings-input" />
+              <p class="settings-field-hint">Most follow-up questions shown at once, 1 to 5. Default 2. A new question waits until one is answered, asked or goes stale.</p>
             </div>
           </div>
 

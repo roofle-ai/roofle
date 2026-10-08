@@ -7,15 +7,20 @@ import settingsHtml from "./ui/partials/settings.html?raw";
 
 export interface LiveSessionSettings {
   charLimit: number;
+  /** Most follow-up questions shown at once. */
+  maxOpenQuestions: number;
 }
 
 const KEY = "roofle-live-session-settings";
-export const DEFAULT_CHAR_LIMIT = 200;
+export const DEFAULT_CHAR_LIMIT = 500;
 const MIN_CHAR_LIMIT = 50;
 const MAX_CHAR_LIMIT = 5000;
+export const DEFAULT_MAX_OPEN = 2;
+const MAX_OPEN_CAP = 5;
 
 let modal: HTMLElement;
 let input: HTMLInputElement;
+let maxOpenInput: HTMLInputElement;
 let aiBaseUrl: HTMLInputElement;
 let aiModel: HTMLInputElement;
 let aiApiKey: HTMLInputElement;
@@ -27,15 +32,20 @@ function clamp(n: number): number {
   return Math.min(MAX_CHAR_LIMIT, Math.max(MIN_CHAR_LIMIT, n));
 }
 
-/// Read persisted live-session settings; defaults to a 200-char limit.
+function clampMaxOpen(n: number): number {
+  return Math.min(MAX_OPEN_CAP, Math.max(1, Math.round(n) || DEFAULT_MAX_OPEN));
+}
+
+/// Read persisted live-session settings; defaults to a 500-char limit and 2 open questions.
 export function loadLiveSessionSettings(): LiveSessionSettings {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { charLimit: DEFAULT_CHAR_LIMIT };
-    const parsed = JSON.parse(raw) as Partial<LiveSessionSettings>;
-    return { charLimit: clamp(Number(parsed.charLimit) || DEFAULT_CHAR_LIMIT) };
+    const parsed = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Partial<LiveSessionSettings>;
+    return {
+      charLimit: clamp(Number(parsed.charLimit) || DEFAULT_CHAR_LIMIT),
+      maxOpenQuestions: clampMaxOpen(Number(parsed.maxOpenQuestions)),
+    };
   } catch {
-    return { charLimit: DEFAULT_CHAR_LIMIT };
+    return { charLimit: DEFAULT_CHAR_LIMIT, maxOpenQuestions: DEFAULT_MAX_OPEN };
   }
 }
 
@@ -90,7 +100,9 @@ async function runAiTest(): Promise<void> {
 
 /// Open the settings modal, seeding both char-limit and AI config.
 export function openSettings(): void {
-  input.value = String(loadLiveSessionSettings().charLimit);
+  const settings = loadLiveSessionSettings();
+  input.value = String(settings.charLimit);
+  maxOpenInput.value = String(settings.maxOpenQuestions);
   showPane("llm");
   loadAiConfigFields();
   modal.classList.add("open");
@@ -102,7 +114,8 @@ function closeSettings(): void {
 
 function saveSettings(): void {
   const charLimit = clamp(parseInt(input.value, 10) || DEFAULT_CHAR_LIMIT);
-  localStorage.setItem(KEY, JSON.stringify({ charLimit } satisfies LiveSessionSettings));
+  const maxOpenQuestions = clampMaxOpen(parseInt(maxOpenInput.value, 10));
+  localStorage.setItem(KEY, JSON.stringify({ charLimit, maxOpenQuestions } satisfies LiveSessionSettings));
   saveAiConfigFields()
     .catch((err) => {
       aiKeyState.textContent = String(err);
@@ -115,6 +128,7 @@ function init(): void {
 
   modal = document.getElementById("settings-modal")!;
   input = document.getElementById("char-limit") as HTMLInputElement;
+  maxOpenInput = document.getElementById("max-open") as HTMLInputElement;
   modal.querySelectorAll<HTMLElement>(".settings-nav-item").forEach((el) =>
     el.addEventListener("click", () => showPane(el.dataset.pane!)),
   );
