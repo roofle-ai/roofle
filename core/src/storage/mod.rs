@@ -11,7 +11,9 @@ mod transcript;
 
 pub use paragraph::render_paragraph;
 pub use paragraph_store::{AudioSegment, NewAudioSegment, Paragraph, ParagraphStore};
-pub use questions::{LiveNote, Question, QuestionStatus, QuestionStore};
+pub use questions::{
+    LiveNote, NewPipelineQuestion, PipelineRun, Question, QuestionStatus, QuestionStore,
+};
 pub use repository::{SessionRepository, StorageError};
 pub use sqlite::StoredAnalysis;
 pub use sqlite::SqliteStorage;

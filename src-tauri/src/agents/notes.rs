@@ -47,7 +47,7 @@ pub fn generate(app: AppHandle, session_id: i64, seq: i64, new_text: String) {
                     &format!("final notes = {} chars, kind={}", text.chars().count(), kind.kind.as_str()),
                 );
                 let _ = storage.save_note(session_id, seq, &text);
-                let _ = app.emit(events::NOTES, NotesUpdate { seq, text });
+                let _ = app.emit(events::NOTES, NotesUpdate { session_id, seq, text });
             }
             Err(e) => log_step(log, &tag, &e),
         }

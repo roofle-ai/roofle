@@ -21,7 +21,7 @@ pub async fn start_recording(
     }
     *state.last_source.lock().unwrap() = source;
     // A tray start has no renderer key; keep the last one a popup start set.
-    let resolved = ai::resolve_api_key(&api_key);
+    let resolved = ai::resolve_api_key_with(&state.storage, &api_key);
     if !resolved.is_empty() {
         *state.api_key.lock().unwrap() = resolved;
     }
@@ -34,6 +34,19 @@ pub async fn start_recording(
 #[tauri::command]
 pub fn set_followups_enabled(state: State<'_, AppState>, enabled: bool) {
     state.followups_enabled.store(enabled, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Paragraph trigger from settings; read when the next session begins.
+#[tauri::command]
+pub fn set_char_limit(state: State<'_, AppState>, limit: usize) {
+    state.char_limit.store(limit, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// How many follow-up questions may be open at once; clamped to 1..=5.
+#[tauri::command]
+pub fn set_max_open_questions(state: State<'_, AppState>, limit: usize) {
+    let limit = limit.clamp(1, live_agent::pipeline::config::MAX_OPEN_CAP);
+    state.max_open_questions.store(limit, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[tauri::command]

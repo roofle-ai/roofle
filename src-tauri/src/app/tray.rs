@@ -3,21 +3,16 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, Tray
 use tauri::{AppHandle, Emitter, Manager};
 
 use super::{lifecycle, window};
-use crate::commands::recording::{start_recording, stop_recording};
+use crate::commands::recording::stop_recording;
 use crate::events;
 use crate::state::AppState;
-
-enum TrayAction {
-    Start,
-    Stop,
-}
 
 /// The inactive action is disabled so the menu mirrors reality.
 fn build_menu(app: &AppHandle, recording: bool) -> tauri::Result<Menu<tauri::Wry>> {
     let start =
-        MenuItem::with_id(app, "start", "Start Recording", !recording, Some("CmdOrCtrl+Shift+S"))?;
+        MenuItem::with_id(app, "start", "New conversation", !recording, Some("CmdOrCtrl+Shift+S"))?;
     let stop =
-        MenuItem::with_id(app, "stop", "Stop Recording", recording, Some("CmdOrCtrl+Shift+T"))?;
+        MenuItem::with_id(app, "stop", "Stop conversation", recording, Some("CmdOrCtrl+Shift+T"))?;
     let quit = MenuItem::with_id(app, "quit", "Quit Roofle", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     Menu::with_items(app, &[&start, &stop, &separator, &quit])
@@ -33,8 +28,12 @@ pub fn build(app: &tauri::App) -> tauri::Result<TrayIcon> {
         .show_menu_on_left_click(false)
         .menu(&build_menu(app.handle(), false)?)
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "start" => run_action(app, TrayAction::Start),
-            "stop" => run_action(app, TrayAction::Stop),
+            // The goal prompt lives in the UI, so show the popup and let it start the call.
+            "start" => {
+                window::show_popup(app);
+                let _ = app.emit(events::START_REQUESTED, ());
+            }
+            "stop" => stop(app),
             "quit" => lifecycle::quit(app),
             _ => {}
         })
@@ -69,26 +68,11 @@ pub fn set_recording_state(app: &AppHandle, recording: bool) {
 }
 
 /// Off the main thread: the engine reply can block on a model download.
-fn run_action(app: &AppHandle, action: TrayAction) {
+fn stop(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
-        let result = match action {
-            TrayAction::Start => {
-                let source = *state.last_source.lock().unwrap();
-                // Fresh session, no key: the menu can't read the renderer's
-                // localStorage, so `start_recording` reuses the last key.
-                tauri::async_runtime::block_on(start_recording(
-                    app.clone(),
-                    state,
-                    source,
-                    None,
-                    String::new(),
-                ))
-            }
-            TrayAction::Stop => tauri::async_runtime::block_on(stop_recording(app.clone(), state)),
-        };
-        if let Err(e) = result {
+        if let Err(e) = tauri::async_runtime::block_on(stop_recording(app.clone(), state)) {
             let _ = app.emit(events::APP_STATUS, format!("tray: {e}"));
         }
     });

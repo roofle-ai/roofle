@@ -3122,3 +3122,78 @@ select.settings-input {
   width: 100%;
   justify-content: center;
 }
+
+/* Earlier (answered / stale) groups collapse behind their title. */
+details.qgroup > summary.qgroup-title {
+  cursor: pointer;
+  list-style: none;
+}
+
+details.qgroup > summary.qgroup-title::-webkit-details-marker {
+  display: none;
+}
+
+details.qgroup[open] > summary.qgroup-title {
+  margin-bottom: 0.45rem;
+}
+
+/* Feedback row on open cards. */
+.qfeedback {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.qfeedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.qfeedback-btn:hover,
+.qfeedback-btn:focus-visible,
+.qfeedback-btn[aria-pressed="true"] {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* Call setup dialog: free-text goal beside the select. */
+.analyse-input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}
+
+.analyse-input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+/* Goal field: textarea, suggestion chips, counter. */
+.analyse-opt { color: var(--muted); font-weight: 400; }
+.analyse-textarea { display: block; margin-top: 0.5rem; resize: vertical; min-height: 4.5rem; line-height: 1.4; }
+.analyse-textarea:focus { box-shadow: 0 0 0 3px var(--brand-tint); }
+.analyse-goal-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-top: 0.5rem; }
+.analyse-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.analyse-chip {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.analyse-chip:hover, .analyse-chip:focus-visible { color: var(--brand); border-color: var(--brand); outline: none; }
+.analyse-count { flex: none; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }

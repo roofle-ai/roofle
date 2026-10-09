@@ -25,6 +25,8 @@ document.addEventListener(SOURCE_EVENT, (e) => {
     card.classList.toggle("is-viewing", card.dataset.qid === String(viewingSourceOf));
   });
 });
+/** Collapsed "earlier" groups the user has opened; survives re-renders. */
+const expandedGroups = new Set<Status>(["answered"]);
 /** Ids already shown, so only genuinely new cards play the entrance animation. */
 const seen = new Set<number>();
 
@@ -59,10 +61,18 @@ function renderQuestions(): void {
     const items = questions.filter((q) => q.status === group.status).sort((x, y) => y.id - x.id);
     if (items.length === 0) continue;
 
-    const section = create("section", `qgroup ${group.status}`);
-    const head = create("h3", "qgroup-title");
+    // Open suggestions stay in view; earlier (answered / stale) ones are collapsed.
+    const earlier = group.status !== "open";
+    const section = create(earlier ? "details" : "section", `qgroup ${group.status}`);
+    const head = create(earlier ? "summary" : "h3", "qgroup-title");
     head.append(create("span", undefined, group.title), create("span", "qgroup-count", String(items.length)));
     section.append(head);
+    if (section instanceof HTMLDetailsElement) {
+      section.open = expandedGroups.has(group.status);
+      section.addEventListener("toggle", () =>
+        section.open ? expandedGroups.add(group.status) : expandedGroups.delete(group.status),
+      );
+    }
     for (const q of items) section.append(renderQuestion(q, group.answerLabel));
     dom.questionsList.append(section);
   }
@@ -85,6 +95,7 @@ function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
   card.append(head);
 
   if (q.source) card.append(renderSource(q, q.source));
+  if (q.status === "open") card.append(renderFeedback(q));
 
   if (q.reason) {
     const answer = create("div", "qanswer");
@@ -92,6 +103,22 @@ function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
     card.append(answer);
   }
   return card;
+}
+
+/** "I asked this": tells the pipeline the question was used, and moves it off the list. */
+function renderFeedback(q: FollowUp): HTMLElement {
+  const row = create("div", "qfeedback");
+  const btn = create("button", "qfeedback-btn", "I asked this");
+  btn.type = "button";
+  btn.addEventListener("click", () => void sendAsked(q));
+  row.append(btn);
+  return row;
+}
+
+async function sendAsked(q: FollowUp): Promise<void> {
+  if (session.viewedId === null) return;
+  // The card moves via the backend's list update; on failure it stays as is.
+  await invoke<void>("question_feedback", { sessionId: session.viewedId, questionId: q.id, kind: "asked" }).catch(() => {});
 }
 
 /** Compact button that jumps to the transcript passage the question came from. */

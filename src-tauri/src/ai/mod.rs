@@ -7,5 +7,5 @@ mod notes_client;
 
 pub use client::{AiClient, ChatMessage};
 pub use config::{data_dir, load_for, save, AiConfig, AiConfigView, ProviderKind};
-pub use key::{env_api_key, resolve_api_key};
+pub use key::{resolve_api_key_with, KEY_SETTING};
 pub use notes_client::NotesClient;

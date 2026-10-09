@@ -15,6 +15,18 @@ pub fn resolve_api_key(renderer_key: &str) -> String {
     env_api_key().unwrap_or_else(|| renderer_key.trim().to_string())
 }
 
+/// `app_config` key holding the API key typed in Settings.
+pub const KEY_SETTING: &str = "ai_api_key";
+
+/// Env key, else the renderer's key, else the one saved in Settings.
+pub fn resolve_api_key_with(storage: &roofle_core::storage::SqliteStorage, renderer_key: &str) -> String {
+    let resolved = resolve_api_key(renderer_key);
+    if !resolved.is_empty() {
+        return resolved;
+    }
+    storage.get_config(KEY_SETTING).ok().flatten().unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

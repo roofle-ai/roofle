@@ -22,8 +22,8 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
-    // The current schema is V4 (repairs `transcript_log` start times).
-    assert_eq!(storage.schema_version().unwrap(), 4);
+    // The current schema is V5 (question pipeline tables).
+    assert_eq!(storage.schema_version().unwrap(), 6);
 }
 
 #[test]
@@ -370,14 +370,62 @@ fn live_notes_override_and_latest() {
 fn questions_round_trip_and_stale_transition() {
     let storage = store();
     let session = storage.create_session(new_session("system", Utc::now())).unwrap();
-    storage.create_question(session.id, "what next?", 3).unwrap();
-    storage.create_question(session.id, "who owns it?", 4).unwrap();
+    for (key, text, seq) in [("Q1", "what next?", 3), ("Q2", "who owns it?", 4)] {
+        storage
+            .create_pipeline_question(&crate::storage::NewPipelineQuestion {
+                session_id: session.id, key, text, gap_type: "NO_NUMBER",
+                source_sequence_no: seq, source_ts_ms: 0,
+            })
+            .unwrap();
+    }
 
     let open = storage.list_questions(session.id).unwrap();
     assert_eq!(open.len(), 2);
     assert!(open.iter().all(|q| q.status == crate::storage::QuestionStatus::Open));
 
-    storage.mark_open_questions_stale(session.id).unwrap();
+    for key in ["Q1", "Q2"] {
+        storage
+            .resolve_question_by_key(session.id, key, crate::storage::QuestionStatus::Stale, "old", None)
+            .unwrap();
+    }
     let stale = storage.list_questions(session.id).unwrap();
     assert!(stale.iter().all(|q| q.status == crate::storage::QuestionStatus::Stale));
+}
+
+#[test]
+fn pipeline_questions_memory_and_runs_round_trip() {
+    use crate::storage::{NewPipelineQuestion, PipelineRun};
+    let storage = store();
+    let session = storage.create_session(new_session("system", Utc::now())).unwrap();
+    let q = NewPipelineQuestion {
+        session_id: session.id,
+        key: "Q7",
+        text: "What happens if the trigger fails?",
+        gap_type: "PLAN_NO_FALLBACK",
+        source_sequence_no: 2,
+        source_ts_ms: 42_000,
+    };
+    storage.create_pipeline_question(&q).unwrap();
+    storage.set_question_feedback(session.id, "Q7", "asked").unwrap();
+    let listed = storage.list_questions(session.id).unwrap();
+    assert_eq!(listed[0].question_key.as_deref(), Some("Q7"));
+    assert_eq!(listed[0].source_ts_ms, Some(42_000));
+    assert_eq!(listed[0].feedback.as_deref(), Some("asked"));
+
+    storage
+        .resolve_question_by_key(session.id, "Q7", crate::storage::QuestionStatus::Answered, "later", Some(3))
+        .unwrap();
+    assert_eq!(storage.list_questions(session.id).unwrap()[0].status, crate::storage::QuestionStatus::Answered);
+
+    assert_eq!(storage.load_memory(session.id).unwrap(), None);
+    storage.save_memory(session.id, "{\"a\":1}", 1).unwrap();
+    storage.save_memory(session.id, "{\"a\":2}", 1).unwrap();
+    assert_eq!(storage.load_memory(session.id).unwrap().as_deref(), Some("{\"a\":2}"));
+
+    storage
+        .log_pipeline_run(&PipelineRun {
+            session_id: session.id, chunk_id: 2, stage: "judge", model: "m",
+            prompt_version: "judge.v1", input: "", output: Some("{}"), error: None,
+        })
+        .unwrap();
 }

@@ -19,9 +19,25 @@ pub struct AiConfig {
     pub kind: ProviderKind,
     pub base_url: String,
     pub model: String,
+    /// Optional per-stage models for the question pipeline; empty = `model`.
+    #[serde(default)]
+    pub understand_model: String,
+    #[serde(default)]
+    pub write_model: String,
+    #[serde(default)]
+    pub judge_model: String,
 }
 
 impl AiConfig {
+    /// A copy of this config using `stage_model` when set, else the main model.
+    pub fn for_stage(&self, stage_model: &str) -> AiConfig {
+        let mut c = self.clone();
+        if !stage_model.trim().is_empty() {
+            c.model = stage_model.trim().to_string();
+        }
+        c
+    }
+
     pub fn is_usable_with(&self, api_key: &str) -> bool {
         !self.model.trim().is_empty() && !api_key.trim().is_empty()
     }
@@ -33,6 +49,9 @@ impl Default for AiConfig {
             kind: ProviderKind::OpenAiCompat,
             base_url: DEFAULT_BASE_URL.to_string(),
             model: String::new(),
+            understand_model: String::new(),
+            write_model: String::new(),
+            judge_model: String::new(),
         }
     }
 }

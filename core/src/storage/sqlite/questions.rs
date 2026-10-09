@@ -3,11 +3,15 @@
 
 use rusqlite::params;
 
-use crate::storage::{LiveNote, Question, QuestionStatus, QuestionStore, StorageError};
+use crate::storage::{
+    LiveNote, NewPipelineQuestion, PipelineRun, Question, QuestionStatus, QuestionStore,
+    StorageError,
+};
 
 use super::sql::{
-    INSERT_QUESTION, SELECT_LATEST_LIVE_NOTE, SELECT_QUESTIONS, UPDATE_QUESTION_RESOLVE,
-    UPDATE_QUESTIONS_STALE, UPSERT_LIVE_NOTE,
+    INSERT_PIPELINE_QUESTION, INSERT_PIPELINE_RUN, SELECT_LATEST_LIVE_NOTE,
+    SELECT_MEMORY, SELECT_QUESTIONS, UPDATE_QUESTION_FEEDBACK, UPDATE_QUESTION_RESOLVE_BY_KEY,
+    UPSERT_LIVE_NOTE, UPSERT_MEMORY,
 };
 use super::{parse_utc, to_rfc3339, SqliteStorage};
 
@@ -19,57 +23,90 @@ impl QuestionStore for SqliteStorage {
         rows.map(|r| r.map_err(StorageError::from)).collect()
     }
 
-    fn create_question(
+    fn create_pipeline_question(&self, q: &NewPipelineQuestion) -> Result<i64, StorageError> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            INSERT_PIPELINE_QUESTION,
+            params![
+                q.session_id,
+                q.text,
+                q.source_sequence_no,
+                to_rfc3339(chrono::Utc::now()),
+                q.key,
+                q.source_ts_ms,
+                q.gap_type,
+            ],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    fn resolve_question_by_key(
         &self,
         session_id: i64,
-        text: &str,
-        source_sequence_no: i64,
-    ) -> Result<Question, StorageError> {
-        let conn = self.conn.lock().unwrap();
-        let now = to_rfc3339(chrono::Utc::now());
-        conn.execute(
-            INSERT_QUESTION,
-            params![session_id, text, None::<String>, source_sequence_no, now],
-        )?;
-        Ok(Question {
-            id: conn.last_insert_rowid(),
-            session_id,
-            text: text.to_string(),
-            lens: None,
-            status: QuestionStatus::Open,
-            resolution_reason: None,
-            source_sequence_no,
-            resolved_sequence_no: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        })
-    }
-
-    fn mark_open_questions_stale(&self, session_id: i64) -> Result<(), StorageError> {
-        let conn = self.conn.lock().unwrap();
-        conn.execute(
-            UPDATE_QUESTIONS_STALE,
-            params![to_rfc3339(chrono::Utc::now()), session_id],
-        )?;
-        Ok(())
-    }
-
-    fn resolve_question(
-        &self,
-        id: i64,
+        key: &str,
         status: QuestionStatus,
         reason: &str,
         resolved_sequence_no: Option<i64>,
     ) -> Result<(), StorageError> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            UPDATE_QUESTION_RESOLVE,
+            UPDATE_QUESTION_RESOLVE_BY_KEY,
             params![
                 status_str(status),
                 reason,
                 resolved_sequence_no,
                 to_rfc3339(chrono::Utc::now()),
-                id,
+                session_id,
+                key,
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn set_question_feedback(
+        &self,
+        session_id: i64,
+        key: &str,
+        feedback: &str,
+    ) -> Result<(), StorageError> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            UPDATE_QUESTION_FEEDBACK,
+            params![feedback, to_rfc3339(chrono::Utc::now()), session_id, key],
+        )?;
+        Ok(())
+    }
+
+    fn save_memory(&self, session_id: i64, json: &str, schema_version: u32) -> Result<(), StorageError> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            UPSERT_MEMORY,
+            params![session_id, json, schema_version, to_rfc3339(chrono::Utc::now())],
+        )?;
+        Ok(())
+    }
+
+    fn load_memory(&self, session_id: i64) -> Result<Option<String>, StorageError> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(SELECT_MEMORY)?;
+        let mut rows = stmt.query_map(params![session_id], |r| r.get::<_, String>(0))?;
+        rows.next().transpose().map_err(StorageError::from)
+    }
+
+    fn log_pipeline_run(&self, run: &PipelineRun) -> Result<(), StorageError> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            INSERT_PIPELINE_RUN,
+            params![
+                run.session_id,
+                run.chunk_id,
+                run.stage,
+                run.model,
+                run.prompt_version,
+                run.input,
+                run.output,
+                run.error,
+                to_rfc3339(chrono::Utc::now()),
             ],
         )?;
         Ok(())
@@ -122,6 +159,9 @@ fn read_question(row: &rusqlite::Row) -> rusqlite::Result<Question> {
             .map_err(ts_err)?,
         updated_at: parse_utc(&row.get::<_, String>(9)?)
             .map_err(ts_err)?,
+        question_key: row.get(10)?,
+        source_ts_ms: row.get(11)?,
+        feedback: row.get(12)?,
     })
 }
 

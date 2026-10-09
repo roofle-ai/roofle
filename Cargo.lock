@@ -2354,6 +2354,7 @@ dependencies = [
  "roofle-core",
  "serde",
  "serde_json",
+ "ureq",
 ]
 
 [[package]]

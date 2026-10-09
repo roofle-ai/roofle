@@ -28,6 +28,18 @@ use serde::Deserialize;
 pub trait CompletionClient {
     /// Complete a chat: system prompt + user message → assistant reply text.
     fn complete(&self, system: &str, user: &str) -> Result<String, String>;
+
+    /// Like [`complete`](Self::complete), but the reply must match the JSON
+    /// `schema` (temperature 0, strict). Defaults to plain `complete` so
+    /// clients without structured output keep working.
+    fn complete_json(
+        &self,
+        system: &str,
+        user: &str,
+        _schema: &serde_json::Value,
+    ) -> Result<String, String> {
+        self.complete(system, user)
+    }
 }
 
 /// Steers the classifier toward telling meetings, conversations and

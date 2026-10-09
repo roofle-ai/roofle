@@ -1,0 +1,12 @@
+{
+  "goal": "Stay on Glue or move to Fivetran?",
+  "must_surface": [
+    ["trigger fails", "dbt trigger", "fallback"],
+    ["annual cost", "cost fivetran"]
+  ],
+  "must_not_surface": [
+    "what specific",
+    "can you elaborate"
+  ],
+  "max_questions_per_10_min": 2
+}

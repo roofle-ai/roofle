@@ -156,32 +156,48 @@ ORDER BY sequence_no
 /// A session's questions, newest first.
 pub(super) const SELECT_QUESTIONS: &str = r#"
 SELECT id, session_id, text, lens, status, resolution_reason,
-       source_sequence_no, resolved_sequence_no, created_at, updated_at
+       source_sequence_no, resolved_sequence_no, created_at, updated_at,
+       question_key, source_ts_ms, feedback
 FROM questions
 WHERE session_id = ?1
 ORDER BY id DESC
 "#;
 
-/// Insert one open question.
-pub(super) const INSERT_QUESTION: &str = r#"
+/// Insert one open question raised by the pipeline.
+pub(super) const INSERT_PIPELINE_QUESTION: &str = r#"
 INSERT INTO questions
-    (session_id, text, lens, status, resolution_reason,
-     source_sequence_no, resolved_sequence_no, created_at, updated_at)
-VALUES (?1, ?2, ?3, 'open', NULL, ?4, NULL, ?5, ?5)
+    (session_id, text, lens, status, resolution_reason, source_sequence_no,
+     resolved_sequence_no, created_at, updated_at, question_key, source_ts_ms, gap_type)
+VALUES (?1, ?2, NULL, 'open', NULL, ?3, NULL, ?4, ?4, ?5, ?6, ?7)
 "#;
 
-/// Mark every currently-open question of a session stale.
-pub(super) const UPDATE_QUESTIONS_STALE: &str = r#"
-UPDATE questions
-SET status = 'stale', updated_at = ?1
-WHERE session_id = ?2 AND status = 'open'
-"#;
-
-/// Resolve a single question: set status, reason, and resolving sequence.
-pub(super) const UPDATE_QUESTION_RESOLVE: &str = r#"
+pub(super) const UPDATE_QUESTION_RESOLVE_BY_KEY: &str = r#"
 UPDATE questions
 SET status = ?1, resolution_reason = ?2, resolved_sequence_no = ?3, updated_at = ?4
-WHERE id = ?5
+WHERE session_id = ?5 AND question_key = ?6
+"#;
+
+pub(super) const UPDATE_QUESTION_FEEDBACK: &str = r#"
+UPDATE questions SET feedback = ?1, updated_at = ?2
+WHERE session_id = ?3 AND question_key = ?4
+"#;
+
+pub(super) const UPSERT_MEMORY: &str = r#"
+INSERT INTO session_memory (session_id, memory_json, schema_version, updated_at)
+VALUES (?1, ?2, ?3, ?4)
+ON CONFLICT(session_id) DO UPDATE SET
+    memory_json = excluded.memory_json,
+    schema_version = excluded.schema_version,
+    updated_at = excluded.updated_at
+"#;
+
+pub(super) const SELECT_MEMORY: &str =
+    "SELECT memory_json FROM session_memory WHERE session_id = ?1";
+
+pub(super) const INSERT_PIPELINE_RUN: &str = r#"
+INSERT INTO pipeline_runs
+    (session_id, chunk_id, stage, model, prompt_version, input, output, error, created_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
 "#;
 
 // --- live_notes ------------------------------------------------------------

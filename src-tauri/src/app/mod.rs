@@ -7,7 +7,7 @@ mod window;
 
 use tauri_plugin_window_state::StateFlags;
 
-use crate::commands::{ai, export, models, recording, sessions};
+use crate::commands::{ai, export, models, pipeline, recording, sessions};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +28,8 @@ pub fn run() {
             recording::resume_recording,
             recording::stop_recording,
             recording::set_followups_enabled,
+            recording::set_char_limit,
+            recording::set_max_open_questions,
             models::list_models,
             models::select_model,
             models::selected_model,
@@ -37,6 +39,9 @@ pub fn run() {
             sessions::get_session,
             sessions::delete_session,
             sessions::list_session_questions,
+            pipeline::set_goal,
+            pipeline::set_meeting_type,
+            pipeline::question_feedback,
             sessions::save_notes,
             ai::load_ai_config,
             ai::save_ai_config,

@@ -1,13 +1,13 @@
 // Roofle frontend — typed access to the reusable Rust AI client.
 //
 // Mirrors roofle_app::ai. The config (base URL / model) is managed from App
-// Settings and persisted by Rust; the API key is owned by this renderer in
-// localStorage (kept out of the OS keychain) and handed back to Rust per call.
+// Settings and persisted by Rust; the API key lives in the app_config table
+// and Rust falls back to it when a call passes no key.
 // Future features call `chat` against the same client.
 
 import { invoke } from "@tauri-apps/api/core";
 
-/** localStorage key holding the API key (owned by the renderer, not keychain). */
+/** Legacy localStorage key; only read to migrate an old key into the database. */
 export const API_KEY_STORE = "roofle-ai-api-key";
 
 export interface AiConfigView {
@@ -31,30 +31,30 @@ export function loadStoredApiKey(): string {
   }
 }
 
-/** Persist the API key to localStorage ("" clears it). Never touches keychain. */
-export function storeApiKey(key: string): void {
-  try {
-    localStorage.setItem(API_KEY_STORE, key.trim());
-  } catch {
-    /* ignore storage failures */
-  }
-}
-
-/** Load the AI config (base URL, model). Key presence comes from localStorage. */
+/** Load the AI config (base URL, model, whether a key is saved). */
 export async function loadAiConfig(): Promise<AiConfigView> {
-  const cfg = await invoke<AiConfigView>("load_ai_config");
-  cfg.has_api_key = loadStoredApiKey().length > 0;
-  return cfg;
+  const legacy = loadStoredApiKey();
+  if (legacy) {
+    // One-time move of a key saved by an older build from localStorage to the database.
+    const old = await invoke<AiConfigView>("load_ai_config");
+    await saveAiConfig(old.base_url, old.model, legacy);
+    try {
+      localStorage.removeItem(API_KEY_STORE);
+    } catch {
+      /* ignore storage failures */
+    }
+  }
+  return invoke<AiConfigView>("load_ai_config");
 }
 
-/** Persist the non-secret AI config in Rust; store the API key in localStorage. */
+/** Persist the AI config in Rust; a newly typed API key goes to the app_config table. */
 export async function saveAiConfig(
   baseUrl: string,
   model: string,
   apiKey: string,
 ): Promise<void> {
-  await invoke<void>("save_ai_config", { baseUrl, model });
-  storeApiKey(apiKey);
+  // The key field is never pre-filled, so blank means "unchanged", not "clear".
+  await invoke<void>("save_ai_config", { baseUrl, model, apiKey: apiKey.trim() || null });
 }
 
 /** Verify the configured client with a trivial prompt; returns the reply. */

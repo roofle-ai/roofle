@@ -1,12 +1,15 @@
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 import { loadStoredApiKey } from "../ai";
 import { session, type SessionState } from "../app/state";
 import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
+import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
 import { refreshNotesTitle, saveNotesNow, setNotesPreview, updateNotesSaveVisibility } from "./notes";
+import { askCallSetup, type CallSetup } from "./call-setup";
 import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
 import { resetView } from "./view";
@@ -62,7 +65,17 @@ async function command(name: "pause_recording" | "resume_recording", next: Sessi
 const pause = () => command("pause_recording", "paused");
 const resume = () => command("resume_recording", "recording");
 
+/** Send the call's type and goal to the question pipeline of the session just started. */
+async function applyCallSetup({ kind, goal }: CallSetup): Promise<void> {
+  const sessionId = session.activeId ?? session.viewedId;
+  if (sessionId === null) return;
+  await invoke("set_meeting_type", { sessionId, kind });
+  if (goal) await invoke("set_goal", { sessionId, text: goal });
+}
+
 async function start(): Promise<void> {
+  const setup = await askCallSetup();
+  if (setup === null) return;
   try {
     const continueId = session.viewedId;
     if (continueId === null) {
@@ -72,6 +85,9 @@ async function start(): Promise<void> {
     }
     resetQuestions();
     setAnalysisMode(false);
+    const settings = loadLiveSessionSettings();
+    await invoke("set_char_limit", { limit: settings.charLimit });
+    await invoke("set_max_open_questions", { limit: settings.maxOpenQuestions });
     await invoke("start_recording", {
       source: "both",
       sessionId: continueId,
@@ -80,6 +96,7 @@ async function start(): Promise<void> {
     if (continueId === null) await adoptActiveSession();
     else refreshNotesTitle();
     await syncFollowups();
+    await applyCallSetup(setup);
     setSessionState("recording");
   } catch (err) {
     setStatus("error", describeError(err));
@@ -138,4 +155,8 @@ export function initTransport(openSettings: () => void): void {
   dom.settingsBtn?.addEventListener("click", openSettings);
   initFollowupToggle();
   initShortcuts();
+  // Tray "New conversation": same flow as the record button, goal prompt included.
+  void listen("start-requested", () => {
+    if (session.state === "idle") void start();
+  });
 }
