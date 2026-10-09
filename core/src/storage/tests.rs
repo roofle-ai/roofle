@@ -23,7 +23,7 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
     // The current schema is V5 (question pipeline tables).
-    assert_eq!(storage.schema_version().unwrap(), 5);
+    assert_eq!(storage.schema_version().unwrap(), 6);
 }
 
 #[test]

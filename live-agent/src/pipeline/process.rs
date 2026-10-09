@@ -4,7 +4,7 @@
 use crate::notes::CompletionClient;
 
 use super::config::PipelineConfig;
-use super::gaps::pick_best;
+use super::gaps::{pick_best, render_user_prompt, WriteInput};
 use super::guards;
 use super::memory::{Memory, Question, QuestionState, Speaker};
 use super::stages::*;
@@ -157,16 +157,19 @@ pub fn process_chunk(
     }
 
     // Stage 2: write.
-    let user = format!(
-        "GAP TYPE: {}\nQuestion shape: {}\nQUOTE: {}\nSPEAKER: {:?}\nGOAL:\n{}\n\nGLOSSARY:\n{}\n\nSUMMARY:\n{}",
-        gap.gap_type.name(),
-        gap.gap_type.template(),
-        gap.quote,
-        gap.speaker,
-        or_none(&mem.goal),
-        or_none(&glossary.join("\n")),
-        or_none(&mem.summary),
-    );
+    let shown: Vec<String> = mem.recent_question_texts().iter().map(|q| q.to_string()).collect();
+    let user = render_user_prompt(&WriteInput {
+        gap_type: gap.gap_type,
+        key_phrase: &gap.key_phrase,
+        quote: &gap.quote,
+        note: &gap.note,
+        speaker: &format!("{:?}", gap.speaker),
+        goal: &mem.goal,
+        summary: &mem.summary,
+        shown: &shown,
+        glossary: &glossary.join("\n"),
+        chunk_id: chunk.id,
+    });
     let text = match call::<Written>(&mut out, stages.write, "write", WRITE_VERSION, WRITE_SYSTEM, user, &write_schema()) {
         Ok(w) => w.question.trim().to_string(),
         Err(e) => return Ok(drop_with(out, format!("write failed: {e}"))),
@@ -321,7 +324,7 @@ mod tests {
             fn complete(&self, _: &str, _: &str) -> Result<String, String> { unreachable!() }
             fn complete_json(&self, system: &str, user: &str, _: &serde_json::Value) -> Result<String, String> {
                 if system.starts_with("You judge") { self.0.borrow_mut().push(user.to_string()); }
-                Ok(if system.starts_with("You read one chunk") {
+                Ok(if system.starts_with("You listen to one chunk") {
                     ONE_GAP.replace(r#""summary":"s""#, r#""summary":"NEWSUMMARY""#)
                 } else if system.starts_with("You write ONE") { Q.into() } else { PASS.into() })
             }

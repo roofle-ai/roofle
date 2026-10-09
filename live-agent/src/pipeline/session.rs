@@ -117,7 +117,7 @@ mod tests {
         fn complete_json(&self, system: &str, user: &str, _: &serde_json::Value) -> Result<String, String> {
             self.log.borrow_mut().push_back(user.to_string());
             let t = self.topic;
-            Ok(if system.starts_with("You read one chunk") {
+            Ok(if system.starts_with("You listen to one chunk") {
                 format!(r#"{{"clean_chunk":"{t} chunk","summary":"{t} summary","answered_points":[],"answered_questions":[],"gaps":[{{"type":"NO_NUMBER","quote":"{t} cost","speaker":"presenter","source_id":"T1","note":"n"}}]}}"#)
             } else if system.starts_with("You write ONE") {
                 format!(r#"{{"question":"What is the actual annual {t} cost at our current volume?"}}"#)

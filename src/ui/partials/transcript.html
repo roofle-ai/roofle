@@ -138,7 +138,7 @@
         </svg>
       </span>
     </button>
-    <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop recording" hidden>
+    <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop conversation" hidden>
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
         <rect x="6" y="6" width="12" height="12" rx="2" />
       </svg>
@@ -184,14 +184,23 @@
         <option value="sales">Sales or customer call</option>
         <option value="status">Status update</option>
         <option value="interview">Interview</option>
+        <option value="discovery">Discovery or requirements</option>
+        <option value="negotiation">Negotiation</option>
+        <option value="planning">Planning or brainstorm</option>
+        <option value="training">Training or onboarding</option>
+        <option value="support">Support or incident</option>
         <option value="other" selected>Something else</option>
       </select>
     </div>
 
     <div class="analyse-field">
-      <label class="analyse-label" for="call-setup-goal">Goal (optional)</label>
-      <span class="analyse-desc">What should this call settle? Questions are picked to serve it.</span>
-      <input id="call-setup-goal" class="analyse-input" type="text" maxlength="200" placeholder="e.g. Stay on Glue or move to Fivetran?" autocomplete="off" />
+      <label class="analyse-label" for="call-setup-goal">Goal <span class="analyse-opt">(optional)</span></label>
+      <span class="analyse-desc">The decision or outcome this call should reach. Questions are picked to serve it.</span>
+      <textarea id="call-setup-goal" class="analyse-input analyse-textarea" rows="3" maxlength="200" placeholder="e.g. Decide whether to stay on Glue or move to Fivetran" autocomplete="off"></textarea>
+      <div class="analyse-goal-foot">
+        <div id="call-setup-chips" class="analyse-chips" aria-label="Goal suggestions"></div>
+        <span id="call-setup-count" class="analyse-count">0/200</span>
+      </div>
     </div>
 
     <div class="analyse-actions">

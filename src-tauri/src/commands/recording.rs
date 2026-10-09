@@ -21,7 +21,7 @@ pub async fn start_recording(
     }
     *state.last_source.lock().unwrap() = source;
     // A tray start has no renderer key; keep the last one a popup start set.
-    let resolved = ai::resolve_api_key(&api_key);
+    let resolved = ai::resolve_api_key_with(&state.storage, &api_key);
     if !resolved.is_empty() {
         *state.api_key.lock().unwrap() = resolved;
     }

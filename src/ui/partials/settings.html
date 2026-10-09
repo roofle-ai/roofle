@@ -14,28 +14,17 @@
         <button type="button" role="tab" class="settings-nav-item active" data-pane="llm" aria-selected="true" aria-controls="settings-pane-llm">
           <i data-lucide="cpu" aria-hidden="true"></i><span>LLM Configuration</span>
         </button>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="live" aria-selected="false" aria-controls="settings-pane-live">
+          <i data-lucide="radio" aria-hidden="true"></i><span>Live Session</span>
+        </button>
       </nav>
 
       <div class="settings-content">
         <div id="settings-pane-llm" class="settings-pane active" role="tabpanel" data-pane="llm">
           <header class="pane-head">
             <h3 class="pane-title">LLM Configuration</h3>
-            <p class="pane-desc">Connect any OpenAI-compatible model and tune how often questions are generated.</p>
+            <p class="pane-desc">Connect any OpenAI-compatible model.</p>
           </header>
-
-          <div class="settings-group">
-            <h4 class="group-title">Live session</h4>
-            <div class="settings-field">
-              <label for="char-limit" class="settings-field-label">Question trigger</label>
-              <input id="char-limit" type="number" min="50" max="5000" step="10" value="500" class="settings-input" />
-              <p class="settings-field-hint">Generate questions after this many new characters. Default 500; lower values surface questions sooner.</p>
-            </div>
-            <div class="settings-field">
-              <label for="max-open" class="settings-field-label">Questions on screen</label>
-              <input id="max-open" type="number" min="1" max="5" step="1" value="2" class="settings-input" />
-              <p class="settings-field-hint">Most follow-up questions shown at once, 1 to 5. Default 2. A new question waits until one is answered, asked or goes stale.</p>
-            </div>
-          </div>
 
           <div class="settings-group">
             <h4 class="group-title">Model connection</h4>
@@ -59,6 +48,26 @@
             <div class="ai-settings-actions">
               <span id="ai-test-result" class="ai-test-result" role="status" aria-live="polite"></span>
               <button id="ai-test" type="button" class="btn-ghost btn-outline">Test connection</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="settings-pane-live" class="settings-pane" role="tabpanel" data-pane="live">
+          <header class="pane-head">
+            <h3 class="pane-title">Live Session</h3>
+            <p class="pane-desc">Tune how often follow-up questions are generated and shown.</p>
+          </header>
+
+          <div class="settings-group">
+            <div class="settings-field">
+              <label for="char-limit" class="settings-field-label">Question trigger</label>
+              <input id="char-limit" type="number" min="50" max="5000" step="10" value="500" class="settings-input" />
+              <p class="settings-field-hint">Generate questions after this many new characters. Default 500; lower values surface questions sooner.</p>
+            </div>
+            <div class="settings-field">
+              <label for="max-open" class="settings-field-label">Questions on screen</label>
+              <input id="max-open" type="number" min="1" max="5" step="1" value="2" class="settings-input" />
+              <p class="settings-field-hint">Most follow-up questions shown at once, 1 to 5. Default 2. A new question waits until one is answered, asked or goes stale.</p>
             </div>
           </div>
         </div>

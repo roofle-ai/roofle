@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 import { loadStoredApiKey } from "../ai";
@@ -154,4 +155,8 @@ export function initTransport(openSettings: () => void): void {
   dom.settingsBtn?.addEventListener("click", openSettings);
   initFollowupToggle();
   initShortcuts();
+  // Tray "New conversation": same flow as the record button, goal prompt included.
+  void listen("start-requested", () => {
+    if (session.state === "idle") void start();
+  });
 }

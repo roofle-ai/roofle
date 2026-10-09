@@ -5,6 +5,7 @@
 //! itself lives in the [`schema`] directory (DB initialization / migrations).
 
 mod analysis;
+mod app_config;
 mod paragraphs;
 mod questions;
 mod schema;

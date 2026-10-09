@@ -69,7 +69,7 @@ function loadAiConfigFields(): void {
       aiModel.value = cfg.model;
       aiApiKey.value = "";
       aiKeyState.textContent = cfg.has_api_key
-        ? "API key saved."
+        ? "API key saved. Leave blank to keep it."
         : "No API key saved.";
       aiTestBtn.disabled = !cfg.has_api_key && !aiApiKey.value;
     })
@@ -92,7 +92,7 @@ async function runAiTest(): Promise<void> {
     const reply = await testAiConnection(loadStoredApiKey());
     aiTestResult.textContent = `OK — model replied: ${reply}`;
   } catch (err) {
-    aiTestResult.textContent = `Failed: ${String(err)}`;
+    aiTestResult.textContent = String(err).replace(/^Error:\s*/, "");
   } finally {
     aiTestBtn.disabled = false;
   }

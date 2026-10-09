@@ -19,6 +19,9 @@ pub struct Gap {
     #[serde(rename = "type")]
     pub gap_type: GapType,
     pub quote: String,
+    /// Shortest span of the quote that carries the gap.
+    #[serde(default)]
+    pub key_phrase: String,
     pub speaker: Speaker,
     pub source_id: String,
     pub note: String,
@@ -89,10 +92,11 @@ pub fn understand_schema() -> Value {
             "answered_questions": strings(),
             "gaps": { "type": "array", "items": {
                 "type": "object", "additionalProperties": false,
-                "required": ["type", "quote", "speaker", "source_id", "note"],
+                "required": ["type", "quote", "key_phrase", "speaker", "source_id", "note"],
                 "properties": {
                     "type": { "type": "string", "enum": types },
                     "quote": { "type": "string" },
+                    "key_phrase": { "type": "string" },
                     "speaker": { "type": "string", "enum": ["presenter", "other", "unknown"] },
                     "source_id": { "type": "string" },
                     "note": { "type": "string" }

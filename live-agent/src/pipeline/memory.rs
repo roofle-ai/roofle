@@ -23,6 +23,11 @@ pub enum MeetingType {
     Sales,
     Status,
     Interview,
+    Discovery,
+    Negotiation,
+    Planning,
+    Training,
+    Support,
     #[default]
     Other,
 }

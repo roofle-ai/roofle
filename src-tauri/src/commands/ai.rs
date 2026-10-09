@@ -2,27 +2,37 @@ use live_agent::notes::{log_step, logging_enabled};
 use live_agent::recap::{recap_recent, Recap, Utterance};
 use offline_agent::analysis::{analyse, AnalysisResult};
 use roofle_core::storage::{AudioSource, SessionRepository};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 
 use crate::ai::{self, AiClient, AiConfig, AiConfigView, ChatMessage, NotesClient, ProviderKind};
 use crate::state::AppState;
 
 const NOT_CONFIGURED: &str = "AI not configured: set a model and API key in Settings";
 
-/// Never returns the API key; `has_api_key` reflects env vars only.
+/// Never returns the API key; `has_api_key` reflects env vars or the saved key.
 #[tauri::command]
-pub fn load_ai_config(app: AppHandle) -> Result<AiConfigView, String> {
+pub fn load_ai_config(app: AppHandle, state: State<AppState>) -> Result<AiConfigView, String> {
     let config = ai::load_for(&app)?;
     Ok(AiConfigView {
         kind: config.kind,
         base_url: config.base_url,
         model: config.model,
-        has_api_key: ai::env_api_key().is_some(),
+        has_api_key: !ai::resolve_api_key_with(&state.storage, "").is_empty(),
     })
 }
 
 #[tauri::command]
-pub fn save_ai_config(app: AppHandle, base_url: String, model: String) -> Result<(), String> {
+pub fn save_ai_config(
+    app: AppHandle,
+    state: State<AppState>,
+    base_url: String,
+    model: String,
+    api_key: Option<String>,
+) -> Result<(), String> {
+    // Blank or absent means "unchanged".
+    if let Some(key) = api_key.as_deref().map(str::trim).filter(|k| !k.is_empty()) {
+        state.storage.set_config(ai::KEY_SETTING, key).map_err(|e| e.to_string())?;
+    }
     // Keep the per-stage models, which this form does not edit.
     let config = AiConfig {
         kind: ProviderKind::OpenAiCompat,
@@ -37,13 +47,40 @@ pub fn save_ai_config(app: AppHandle, base_url: String, model: String) -> Result
 #[tauri::command]
 pub async fn test_ai_connection(app: AppHandle, api_key: String) -> Result<String, String> {
     let config = ai::load_for(&app)?;
-    let api_key = ai::resolve_api_key(&api_key);
+    let api_key = ai::resolve_api_key_with(&app.state::<AppState>().storage, &api_key);
     tauri::async_runtime::spawn_blocking(move || {
         let messages = vec![ChatMessage::new("user", "Reply with the single word OK.")];
         AiClient::new().chat(&config, &api_key, messages)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?
+    .map_err(|e| friendly_error(&e))
+}
+
+/// One readable line for the settings screen; the raw error stays in the logs.
+fn friendly_error(raw: &str) -> String {
+    let lower = raw.to_lowercase();
+    let code = raw
+        .split("HTTP ")
+        .nth(1)
+        .and_then(|r| r.split(|c: char| !c.is_ascii_digit()).next())
+        .and_then(|c| c.parse::<u16>().ok());
+    let msg = match code {
+        Some(401 | 403) => "The API key was rejected. Check the key and try again.".to_string(),
+        Some(404) => "Endpoint or model not found. Check the base URL and model name.".to_string(),
+        Some(429) => "Rate limit or quota reached. Try again shortly or check your plan.".to_string(),
+        Some(c) if c >= 500 => "The provider had a server error. Try again in a moment.".to_string(),
+        Some(c) => format!("The provider rejected the request (HTTP {c})."),
+        None if lower.contains("timed out") => "The request timed out. Check the base URL and your network.".to_string(),
+        None if lower.contains("dns") || lower.contains("connection") => {
+            "Could not reach the server. Check the base URL and your network.".to_string()
+        }
+        None if lower.contains("not configured") || lower.contains("base url") || lower.contains("model") => {
+            raw.lines().next().unwrap_or(raw).chars().take(120).collect()
+        }
+        None => "Connection test failed. Check the base URL, model and API key.".to_string(),
+    };
+    msg
 }
 
 /// Evaluate a finished session and persist the result so a later click shows
@@ -56,7 +93,7 @@ pub async fn analyse_session(
     api_key: String,
 ) -> Result<AnalysisResult, String> {
     let config = ai::load_for(&app)?;
-    let api_key = ai::resolve_api_key(&api_key);
+    let api_key = ai::resolve_api_key_with(&app.state::<AppState>().storage, &api_key);
     if !config.is_usable_with(&api_key) {
         return Err(NOT_CONFIGURED.to_string());
     }
@@ -146,7 +183,7 @@ pub async fn recap_session(
     // Same key the live notes agent uses (captured at recording start); the
     // renderer's key only covers sessions viewed without a recording this run.
     let live_key = app.state::<AppState>().api_key.lock().unwrap().clone();
-    let api_key = if live_key.trim().is_empty() { ai::resolve_api_key(&api_key) } else { live_key };
+    let api_key = if live_key.trim().is_empty() { ai::resolve_api_key_with(&app.state::<AppState>().storage, &api_key) } else { live_key };
     if !config.is_usable_with(&api_key) {
         return Err(NOT_CONFIGURED.to_string());
     }
@@ -176,4 +213,17 @@ pub async fn recap_session(
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::friendly_error;
+
+    #[test]
+    fn hides_raw_http_bodies() {
+        let raw = "https://x/v1/chat/completions: HTTP 401 {\"error\":{\"message\":\"Incorrect API key sk-abc\"}}";
+        let m = friendly_error(raw);
+        assert!(m.contains("API key") && !m.contains("sk-abc") && !m.contains("http"));
+        assert!(friendly_error("u: Connection Failed: dns error").contains("reach"));
+    }
 }

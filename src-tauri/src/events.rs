@@ -7,3 +7,5 @@ pub const CHALLENGES: &str = "challenge-update";
 pub const RECORDING_STATE: &str = "recording-state";
 pub const APP_STATUS: &str = "app-status";
 pub const TITLE: &str = "title-update";
+/// The tray asked to start a call; the UI collects the goal first.
+pub const START_REQUESTED: &str = "start-requested";

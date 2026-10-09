@@ -269,7 +269,7 @@ mod tests {
     impl CompletionClient for Fake {
         fn complete(&self, _: &str, _: &str) -> Result<String, String> { unreachable!() }
         fn complete_json(&self, system: &str, _: &str, _: &serde_json::Value) -> Result<String, String> {
-            Ok(if system.starts_with("You read one chunk") {
+            Ok(if system.starts_with("You listen to one chunk") {
                 r#"{"clean_chunk":"c","summary":"s","answered_points":[],"answered_questions":[],"gaps":[{"type":"NO_NUMBER","quote":"cheaper","speaker":"other","source_id":"T2","note":"n"}]}"#.into()
             } else if system.starts_with("You write ONE") {
                 r#"{"question":"What is the actual annual cost of the migration versus today?"}"#.into()

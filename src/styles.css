@@ -3179,3 +3179,21 @@ details.qgroup[open] > summary.qgroup-title {
   outline: none;
   border-color: var(--brand);
 }
+
+/* Goal field: textarea, suggestion chips, counter. */
+.analyse-opt { color: var(--muted); font-weight: 400; }
+.analyse-textarea { display: block; margin-top: 0.5rem; resize: vertical; min-height: 4.5rem; line-height: 1.4; }
+.analyse-textarea:focus { box-shadow: 0 0 0 3px var(--brand-tint); }
+.analyse-goal-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-top: 0.5rem; }
+.analyse-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.analyse-chip {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.analyse-chip:hover, .analyse-chip:focus-visible { color: var(--brand); border-color: var(--brand); outline: none; }
+.analyse-count { flex: none; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }

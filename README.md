@@ -33,7 +33,7 @@ Roofle runs from the menu bar and launches hidden (no Dock icon). Nothing is
 recorded until you start it.
 
 - **Left-click** the tray icon to open the window.
-- **Right-click** for the menu: Start Recording (⌘⇧S), Stop Recording (⌘⇧T), Quit.
+- **Right-click** for the menu: New conversation (⌘⇧S, asks for the goal first), Stop conversation (⌘⇧T), Quit.
 - Closing the window only hides it; Roofle keeps running until you choose Quit.
 
 ## Repository layout
