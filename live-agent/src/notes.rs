@@ -167,10 +167,10 @@ mod tests {
 
     #[test]
     fn prompts_are_embedded_and_agree_on_sections() {
-        for section in ["## Action Items", "## Follow-ups", "## Open Questions"] {
+        for section in ["## Summary", "## Decisions", "## Action Items"] {
             assert!(WRITER_SYSTEM.contains(section), "writer missing {section}");
         }
-        for section in ["Action Items", "Follow-ups", "Open Questions"] {
+        for section in ["Decisions", "Action Items"] {
             assert!(VALIDATOR_SYSTEM.contains(section), "validator missing {section}");
         }
     }
