@@ -35,10 +35,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "../assets/models/sherpa-onnx-whisper-base.en": "models/sherpa-onnx-whisper-base.en",
-      "../assets/models/silero_vad.onnx": "models/silero_vad.onnx"
-    },
     "macOS": {
       "infoPlist": "Info.plist"
     }

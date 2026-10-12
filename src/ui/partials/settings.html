@@ -17,6 +17,9 @@
         <button type="button" role="tab" class="settings-nav-item" data-pane="live" aria-selected="false" aria-controls="settings-pane-live">
           <i data-lucide="radio" aria-hidden="true"></i><span>Live Session</span>
         </button>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="about" aria-selected="false" aria-controls="settings-pane-about">
+          <i data-lucide="info" aria-hidden="true"></i><span>About</span>
+        </button>
       </nav>
 
       <div class="settings-content">
@@ -76,10 +79,36 @@
             </div>
           </div>
         </div>
+
+        <div id="settings-pane-about" class="settings-pane" role="tabpanel" data-pane="about">
+          <header class="pane-head">
+            <h3 class="pane-title">Roofle</h3>
+            <p class="pane-desc">Live meeting transcription, notes and follow-up questions.</p>
+          </header>
+
+          <div class="settings-group">
+            <div class="settings-field">
+              <span class="settings-field-label">Version</span>
+              <p id="about-version" class="settings-field-hint"></p>
+            </div>
+            <div class="settings-field">
+              <span class="settings-field-label">Speech model</span>
+              <p id="about-model" class="settings-field-hint"></p>
+            </div>
+            <div class="settings-field">
+              <span class="settings-field-label">Built with</span>
+              <p id="about-tauri" class="settings-field-hint"></p>
+            </div>
+            <div class="settings-field">
+              <span class="settings-field-label">License</span>
+              <p class="settings-field-hint">MIT</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="settings-actions">
+    <div id="settings-actions" class="settings-actions">
       <button id="settings-cancel" type="button" class="btn-ghost">Cancel</button>
       <button id="settings-save" type="button" class="btn-primary">Save changes</button>
     </div>

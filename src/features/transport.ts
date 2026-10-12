@@ -9,6 +9,7 @@ import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
 import { refreshNotesTitle, saveNotesNow, setNotesPreview, updateNotesSaveVisibility } from "./notes";
+import { ensureModel } from "./model-setup";
 import { askCallSetup, type CallSetup } from "./call-setup";
 import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
@@ -79,6 +80,7 @@ async function applyCallSetup({ kind, goal }: CallSetup): Promise<void> {
 }
 
 async function start(): Promise<void> {
+  if (!(await ensureModel())) return;
   const setup = await askCallSetup();
   if (setup === null) return;
   try {

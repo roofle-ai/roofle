@@ -30,13 +30,13 @@ function onTitleUpdate({ session_id, title }: TitleUpdate): void {
   void loadHistory();
 }
 
-function onModelProgress({ id, downloaded, total }: ModelProgress): void {
+function onModelProgress({ downloaded, total }: ModelProgress): void {
   if (total <= 0) return;
   const pct = Math.round((downloaded / total) * 100);
   setStatus("busy", "Preparing model…");
   dom.modelProgress.hidden = false;
   dom.modelProgressFill.style.width = `${pct}%`;
-  dom.modelProgressText.textContent = `Downloading ${id}… ${pct}%`;
+  dom.modelProgressText.textContent = `Downloading… ${pct}%`;
   if (pct < 100) return;
   window.setTimeout(() => {
     dom.modelProgress.hidden = true;

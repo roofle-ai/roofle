@@ -95,8 +95,7 @@ Run these on the Mac that holds the certificate.
    - `package.json` and `package-lock.json`
    - `Cargo.toml` (workspace) and `src-tauri/Cargo.toml`, then `cargo check` to refresh `Cargo.lock`
 2. **Verify:** `cargo test --workspace` and `npx tsc --noEmit`.
-3. **Fetch the models** (first time on a machine; the build bundles them):
-   `scripts/fetch-assets.sh`
+3. **Models are not bundled.** The app downloads them on first run, so nothing to fetch for a release build. (`scripts/fetch-assets.sh` is only for the CLI and tests.)
 4. **Build, sign and notarize** with the credentials in the environment for this
    one command:
    ```sh

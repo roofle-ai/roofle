@@ -51,7 +51,11 @@ pub fn generate(app: AppHandle, session_id: i64, ended: bool) {
         let tag = format!("notes #{seq} session={session_id}");
         let client = match configured_client(&app) {
             Ok(client) => client,
-            Err(reason) => return log_step(log, &tag, &format!("{reason}; skipping")),
+            Err(reason) => {
+                log_step(log, &tag, &format!("{reason}; skipping"));
+                let _ = app.emit(events::APP_STATUS, "Notes not generated: set a model and API key in Settings → LLM Configuration.");
+                return;
+            }
         };
         log_step(
             log,
@@ -72,7 +76,10 @@ pub fn generate(app: AppHandle, session_id: i64, ended: bool) {
                     super::title::rename_from_notes(app, session_id);
                 }
             }
-            Err(e) => eprintln!("[roofle] {tag}: {e}"),
+            Err(e) => {
+                eprintln!("[roofle] {tag}: {e}");
+                let _ = app.emit(events::APP_STATUS, format!("Notes generation failed: {e}"));
+            }
         }
     });
 }
