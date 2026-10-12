@@ -9,6 +9,7 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub fn set_goal(app: AppHandle, state: State<AppState>, session_id: i64, text: String) {
+    state.goals.lock().unwrap().insert(session_id, text.clone());
     state.sessions.send(&app, session_id, Msg::SetGoal(text));
 }
 

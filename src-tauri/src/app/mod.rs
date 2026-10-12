@@ -30,6 +30,7 @@ pub fn run() {
             recording::set_followups_enabled,
             recording::set_char_limit,
             recording::set_max_open_questions,
+            recording::set_notes_window_mins,
             models::list_models,
             models::select_model,
             models::selected_model,

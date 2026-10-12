@@ -12,8 +12,6 @@ pub mod recap;
 pub mod watcher;
 
 pub use notes::{
-    agent_notes, log_step, logging_enabled, CompletionClient, ConversationKind, KindState,
-    NotesOutcome,
-};
+    agent_notes, log_step, logging_enabled, CompletionClient};
 pub use recap::{recap_recent, Recap, Utterance};
 pub use watcher::{ParagraphWatcher, DEFAULT_CHAR_LIMIT};

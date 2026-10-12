@@ -3138,22 +3138,18 @@ details.qgroup[open] > summary.qgroup-title {
 }
 
 /* Feedback row on open cards. */
-.qfeedback {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
 .qfeedback-btn {
+  margin: -0.1rem -0.3rem 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--line);
+  padding: 0 0.35rem;
+  border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
   cursor: pointer;
 }
 

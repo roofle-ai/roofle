@@ -53,6 +53,8 @@ pub struct QuestionView {
     pub reason: Option<String>,
     /// Where in the transcript it came from; `None` if the entry is gone.
     pub source: Option<QuestionSource>,
+    /// Where in the transcript it was answered; `None` unless `answered` by a later line.
+    pub answer_source: Option<QuestionSource>,
     /// The user's feedback (`asked` or `dismissed`), if any.
     pub feedback: Option<String>,
 }
@@ -72,6 +74,9 @@ pub fn question_views<S: QuestionStore + TranscriptStore>(
                 .iter()
                 .find(|e| e.sequence_no == q.source_sequence_no)
                 .map(QuestionSource::new);
+            view.answer_source = q.resolved_sequence_no.and_then(|n| {
+                transcript.iter().find(|e| e.sequence_no == n).map(QuestionSource::new)
+            });
             // Pipeline questions know the exact line's time, not just the paragraph's.
             if let (Some(ts), Some(source)) = (q.source_ts_ms, view.source.as_mut()) {
                 source.start_ms = ts;
@@ -93,6 +98,7 @@ impl From<&Question> for QuestionView {
             },
             reason: q.resolution_reason.clone(),
             source: None,
+            answer_source: None,
             feedback: q.feedback.clone(),
         }
     }

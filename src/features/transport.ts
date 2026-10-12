@@ -26,6 +26,8 @@ const STATUS_TEXT: Record<SessionState, string> = {
   paused: "Paused",
 };
 
+const IDLE_NOTES_PLACEHOLDER = "Start recording or type your notes here…";
+
 export function setSessionState(state: SessionState): void {
   session.state = state;
   if (state === "idle") session.activeId = null;
@@ -43,6 +45,9 @@ export function setSessionState(state: SessionState): void {
 
   // Live text is appended to the editor, so it must be showing while a session is active.
   if (state !== "idle") setNotesPreview(false);
+  // Shown only while the editor is empty, so it disappears once notes arrive.
+  dom.notesInput.placeholder =
+    state === "idle" ? IDLE_NOTES_PLACEHOLDER : "Notes are being prepared. They appear after the first few minutes of conversation…";
 
   if (state === "recording") startTimer();
   else stopTimer();
@@ -88,6 +93,7 @@ async function start(): Promise<void> {
     const settings = loadLiveSessionSettings();
     await invoke("set_char_limit", { limit: settings.charLimit });
     await invoke("set_max_open_questions", { limit: settings.maxOpenQuestions });
+    await invoke("set_notes_window_mins", { mins: settings.notesWindowMins });
     await invoke("start_recording", {
       source: "both",
       sessionId: continueId,

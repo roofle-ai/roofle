@@ -15,7 +15,6 @@ use std::time::Duration;
 use roofle_core::pipeline::Pipeline;
 use tauri::{AppHandle, Manager};
 
-use crate::agents;
 use crate::state::AppState;
 use clock::RecordingClock;
 use ingest::Ingest;
@@ -143,7 +142,6 @@ impl Engine {
         };
         self.ingest.flush(&self.app, self.active_session);
         session::close(&self.app, id, duration);
-        agents::title::rename_session(self.app.clone(), id);
         self.active_session = None;
     }
 
@@ -155,7 +153,6 @@ impl Engine {
         self.ingest.flush(&self.app, session_id);
         if let Some(id) = session_id {
             session::close(&self.app, id, self.clock.finish());
-            agents::title::rename_session(self.app.clone(), id);
         }
     }
 }

@@ -92,44 +92,45 @@ function renderQuestion(q: FollowUp, answerLabel = ""): HTMLElement {
   icon.dataset.lucide = statusIcon(q.status);
   icon.setAttribute("aria-hidden", "true");
   head.append(icon, create("p", "qtext", q.text));
+  if (q.status === "open") head.append(renderHide(q));
   card.append(head);
 
   if (q.source) card.append(renderSource(q, q.source));
-  if (q.status === "open") card.append(renderFeedback(q));
 
   if (q.reason) {
     const answer = create("div", "qanswer");
     answer.append(create("span", "qanswer-label", answerLabel), create("p", "qanswer-text", q.reason));
+    if (q.answer_source) answer.append(renderSource(q, q.answer_source, "Answer source"));
     card.append(answer);
   }
   return card;
 }
 
-/** "I asked this": tells the pipeline the question was used, and moves it off the list. */
-function renderFeedback(q: FollowUp): HTMLElement {
-  const row = create("div", "qfeedback");
-  const btn = create("button", "qfeedback-btn", "I asked this");
+/** Small "×": hides the question from the list (not a CTA). */
+function renderHide(q: FollowUp): HTMLElement {
+  const btn = create("button", "qfeedback-btn", "×");
   btn.type = "button";
-  btn.addEventListener("click", () => void sendAsked(q));
-  row.append(btn);
-  return row;
+  btn.title = "Hide this question";
+  btn.setAttribute("aria-label", "Hide this question");
+  btn.addEventListener("click", () => void sendDismissed(q));
+  return btn;
 }
 
-async function sendAsked(q: FollowUp): Promise<void> {
+async function sendDismissed(q: FollowUp): Promise<void> {
   if (session.viewedId === null) return;
   // The card moves via the backend's list update; on failure it stays as is.
-  await invoke<void>("question_feedback", { sessionId: session.viewedId, questionId: q.id, kind: "asked" }).catch(() => {});
+  await invoke<void>("question_feedback", { sessionId: session.viewedId, questionId: q.id, kind: "dismissed" }).catch(() => {});
 }
 
 /** Compact button that jumps to the transcript passage the question came from. */
-function renderSource(q: FollowUp, src: QuestionSource): HTMLElement {
+function renderSource(q: FollowUp, src: QuestionSource, label = "Source"): HTMLElement {
   const btn = create("button", "qsource");
   btn.type = "button";
   const icon = create("i");
   icon.dataset.lucide = "audio-lines";
   icon.setAttribute("aria-hidden", "true");
-  btn.append(icon, create("span", undefined, "Source"), create("span", "qsource-time", formatTime(src.start_ms / 1000)));
-  btn.title = "Show where in the transcription this question came from";
+  btn.append(icon, create("span", undefined, label), create("span", "qsource-time", formatTime(src.start_ms / 1000)));
+  btn.title = `Show where in the transcription this ${label === "Source" ? "question came from" : "was answered"}`;
   btn.addEventListener("click", () => revealTranscriptSource(src, q.id));
   return btn;
 }

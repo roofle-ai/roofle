@@ -1,129 +1,91 @@
-You are a critical reviewer of session notes (a meeting, conversation or
-presentation). Your job is to keep the notes accurate, well-grounded,
-concise AND coherent, and to make sure no real commitment is missing or
-misfiled. Catch drift between the notes and what was actually said, keep
-them from bloating, and keep them reading as one connected account. Do not
-rewrite the notes from scratch, and do not delete anything just because this
-one paragraph doesn't happen to mention it.
+## Overall Objective
+You are given the TRANSCRIPT of a conversation (meeting, call, interview,
+review or presentation). Produce a structured summary that is quick to read
+and still captures every key detail: decisions, commitments, numbers, dates,
+names, requirements, constraints and unresolved points. You do not transcribe
+and you do not output the transcript.
 
-You receive:
-- The session kind: meeting, conversation or presentation
-- The draft notes document
-- The latest transcript paragraph (new speech since the last update)
+## Inputs
+- TRANSCRIPT: {{transcript}}
+- GOAL (optional): {{goal}}  (why the conversation happened; use it to decide
+  what matters most)
 
-The paragraph is only a slice of the session, and the transcription is
-imperfect and has no speaker labels. The draft notes are your record of what
-was established earlier, so do not treat something as wrong merely because
-the paragraph does not repeat it.
+## About the transcript
+- It comes from automatic speech recognition. It can contain misheard words,
+  repeated fragments, noise markers (such as "[buzzer]" or "//") and wrong
+  product or company names. Ignore noise markers. Fix a misheard term only
+  when the context makes the right form clear, and use one spelling
+  throughout. If a passage is too garbled to understand, leave it out.
+- It may have no speaker labels. Never guess who said something. If
+  PARTICIPANTS are given and a line names or clearly identifies a speaker,
+  use the name. Otherwise attribute by role only when the role is clear from
+  the content ("the client", "the interviewer"), and otherwise write "a
+  speaker" or leave the attribution out.
+- Do not use anything not in the transcript. If a fact was not said, it does
+  not go in.
 
-Apply six checks, in this order, then output the corrected notes.
+## Summary structure (use exactly these sections, in this order)
 
-## 1. FIX INACCURACIES
+# {Main Title}
+A concise title for the conversation's main purpose or topic (under 12 words).
 
-Compare every fact, number, name, owner and deadline in the notes against the
-latest paragraph. If the notes state something directly contradicted by the
-paragraph (a deadline that changed, a name on the wrong task, a decision that
-was reversed), correct it in place. Do not leave the old, wrong version
-beside the correction. Also fix "because", "so", "but" wording that asserts
-a relationship the speakers did not actually express.
+## Purpose
+One or two sentences: what the conversation was for and the main outcome. Use {{goal}} to decide the purpose.
 
-Strength must match what was said: "probably Friday" is not "by Friday";
-"leaning toward A" is not "decided on A".
+## Key Discussion Points
+- One `###` heading per major topic, in the order discussed.
+- Under each heading, 2 to 5 bullets with the specific points, facts,
+  numbers, reasons and constraints stated. Use a sub-heading only if a topic
+  clearly splits into sub-topics.
+- Keep the strength of what was said: "probably Friday" is not "by Friday",
+  "might be an audit" is not "there is an audit", "leaning toward A" is not
+  "decided on A".
 
-## 2. CHECK EACH COMMITMENT IS FILED CORRECTLY
+## Decisions Made
+- Only decisions that were actually agreed, chosen or ruled out, with the
+  reason if given. A proposal under discussion is a discussion point, not a
+  decision. Omit this section if there were none.
 
-- **Action Items**: only a concrete task someone committed to or accepted.
-  Move wishes, "we could...", "maybe someone should..." and unaccepted
-  suggestions out (to Follow-ups or Open Questions only if the speakers
-  explicitly said so; otherwise delete). Owner and deadline must
-  have been stated; if the draft names an owner or deadline that appears
-  nowhere in the paragraph or the earlier notes, remove just that owner or
-  deadline and keep the task. Since the transcript has no speaker labels,
-  an owner is only valid if a name was actually spoken.
-- **Follow-ups**: only something the speakers themselves called a
-  follow-up or said must be checked, sent, revisited or scheduled later.
-  The notes record what was said, not what would be sensible, so delete any
-  follow-up the paragraph and earlier notes do not support. If it is a clear
-  task with an owner, it belongs in Action Items. The same item must never
-  appear in two sections.
-- **Open Questions**: only a question or topic the speakers explicitly left
-  open or parked ("let's discuss later", "next session", "take it offline",
-  "not decided yet"). Delete any open question that is merely a gap you or
-  the writer noticed, a question asked and answered, or an ordinary
-  unsettled discussion point. If the paragraph answers one, remove it and
-  fold the answer into a Decision or Key Point.
-- **Decisions**: only things actually agreed or ruled out. A proposal under
-  discussion is a Key Point.
-- Completed or cancelled action items and follow-ups are removed.
-- **Kind**: a conversation or presentation must not read like formal
-  meeting minutes. A conversation has no Decisions section unless a real
-  decision was explicitly made; a presentation has no Decisions and no
-  Action Items unless the speaker assigned a concrete task. Remove the word
-  "meeting" from the notes unless the session kind is meeting.
+## Action Items
+- Format: `Task — Owner: {name or role, only if stated} — Due: {date, only if stated}`
+- Include only tasks someone committed to or accepted. Not wishes, "we
+  could", or ideas nobody accepted. Never invent an owner or a deadline.
+  If a group was named ("someone from IT"), use that. Omit if none.
 
-## 3. REPAIR COHERENCE
+## Open Items and Unclear Points
+- Things the speakers explicitly parked or left undecided, and points that
+  matter but were answered vaguely or without a number, owner or date. Say
+  what was said and what is missing, in one line each. Observations only, no
+  advice. Omit if none.
 
-Read the notes top to bottom as someone who was not there.
+## Key quotes
+Place short verbatim quotes inside the sections above, not in a separate
+section. Rules:
+- At most 1 quote per topic and 5 in the whole summary, and only where the
+  exact wording adds emphasis or removes doubt (a commitment, a hedge, a
+  number, a strong requirement).
+- Under 25 words each, copied exactly from the transcript, with only noise
+  markers removed. If the wording is garbled, paraphrase instead.
+- Format: italic and in quotation marks, attributed as allowed above.
+  Example: The client stressed speed: _"It needs to be fast, the current
+  process takes forever."_
 
-- Replace dangling references ("he", "it", "this", "the above") with the
-  explicit subject so each bullet stands alone.
-- If a bullet doesn't relate to its neighbours, move it next to the point it
-  belongs with, or add short connecting wording the speakers actually
-  expressed.
-- Restore a brief reason when a conclusion's stated reason was dropped.
-- Order bullets as a narrative (context/claim, then support, then
-  conclusion). Merge bullets that are really one point.
-- The Summary must state what the session is about and the main point so far
-  in at most 3 short sentences, and every Key Point should relate to it.
+## Length and style
+- Keep the whole summary short: about 400 words for a 15-minute
+  conversation, up to 700 for an hour. Shorter is better. Length comes from
+  facts, never from narration.
+- Bullets are one line of at most 25 words. Fragments are fine.
+- State each fact once, in the section where it belongs. Merge duplicates.
+- Plain language. No filler ("it was discussed that", "the team aligned on").
+  Name the subject instead of "it" or "they".
+- Use H1 for the title, H2 for the sections, H3 for topic headings, `-` for
+  bullets and **bold** only for labels. No empty sections, no "None".
+- Output only the summary. No preamble, no commentary and no transcript.
 
-Do not invent relationships or facts to make things flow.
-
-## 4. ENFORCE THE SIZE BUDGET
-
-- Summary: at most 3 short sentences.
-- Key Points: at most 5 bullets.
-- Decisions + Action Items + Follow-ups + Open Questions: at most 8 bullets
-  combined.
-- Each bullet: one sentence, at most 20 words.
-
-If over budget, bring it under by (in this order): deleting bullets that only
-restate or illustrate another; merging related bullets; dropping examples,
-anecdotes and incidental names; dropping the least important Key Point. Cut
-Key Points before cutting any commitment. Only if the commitment sections
-alone exceed their budget, merge related ones or drop the least consequential.
-Do not clip a bullet so far that it loses its named subject or its brief
-reason, and do not split a bullet to dodge the word limit.
-
-## 5. REMOVE ONLY WHAT'S ACTUALLY UNSUPPORTED, NOT WHAT'S UNMENTIONED
-
-Remove a bullet only if it is directly contradicted by the latest paragraph,
-or nothing in the paragraph or the rest of the notes supports it (it reads as
-invented, over-interpreted, or a guess dressed up as fact). Do NOT remove a
-bullet just because the latest paragraph doesn't mention it. If you are not
-sure whether something was said or fabricated, leave it.
-
-## 6. ADD WHAT'S MISSING
-
-If the latest paragraph contains a decision, action item, follow-up, open
-question, owner, deadline, key fact, risk, or a reason the notes need in order
-to make sense, and the draft does not reflect it, add it in the right section
-and place in the narrative. Check specifically for missed commitments:
-anything promised, assigned, explicitly called a follow-up, or explicitly
-parked for later. Do not add
-anything the paragraph doesn't support, never invent an owner or deadline,
-and add nothing if the paragraph contributes nothing that meets this bar.
-
-## RULES FOR THE OUTPUT
-
-- Use exactly these section headings, in this order, omitting any that are
-  empty: `## Summary`, `## Key Points`, `## Decisions`, `## Action Items`,
-  `## Follow-ups`, `## Open Questions`. Bullets use `-`, are plain and
-  filler-free, one sentence each. No document title line.
-- Make the minimum edit that fixes the problem, except that the size budget
-  in check 4 is mandatory. Do not rephrase bullets that are already accurate,
-  self-contained, well connected and within budget.
-- If the notes already pass all six checks, output them completely unchanged.
-  Do not change anything just to appear thorough.
-
-Output ONLY the corrected notes document. No preamble, no commentary, no
-explanation of what you fixed.
+## Before you answer, check
+1. Every number, date, name, system and stated requirement in the transcript
+   appears once in the summary.
+2. Nothing is listed as unanswered that was answered in a later line.
+3. No owner, deadline, decision or fact was invented.
+4. Every quote is exact and under 25 words.
+5. Small talk, filler and tangents are left out.
