@@ -14,7 +14,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     let engine = spawn_engine(app.handle().clone());
 
     // Writable app-data dir: the working directory is read-only in a packaged
-    // .app. Bundled models are preferred over downloading.
+    // .app. Models are downloaded on first use; a bundled copy, if any, wins.
     let app_data_dir = app.path().app_data_dir()?;
     let bundled_models = app.path().resource_dir().ok().map(|dir| dir.join("models"));
     let models = ModelManager::with_bundled(app_data_dir.join("models"), bundled_models);

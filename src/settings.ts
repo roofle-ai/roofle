@@ -1,6 +1,8 @@
 // Settings — live-session trigger + AI client configuration.
 // Owns its modal HTML partial, persists the char-limit and the AI API key to
 // localStorage, and routes the non-secret AI config to the Rust-side store.
+import { invoke } from "@tauri-apps/api/core";
+import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import { refreshIcons } from "./lib/icons";
 import settingsHtml from "./ui/partials/settings.html?raw";
@@ -68,6 +70,22 @@ function showPane(id: string): void {
   modal.querySelectorAll<HTMLElement>(".settings-pane").forEach((el) => {
     el.classList.toggle("active", el.dataset.pane === id);
   });
+  // Nothing to save on About.
+  document.getElementById("settings-actions")!.hidden = id === "about";
+  if (id === "about") void loadAbout();
+}
+
+async function loadAbout(): Promise<void> {
+  const set = (id: string, text: string) => (document.getElementById(id)!.textContent = text);
+  const [version, tauri, model, ready] = await Promise.all([
+    getVersion(),
+    getTauriVersion(),
+    invoke<string>("selected_model"),
+    invoke<boolean>("models_ready"),
+  ]);
+  set("about-version", version);
+  set("about-tauri", `Tauri ${tauri}`);
+  set("about-model", `${model} (${ready ? "downloaded" : "not downloaded"})`);
 }
 
 /// Seed the AI config fields from the Rust-side store.

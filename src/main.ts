@@ -5,6 +5,7 @@ import { initAnalysis } from "./features/analysis";
 import { initExport } from "./features/export";
 import { loadHistory } from "./features/history";
 import { initRecap } from "./features/recap";
+import { initModelSetup } from "./features/model-setup";
 import { initNotes } from "./features/notes";
 import { initNotesTabs } from "./features/notes-tabs";
 import { initTransport } from "./features/transport";
@@ -21,6 +22,7 @@ async function init(): Promise<void> {
   initRecap();
   initAnalysis();
   initExport();
+  initModelSetup();
 
   await loadHistory();
   await initEvents();

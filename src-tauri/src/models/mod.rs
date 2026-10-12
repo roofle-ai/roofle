@@ -68,9 +68,11 @@ impl ModelManager {
         self.create_root()?;
 
         let tmp = std::env::temp_dir().join(format!("Roofle-{}.tar.bz2", entry.id));
-        download::download_file(app, entry.url, &tmp, entry.id)?;
-        archive::verify(&self.root, entry, &tmp)?;
-        archive::extract(&tmp, &dir)?;
+        let unpacked = download::download_file(app, entry.url, &tmp, entry.id)
+            .and_then(|()| archive::verify(&self.root, entry, &tmp))
+            .and_then(|()| archive::extract(&tmp, &dir));
+        let _ = std::fs::remove_file(&tmp);
+        unpacked?;
 
         if self.present(id) {
             Ok(dir)
@@ -79,20 +81,35 @@ impl ModelManager {
         }
     }
 
+    /// Where the Silero VAD file is, if already on disk.
+    fn vad_path(&self) -> Option<PathBuf> {
+        let bundled = self.bundled.as_ref().map(|b| b.join(catalog::VAD_FILE));
+        bundled
+            .into_iter()
+            .chain([self.root.join(catalog::VAD_FILE)])
+            .find(|p| p.is_file())
+    }
+
+    /// True when `id` and the VAD are both on disk, so recording can start offline.
+    pub fn ready(&self, id: &str) -> bool {
+        self.present(id) && self.vad_path().is_some()
+    }
+
     /// The Silero VAD model the Whisper engine needs to segment utterances.
     pub fn ensure_vad(&self, app: &AppHandle) -> Result<PathBuf, String> {
-        let bundled = self.bundled.as_ref().map(|b| b.join(catalog::VAD_FILE));
-        if let Some(path) = bundled.filter(|p| p.is_file()) {
+        if let Some(path) = self.vad_path() {
             return Ok(path);
         }
         let path = self.root.join(catalog::VAD_FILE);
-        if path.is_file() {
-            return Ok(path);
-        }
         self.create_root()?;
         download::download_file(app, catalog::VAD_URL, &path, catalog::VAD_FILE)
             .map_err(|e| format!("VAD {e}"))?;
         Ok(path)
+    }
+
+    /// Abort an in-flight `ensure`/`ensure_vad` download.
+    pub fn cancel_download(&self) {
+        download::request_cancel();
     }
 
     fn create_root(&self) -> Result<(), String> {
