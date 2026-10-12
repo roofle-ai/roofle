@@ -49,6 +49,12 @@ pub fn set_max_open_questions(state: State<'_, AppState>, limit: usize) {
     state.max_open_questions.store(limit, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// Minutes of transcript between note updates; clamped to 1..=60.
+#[tauri::command]
+pub fn set_notes_window_mins(state: State<'_, AppState>, mins: usize) {
+    state.notes_window_mins.store(mins.clamp(1, 60), std::sync::atomic::Ordering::Relaxed);
+}
+
 #[tauri::command]
 pub async fn stop_recording(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     request(&state, |reply| Control::Stop { reply })?;

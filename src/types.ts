@@ -34,6 +34,8 @@ export interface QuestionView {
   reason: string | null;
   /** Where in the transcript the question came from; null if unknown. */
   source: QuestionSource | null;
+  /** Where in the transcript it was answered; null unless answered by a later line. */
+  answer_source: QuestionSource | null;
   /** The user's feedback, if any. */
   feedback: "asked" | "dismissed" | null;
 }

@@ -105,6 +105,8 @@ impl Ingest {
         if watcher.has_pending() {
             finalize_paragraph(app, sid, std::mem::take(&mut self.lines));
         }
+        // Notes for whatever the last window did not cover, however short.
+        agents::notes::generate(app.clone(), sid, true);
         // After the final chunk: the pipeline's end-of-meeting pass.
         app.state::<AppState>().sessions.flush(sid);
     }
@@ -160,8 +162,8 @@ impl Ingest {
 fn finalize_paragraph(app: &AppHandle, session_id: i64, lines: Vec<Line>) {
     let storage = &app.state::<AppState>().storage;
     match storage.finalize_paragraph(session_id) {
-        Ok(Some((seq, text))) => {
-            agents::notes::generate(app.clone(), session_id, seq, text.clone());
+        Ok(Some((seq, _))) => {
+            agents::notes::generate(app.clone(), session_id, false);
             session_worker::submit_chunk(app, session_id, seq, lines);
         }
         Ok(None) => {}

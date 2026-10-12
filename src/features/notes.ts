@@ -147,7 +147,8 @@ export function applyGeneratedNotes(text: string): void {
   if (previewing) renderPreview();
   scrollNotesToEnd();
   // Programmatic writes don't fire `input`.
-  scheduleNotesSave();
+  if (session.state === "idle") showLoadedNotes(); // already saved by the backend
+  else scheduleNotesSave();
 }
 
 export function initNotes(): void {

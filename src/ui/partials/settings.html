@@ -69,6 +69,11 @@
               <input id="max-open" type="number" min="1" max="5" step="1" value="2" class="settings-input" />
               <p class="settings-field-hint">Most follow-up questions shown at once, 1 to 5. Default 2. A new question waits until one is answered, asked or goes stale.</p>
             </div>
+            <div class="settings-field">
+              <label for="notes-window" class="settings-field-label">Notes update interval (minutes)</label>
+              <input id="notes-window" type="number" min="1" max="60" step="1" value="5" class="settings-input" />
+              <p class="settings-field-hint">Notes are written from the full transcript of each window, with the previous notes. Default 5. A shorter call is summarised when it ends.</p>
+            </div>
           </div>
         </div>
       </div>

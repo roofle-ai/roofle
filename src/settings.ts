@@ -9,6 +9,8 @@ export interface LiveSessionSettings {
   charLimit: number;
   /** Most follow-up questions shown at once. */
   maxOpenQuestions: number;
+  /** Minutes of conversation between note updates. */
+  notesWindowMins: number;
 }
 
 const KEY = "roofle-live-session-settings";
@@ -17,10 +19,13 @@ const MIN_CHAR_LIMIT = 50;
 const MAX_CHAR_LIMIT = 5000;
 export const DEFAULT_MAX_OPEN = 2;
 const MAX_OPEN_CAP = 5;
+export const DEFAULT_NOTES_WINDOW = 5;
+const MAX_NOTES_WINDOW = 60;
 
 let modal: HTMLElement;
 let input: HTMLInputElement;
 let maxOpenInput: HTMLInputElement;
+let notesWindowInput: HTMLInputElement;
 let aiBaseUrl: HTMLInputElement;
 let aiModel: HTMLInputElement;
 let aiApiKey: HTMLInputElement;
@@ -43,10 +48,15 @@ export function loadLiveSessionSettings(): LiveSessionSettings {
     return {
       charLimit: clamp(Number(parsed.charLimit) || DEFAULT_CHAR_LIMIT),
       maxOpenQuestions: clampMaxOpen(Number(parsed.maxOpenQuestions)),
+      notesWindowMins: clampNotesWindow(Number(parsed.notesWindowMins)),
     };
   } catch {
-    return { charLimit: DEFAULT_CHAR_LIMIT, maxOpenQuestions: DEFAULT_MAX_OPEN };
+    return { charLimit: DEFAULT_CHAR_LIMIT, maxOpenQuestions: DEFAULT_MAX_OPEN, notesWindowMins: DEFAULT_NOTES_WINDOW };
   }
+}
+
+function clampNotesWindow(n: number): number {
+  return Math.min(MAX_NOTES_WINDOW, Math.max(1, Math.round(n) || DEFAULT_NOTES_WINDOW));
 }
 
 function showPane(id: string): void {
@@ -103,6 +113,7 @@ export function openSettings(): void {
   const settings = loadLiveSessionSettings();
   input.value = String(settings.charLimit);
   maxOpenInput.value = String(settings.maxOpenQuestions);
+  notesWindowInput.value = String(settings.notesWindowMins);
   showPane("llm");
   loadAiConfigFields();
   modal.classList.add("open");
@@ -115,7 +126,8 @@ function closeSettings(): void {
 function saveSettings(): void {
   const charLimit = clamp(parseInt(input.value, 10) || DEFAULT_CHAR_LIMIT);
   const maxOpenQuestions = clampMaxOpen(parseInt(maxOpenInput.value, 10));
-  localStorage.setItem(KEY, JSON.stringify({ charLimit, maxOpenQuestions } satisfies LiveSessionSettings));
+  const notesWindowMins = clampNotesWindow(parseInt(notesWindowInput.value, 10));
+  localStorage.setItem(KEY, JSON.stringify({ charLimit, maxOpenQuestions, notesWindowMins } satisfies LiveSessionSettings));
   saveAiConfigFields()
     .catch((err) => {
       aiKeyState.textContent = String(err);
@@ -129,6 +141,7 @@ function init(): void {
   modal = document.getElementById("settings-modal")!;
   input = document.getElementById("char-limit") as HTMLInputElement;
   maxOpenInput = document.getElementById("max-open") as HTMLInputElement;
+  notesWindowInput = document.getElementById("notes-window") as HTMLInputElement;
   modal.querySelectorAll<HTMLElement>(".settings-nav-item").forEach((el) =>
     el.addEventListener("click", () => showPane(el.dataset.pane!)),
   );
