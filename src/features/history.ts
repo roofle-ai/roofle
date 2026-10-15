@@ -14,11 +14,14 @@ import { updateAnalyseVisibility } from "./analysis";
 import { refreshNotesTitle, showLoadedNotes, updateNotesSaveVisibility } from "./notes";
 import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
 import { resetView } from "./view";
+import { syncWrapUp } from "./wrap-up";
 
 export async function loadHistory(): Promise<void> {
   const sessions = await listSessions();
   dom.historyList.querySelectorAll(".history-item").forEach((el) => el.remove());
   dom.historyCount.textContent = String(sessions.length);
+  dom.historyRailBadge.hidden = sessions.length === 0;
+  dom.historyRailBadge.textContent = sessions.length > 99 ? "99+" : String(sessions.length);
   dom.historyEmpty.hidden = sessions.length !== 0;
   dom.historyList.append(...sessions.map(renderItem));
   refreshIcons();
@@ -75,6 +78,7 @@ function renderDeleteButton(id: number): HTMLButtonElement {
           resetView();
           updateAnalyseVisibility();
           updateNotesSaveVisibility();
+          syncWrapUp();
         }
         void loadHistory();
       })
@@ -100,6 +104,7 @@ export async function openSession(id: number): Promise<void> {
     refreshNotesTitle(new Date(detail.session.started_at));
     dom.notesInput.value = detail.notes ?? "";
     showLoadedNotes();
+    syncWrapUp();
 
     resetQuestions();
     setAnalysisMode(true);

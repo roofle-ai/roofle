@@ -116,6 +116,57 @@
     </footer>
   </aside>
 
+  <!-- Key figures card: the answer to Assist → Key figures and dates. -->
+  <aside id="figures-card" class="recap-card" role="status" aria-live="polite" hidden>
+    <header class="recap-head">
+      <span class="recap-icon" aria-hidden="true"><i data-lucide="hash"></i></span>
+      <div class="recap-heading">
+        <h3 id="figures-title" class="recap-title">Key figures and dates</h3>
+        <span id="figures-meta" class="recap-meta"></span>
+      </div>
+      <button id="figures-close" type="button" class="recap-close" aria-label="Dismiss key figures">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="recap-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p id="figures-message" class="recap-body"></p>
+    <div id="figures-body" class="figures-body"></div>
+    <footer class="recap-actions">
+      <button id="figures-copy" type="button" class="recap-action">
+        <i data-lucide="copy" aria-hidden="true"></i><span>Copy</span>
+      </button>
+      <button id="figures-refresh" type="button" class="recap-action">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i><span>Refresh</span>
+      </button>
+    </footer>
+  </aside>
+
+  <!-- Wrap-up: quick follow-ups, always offered for a finished session that has notes. -->
+  <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
+    <span class="wrapup-pill-label">Follow up</span>
+    <button type="button" class="wrapup-chip" data-recipe="recap-email" title="Draft a recap email from the notes"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
+    <button type="button" class="wrapup-chip" data-recipe="slack-post" title="Draft a Slack update from the notes"><i data-lucide="hash" aria-hidden="true"></i><span>Slack post</span></button>
+    <button type="button" class="wrapup-chip" data-recipe="action-items" title="List action items with owners and due dates"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
+  </div>
+  <aside id="wrapup-result" class="recap-card wrapup-result" role="status" aria-live="polite" hidden>
+    <header class="recap-head">
+      <span class="recap-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
+      <div class="recap-heading">
+        <h3 id="wrapup-title" class="recap-title"></h3>
+        <span id="wrapup-meta" class="recap-meta"></span>
+      </div>
+      <button id="wrapup-close" type="button" class="recap-close" aria-label="Dismiss"><i data-lucide="x" aria-hidden="true"></i></button>
+    </header>
+    <div class="recap-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <textarea id="wrapup-draft" class="wrapup-draft" rows="9" aria-label="Draft" hidden></textarea>
+    <ul id="wrapup-items" class="wrapup-items" hidden></ul>
+    <footer class="recap-actions">
+      <button id="wrapup-mail" type="button" class="recap-action is-primary" hidden><i data-lucide="mail" aria-hidden="true"></i><span>Open in Mail</span></button>
+      <button id="wrapup-copy" type="button" class="recap-action" hidden><i data-lucide="copy" aria-hidden="true"></i><span>Copy</span></button>
+      <button id="wrapup-refresh" type="button" class="recap-action" title="Draft again from the current notes" hidden><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Refresh</span></button>
+    </footer>
+  </aside>
+
   <!-- Floating transport control: hidden until a recording starts, then
        centered over the notes and draggable -->
   <div id="floating-control" class="floating-control is-idle">

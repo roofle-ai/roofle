@@ -5,5 +5,6 @@ pub mod ai;
 pub mod export;
 pub mod models;
 pub mod pipeline;
+pub mod recipes;
 pub mod recording;
 pub mod sessions;

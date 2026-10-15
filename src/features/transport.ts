@@ -10,6 +10,7 @@ import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
 import { refreshNotesTitle, saveNotesNow, setNotesPreview, updateNotesSaveVisibility } from "./notes";
 import { ensureModel } from "./model-setup";
+import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
 import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
@@ -31,7 +32,10 @@ const IDLE_NOTES_PLACEHOLDER = "Start recording or type your notes here…";
 
 export function setSessionState(state: SessionState): void {
   session.state = state;
-  if (state === "idle") session.activeId = null;
+  if (state === "idle") {
+    if (session.activeId !== null) markWrapUpPending(session.activeId);
+    session.activeId = null;
+  }
   else session.activeId ??= session.viewedId;
 
   dom.recordBtn.classList.toggle("recording", state === "recording");
@@ -57,6 +61,7 @@ export function setSessionState(state: SessionState): void {
   setQuestionsHint();
   updateAnalyseVisibility();
   updateNotesSaveVisibility();
+  syncWrapUp();
 }
 
 async function command(name: "pause_recording" | "resume_recording", next: SessionState): Promise<void> {
@@ -135,6 +140,7 @@ async function newSession(): Promise<void> {
   updateNotesSaveVisibility();
   refreshNotesTitle();
   resetView();
+  syncWrapUp();
   await start();
 }
 

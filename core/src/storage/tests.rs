@@ -22,8 +22,8 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
-    // The current schema is V5 (question pipeline tables).
-    assert_eq!(storage.schema_version().unwrap(), 6);
+    // The current schema is V7 (post-call recipe drafts).
+    assert_eq!(storage.schema_version().unwrap(), 7);
 }
 
 #[test]
@@ -51,6 +51,23 @@ fn save_and_load_analysis_round_trip() {
     let stored = storage.load_analysis(session.id).unwrap().unwrap();
     assert_eq!(stored.context, "Buying a product");
     assert!(stored.result_json.contains("buyer"));
+}
+
+#[test]
+fn save_and_load_recipe_round_trip() {
+    let storage = store();
+    let session = storage.create_session(new_session("mic", Utc::now())).unwrap();
+
+    assert!(storage.load_recipe(session.id, "recap-email").unwrap().is_none());
+
+    storage.save_recipe(session.id, "recap-email", Some("Recap"), "Hi all").unwrap();
+    storage.save_recipe(session.id, "slack-post", None, "Update").unwrap();
+    let email = storage.load_recipe(session.id, "recap-email").unwrap().unwrap();
+    assert_eq!((email.subject.as_deref(), email.body.as_str()), (Some("Recap"), "Hi all"));
+    // Recipes are stored independently, and a re-save overwrites.
+    assert_eq!(storage.load_recipe(session.id, "slack-post").unwrap().unwrap().subject, None);
+    storage.save_recipe(session.id, "recap-email", Some("Recap 2"), "Hello").unwrap();
+    assert_eq!(storage.load_recipe(session.id, "recap-email").unwrap().unwrap().body, "Hello");
 }
 
 #[test]

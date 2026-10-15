@@ -18,6 +18,15 @@ pub struct NotesUpdate {
     pub text: String,
 }
 
+/// Emitted once the end-of-call notes pass is over. `ready` is false when the
+/// notes could not be brought up to date (e.g. AI not configured).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WrapUp {
+    pub session_id: i64,
+    pub ready: bool,
+    pub action_items: usize,
+}
+
 /// The transcript entry a question was raised from, so the UI can show it came
 /// from the conversation rather than from the model's own invention.
 #[derive(Debug, Clone, serde::Serialize)]

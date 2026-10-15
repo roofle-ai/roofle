@@ -50,3 +50,39 @@ export interface TitleUpdate {
   session_id: number;
   title: string;
 }
+
+/** Mirrors live_agent::KeyFigures. */
+export interface Figure {
+  label: string;
+  value: string;
+}
+
+export interface KeyFigures {
+  dates: Figure[];
+  numbers: Figure[];
+  names: Figure[];
+}
+
+/** Emitted when the end-of-call notes pass is over (mirrors state::WrapUp). */
+export interface WrapUp {
+  session_id: number;
+  /** False when the notes could not be brought up to date. */
+  ready: boolean;
+  action_items: number;
+}
+
+/** Mirrors offline_agent::ActionItem; null when the notes did not state it. */
+export interface ActionItem {
+  owner: string | null;
+  task: string;
+  due: string | null;
+}
+
+/** Mirrors offline_agent::Recipe. */
+export type RecipeKind = "recap-email" | "slack-post";
+
+/** Mirrors offline_agent::Draft; `subject` is set only for email. */
+export interface Draft {
+  subject: string | null;
+  body: string;
+}

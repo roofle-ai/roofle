@@ -14,5 +14,8 @@
 	     microphone, required even for audio-only SCStream capture. -->
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Roofle captures system audio to transcribe what is playing on your Mac.</string>
+	<!-- Downloads access: exports (notes, transcript) are saved to ~/Downloads. -->
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Roofle saves exported notes and transcripts to your Downloads folder.</string>
 </dict>
 </plist>

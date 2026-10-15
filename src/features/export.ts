@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import { session } from "../app/state";
 import { dom } from "../lib/dom";
@@ -24,7 +24,7 @@ async function contentFor(kind: ExportKind): Promise<string> {
   }
 }
 
-/** Write a `.txt` to the app exports folder and reveal it in the file manager. */
+/** Write a `.txt` to ~/Downloads and reveal it in the file manager. */
 async function runExport(kind: ExportKind): Promise<void> {
   closeMenu();
   const content = await contentFor(kind);
@@ -38,7 +38,7 @@ async function runExport(kind: ExportKind): Promise<void> {
   try {
     const path = await invoke<string>("export_text", { filename, content });
     showToast(`Exported: ${path}`);
-    openPath(path.slice(0, path.lastIndexOf("/"))).catch(() => {});
+    revealItemInDir(path).catch(() => {});
   } catch (err) {
     showToast(String(err));
   }

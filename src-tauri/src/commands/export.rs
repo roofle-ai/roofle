@@ -1,22 +1,23 @@
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::export::{filename_stamp, write_export, ExportFormat};
 use crate::state::AppState;
 
-/// Write the buffered transcript to the exports folder; returns the path.
+/// Write the buffered transcript to Downloads; returns the path.
 #[tauri::command]
-pub fn export_transcript(state: State<AppState>, format: ExportFormat) -> Result<String, String> {
+pub fn export_transcript(app: AppHandle, state: State<AppState>, format: ExportFormat) -> Result<String, String> {
     let cues = state.transcript.lock().unwrap().clone();
     if cues.is_empty() {
         return Err("nothing to export yet".to_string());
     }
     let filename = format!("Roofle-{}.{}", filename_stamp(), format.extension());
-    write_export(&state.models, &filename, &format.render(&cues))
+    write_export(&app, &state.models, &filename, &format.render(&cues))
 }
 
-/// Write arbitrary text (full transcription or notes) to the exports folder.
+/// Write arbitrary text (full transcription or notes) to Downloads.
 #[tauri::command]
 pub fn export_text(
+    app: AppHandle,
     state: State<AppState>,
     filename: String,
     content: String,
@@ -24,5 +25,5 @@ pub fn export_text(
     if content.trim().is_empty() {
         return Err("nothing to export".to_string());
     }
-    write_export(&state.models, &filename, &content)
+    write_export(&app, &state.models, &filename, &content)
 }

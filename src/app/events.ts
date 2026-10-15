@@ -5,10 +5,11 @@ import { applyGeneratedNotes } from "../features/notes";
 import { refreshTranscription } from "../features/notes-tabs";
 import { ingestChallenges, setAnalysisMode } from "../features/questions";
 import { setSessionState } from "../features/transport";
+import { onWrapUp } from "../features/wrap-up";
 import { dom } from "../lib/dom";
 import { previewWords } from "../lib/format";
 import { setStatus } from "../lib/status";
-import type { ChallengeUpdate, ModelProgress, NotesUpdate, Segment, TitleUpdate } from "../types";
+import type { ChallengeUpdate, ModelProgress, NotesUpdate, Segment, TitleUpdate, WrapUp } from "../types";
 import { session } from "./state";
 
 const MODEL_PROGRESS_HIDE_MS = 900;
@@ -65,6 +66,7 @@ export async function initEvents(): Promise<void> {
   await listen<NotesUpdate>("notes-update", (e) => {
     if (e.payload.session_id === session.viewedId) applyGeneratedNotes(e.payload.text);
   });
+  await listen<WrapUp>("call-wrapped-up", (e) => onWrapUp(e.payload));
   await listen<ModelProgress>("model-progress", (e) => onModelProgress(e.payload));
   await listen<boolean>("recording-state", (e) => onRecordingState(e.payload));
   await listen<string>("app-status", (e) => setStatus("error", e.payload));

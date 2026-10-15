@@ -7,7 +7,7 @@ mod window;
 
 use tauri_plugin_window_state::StateFlags;
 
-use crate::commands::{ai, export, models, pipeline, recording, sessions};
+use crate::commands::{ai, export, models, pipeline, recipes, recording, sessions};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -52,7 +52,11 @@ pub fn run() {
             ai::test_ai_connection,
             ai::analyse_session,
             ai::get_session_analysis,
-            ai::recap_session
+            ai::recap_session,
+            ai::key_figures,
+            recipes::get_action_items,
+            recipes::get_recipe,
+            recipes::run_recipe
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

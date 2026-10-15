@@ -5,7 +5,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
-import type { QuestionView } from "./types";
+import type { ActionItem, Draft, KeyFigures, QuestionView, RecipeKind } from "./types";
 
 export interface Session {
   id: number;
@@ -120,4 +120,27 @@ export interface Recap {
 /** Recap the last `windowSecs` of a session; null when nothing has been said yet. */
 export function recapSession(id: number, windowSecs: number, apiKey: string): Promise<Recap | null> {
   return invoke<Recap | null>("recap_session", { id, windowSecs, apiKey });
+}
+
+/** Owners, tasks and due dates parsed from a session's notes. */
+export function getActionItems(id: number): Promise<ActionItem[]> {
+  return invoke<ActionItem[]>("get_action_items", { id });
+}
+
+/** A previously generated draft, or null; never calls the LLM. */
+export function getRecipe(id: number, recipe: RecipeKind): Promise<Draft | null> {
+  return invoke<Draft | null>("get_recipe", { id, recipe });
+}
+
+/** Generate a draft with the LLM and store it (first run or an explicit regenerate). */
+export function runRecipe(id: number, recipe: RecipeKind, apiKey: string): Promise<Draft> {
+  return invoke<Draft>("run_recipe", { id, recipe, apiKey });
+}
+
+/**
+ * Key dates, numbers and names; null when nothing has been said yet. A finished
+ * session's figures are stored, so only the first call (or `refresh`) uses the LLM.
+ */
+export function keyFigures(id: number, refresh: boolean, apiKey: string): Promise<KeyFigures | null> {
+  return invoke<KeyFigures | null>("key_figures", { id, refresh, apiKey });
 }

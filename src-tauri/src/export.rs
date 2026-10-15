@@ -1,9 +1,10 @@
-//! Transcript export: rendering and the exports folder.
+//! Transcript export: rendering and where exports are written.
 
 use std::path::PathBuf;
 
 use chrono::Local;
 use roofle_core::storage::AudioSource;
+use tauri::{AppHandle, Manager};
 
 use crate::models::ModelManager;
 use crate::state::TranscriptCue;
@@ -45,7 +46,22 @@ pub fn exports_dir(models: &ModelManager) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-pub fn write_export(models: &ModelManager, filename: &str, content: &str) -> Result<String, String> {
+/// Write an export to `~/Downloads`; returns the path. If Downloads is not
+/// writable (e.g. the user declined the macOS access prompt), fall back to the
+/// app's own exports folder so an export never fails outright.
+pub fn write_export(
+    app: &AppHandle,
+    models: &ModelManager,
+    filename: &str,
+    content: &str,
+) -> Result<String, String> {
+    if let Ok(dir) = app.path().download_dir() {
+        let path = dir.join(filename);
+        match std::fs::write(&path, content) {
+            Ok(()) => return Ok(path.display().to_string()),
+            Err(e) => eprintln!("[roofle] export to {} failed ({e}); using app folder", path.display()),
+        }
+    }
     let path = exports_dir(models)?.join(filename);
     std::fs::write(&path, content).map_err(|e| format!("write export: {e}"))?;
     Ok(path.display().to_string())

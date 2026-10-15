@@ -237,3 +237,22 @@ SELECT context, result_json
 FROM session_analysis
 WHERE session_id = ?1
 "#;
+
+// --- session_recipes (generated post-call drafts) ---------------------------
+
+/// Upsert a session's draft for one recipe (one row per session and recipe).
+pub(super) const UPSERT_SESSION_RECIPE: &str = r#"
+INSERT INTO session_recipes (session_id, recipe, subject, body, created_at)
+VALUES (?1, ?2, ?3, ?4, ?5)
+ON CONFLICT(session_id, recipe) DO UPDATE SET
+    subject = excluded.subject,
+    body = excluded.body,
+    created_at = excluded.created_at
+"#;
+
+/// A session's stored draft for one recipe, if any.
+pub(super) const SELECT_SESSION_RECIPE: &str = r#"
+SELECT subject, body
+FROM session_recipes
+WHERE session_id = ?1 AND recipe = ?2
+"#;

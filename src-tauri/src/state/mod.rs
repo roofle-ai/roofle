@@ -11,7 +11,7 @@ use crate::models::ModelManager;
 use crate::session_worker::SessionRegistry;
 
 pub use payloads::{
-    question_views, ChallengeUpdate, NotesUpdate, QuestionView, TitleUpdate, TranscriptCue,
+    question_views, ChallengeUpdate, NotesUpdate, QuestionView, TitleUpdate, TranscriptCue, WrapUp,
 };
 
 pub const DEFAULT_NOTES_WINDOW_MINS: usize = 5;

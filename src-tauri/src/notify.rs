@@ -5,11 +5,14 @@
 //! so the user gets a heads-up without the UI opening. Clicking it does not
 //! open the app; the main window still opens only via the tray icon.
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 /// Title shown on every follow-up notification.
 const NOTIF_TITLE: &str = "Roofle — Follow-up questions";
+
+/// Title shown when the end-of-call recap is ready.
+const CALL_READY_TITLE: &str = "Roofle — Call ended, recap ready";
 
 /// Whether the process is running from a proper `.app` bundle on macOS.
 ///
@@ -61,10 +64,33 @@ pub fn notify_new_questions(app: &AppHandle, questions: &[String]) {
     if questions.is_empty() {
         return;
     }
+    post(app, NOTIF_TITLE, &questions.join("\n"));
+}
 
-    let body = questions.join("\n");
-    match app.notification().builder().title(NOTIF_TITLE).body(&body).show() {
-        Ok(()) => eprintln!("[roofle] notification: {} question(s)", questions.len()),
+/// Tell the user their recap is ready, unless they are already looking at the
+/// window (the wrap-up card in the UI is the signal then).
+pub fn notify_call_ready(app: &AppHandle, summary: &str, action_items: usize) {
+    if window_in_focus(app) {
+        return;
+    }
+    let body = match action_items {
+        0 => summary.to_string(),
+        1 => format!("{summary}\n1 action item"),
+        n => format!("{summary}\n{n} action items"),
+    };
+    post(app, CALL_READY_TITLE, &body);
+}
+
+/// Whether the main window is on screen and focused.
+fn window_in_focus(app: &AppHandle) -> bool {
+    app.get_webview_window("main").is_some_and(|w| {
+        w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false)
+    })
+}
+
+fn post(app: &AppHandle, title: &str, body: &str) {
+    match app.notification().builder().title(title).body(body).show() {
+        Ok(()) => eprintln!("[roofle] notification: {title}"),
         Err(e) => eprintln!("[roofle] notification failed: {e}"),
     }
 }

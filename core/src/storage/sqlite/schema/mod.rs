@@ -10,6 +10,7 @@ mod v3;
 mod v4;
 mod v5;
 mod v6;
+mod v7;
 
 /// Apply all pending migrations and stamp `user_version` accordingly.
 pub(super) fn initialize(
@@ -41,6 +42,10 @@ pub(super) fn initialize(
     if version < 6 {
         tx.execute_batch(v6::SCHEMA)?;
         tx.pragma_update(None, "user_version", 6)?;
+    }
+    if version < 7 {
+        tx.execute_batch(v7::SCHEMA)?;
+        tx.pragma_update(None, "user_version", 7)?;
     }
     tx.commit()?;
     Ok(())

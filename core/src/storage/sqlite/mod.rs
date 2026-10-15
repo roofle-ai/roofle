@@ -8,6 +8,7 @@ mod analysis;
 mod app_config;
 mod paragraphs;
 mod questions;
+mod recipes;
 mod schema;
 mod sessions;
 mod sql;
@@ -18,6 +19,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use crate::storage::StorageError;
+
+pub use recipes::StoredRecipe;
 
 /// A session's persisted offline self-assessment: the analysis context that
 /// produced it plus the raw `AnalysisResult` JSON.
