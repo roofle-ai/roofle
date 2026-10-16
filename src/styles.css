@@ -3199,23 +3199,6 @@ select.settings-input {
   }
 }
 
-/* Theme + settings live at the bottom of the left panel; stacked in the rail. */
-.history-footer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: auto;
-  padding: 0.6rem 0 0;
-  border-top: 1px solid var(--line);
-}
-
-.history-collapsed .history-footer {
-  flex-direction: column;
-  width: 100%;
-  justify-content: center;
-}
-
 /* Earlier (answered / stale) groups collapse behind their title. */
 details.qgroup > summary.qgroup-title {
   cursor: pointer;
@@ -3532,4 +3515,171 @@ details.qgroup[open] > summary.qgroup-title {
   .wrapup-pill {
     animation: none;
   }
+}
+
+
+.history-account {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.account-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--brand-faint);
+  border-radius: var(--radius-md);
+  background: var(--brand-tint);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.account-btn:hover {
+  border-color: var(--brand);
+}
+
+.account-btn:active {
+  transform: scale(0.98);
+}
+
+.account-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+}
+
+.account-icon [data-lucide] {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+
+.account-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-collapsed .account-label {
+  display: none;
+}
+
+.history-collapsed .account-btn {
+  justify-content: center;
+  padding: 0.35rem 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.auth-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+
+.auth-menu {
+  position: fixed;
+  z-index: 90;
+  width: 17rem;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.25);
+}
+
+.auth-menu[hidden],
+.auth-menu [hidden] {
+  display: none;
+}
+
+.auth-menu-user {
+  padding: 0.5rem 0.65rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.3rem;
+}
+
+.auth-menu-label {
+  font-size: 0.75rem;
+  color: var(--faint);
+}
+
+.auth-menu-email {
+  font-size: 0.95rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.auth-menu-sep {
+  height: 1px;
+  margin: 0.3rem 0;
+  background: var(--line);
+}
+
+.auth-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.6rem 0.65rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.auth-menu-item:hover {
+  background: var(--surface);
+}
+
+.auth-menu-item.danger {
+  color: var(--record);
+}
+
+.auth-menu-item.danger:hover {
+  background: var(--record-soft);
+}
+
+.auth-menu-item [data-lucide] {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+.auth-menu-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.auth-plan {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand-tint);
+  color: var(--brand-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
 }

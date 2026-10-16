@@ -13,6 +13,7 @@ import { initTransport } from "./features/transport";
 import { initWrapUp } from "./features/wrap-up";
 import { refreshIcons } from "./lib/icons";
 import { openSettings } from "./settings";
+import "./auth";
 
 async function init(): Promise<void> {
   refreshIcons();

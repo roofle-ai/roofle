@@ -9,10 +9,10 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 /// Title shown on every follow-up notification.
-const NOTIF_TITLE: &str = "Roofle — Follow-up questions";
+const NOTIF_TITLE: &str = "Roofle\nFollow up question";
 
 /// Title shown when the end-of-call recap is ready.
-const CALL_READY_TITLE: &str = "Roofle — Call ended, recap ready";
+const CALL_READY_TITLE: &str = "Roofle\nCall ended, recap ready";
 
 /// Whether the process is running from a proper `.app` bundle on macOS.
 ///
