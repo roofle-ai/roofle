@@ -3,7 +3,9 @@
 
 pub mod ai;
 pub mod export;
+pub mod license;
 pub mod models;
+pub mod persona;
 pub mod pipeline;
 pub mod recipes;
 pub mod recording;

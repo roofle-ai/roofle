@@ -23,6 +23,9 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     let storage = SqliteStorage::open(&app_data_dir.join("roofle.db"))?;
     app.manage(AppState::new(engine, models, storage));
 
+    let handle = app.handle().clone();
+    std::thread::spawn(move || crate::license::refresh(&handle.state::<AppState>().storage));
+
     let tray = tray::build(app)?;
     *app.state::<AppState>().tray.lock().unwrap() = Some(tray);
 

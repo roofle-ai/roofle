@@ -1,0 +1,98 @@
+{
+  "roles": [
+    {
+      "id": "sales",
+      "label": "Sales / Account Exec",
+      "icon": "handshake",
+      "meetings": [
+        { "type": "sales", "label": "Sales calls" },
+        { "type": "discovery", "label": "Discovery calls" },
+        { "type": "negotiation", "label": "Pricing & contracts" },
+        { "type": "status", "label": "Pipeline reviews" }
+      ]
+    },
+    {
+      "id": "product",
+      "label": "Product Manager",
+      "icon": "boxes",
+      "meetings": [
+        { "type": "discovery", "label": "Customer discovery" },
+        { "type": "planning", "label": "Roadmap & planning" },
+        { "type": "decision", "label": "Prioritisation decisions" },
+        { "type": "review", "label": "Design & spec reviews" },
+        { "type": "status", "label": "Stand-ups & status" }
+      ]
+    },
+    {
+      "id": "engineering",
+      "label": "Engineer / Tech Lead",
+      "icon": "code",
+      "meetings": [
+        { "type": "review", "label": "Design & code reviews" },
+        { "type": "decision", "label": "Architecture decisions" },
+        { "type": "planning", "label": "Sprint planning" },
+        { "type": "status", "label": "Stand-ups & status" },
+        { "type": "support", "label": "Incident & debugging calls" }
+      ]
+    },
+    {
+      "id": "recruiting",
+      "label": "Recruiter / HR",
+      "icon": "users",
+      "meetings": [
+        { "type": "interview", "label": "Candidate interviews" },
+        { "type": "negotiation", "label": "Offer discussions" },
+        { "type": "decision", "label": "Hiring decisions" },
+        { "type": "training", "label": "Onboarding & training" }
+      ]
+    },
+    {
+      "id": "founder",
+      "label": "Founder / Executive",
+      "icon": "rocket",
+      "meetings": [
+        { "type": "decision", "label": "Strategic decisions" },
+        { "type": "planning", "label": "Planning & OKRs" },
+        { "type": "negotiation", "label": "Deals & partnerships" },
+        { "type": "interview", "label": "Hiring" },
+        { "type": "status", "label": "Team check-ins" }
+      ]
+    },
+    {
+      "id": "success",
+      "label": "Customer Success / Support",
+      "icon": "life-buoy",
+      "meetings": [
+        { "type": "support", "label": "Support calls" },
+        { "type": "status", "label": "Account check-ins" },
+        { "type": "training", "label": "Customer training" },
+        { "type": "discovery", "label": "Renewal & expansion" }
+      ]
+    },
+    {
+      "id": "consulting",
+      "label": "Consultant / Freelancer",
+      "icon": "briefcase",
+      "meetings": [
+        { "type": "discovery", "label": "Scoping calls" },
+        { "type": "negotiation", "label": "Proposals & rates" },
+        { "type": "status", "label": "Client updates" },
+        { "type": "review", "label": "Deliverable reviews" },
+        { "type": "training", "label": "Workshops" }
+      ]
+    },
+    {
+      "id": "other",
+      "label": "Something else",
+      "icon": "compass",
+      "meetings": [
+        { "type": "decision", "label": "Decisions" },
+        { "type": "review", "label": "Reviews" },
+        { "type": "planning", "label": "Planning" },
+        { "type": "status", "label": "Status updates" },
+        { "type": "interview", "label": "Interviews" },
+        { "type": "other", "label": "Other" }
+      ]
+    }
+  ]
+}

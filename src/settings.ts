@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import { refreshIcons } from "./lib/icons";
+import { loadPersona, mountPersonaPicker, savePersona, type Persona } from "./persona";
 import settingsHtml from "./ui/partials/settings.html?raw";
 
 export interface LiveSessionSettings {
@@ -24,6 +25,10 @@ const MAX_OPEN_CAP = 5;
 export const DEFAULT_NOTES_WINDOW = 5;
 const MAX_NOTES_WINDOW = 60;
 
+/** Set only when the user changes the persona, so untouched settings never write one. */
+let personaDraft: Persona | null = null;
+let saveBtn: HTMLButtonElement;
+let statusEl: HTMLElement;
 let modal: HTMLElement;
 let input: HTMLInputElement;
 let maxOpenInput: HTMLInputElement;
@@ -61,6 +66,12 @@ function clampNotesWindow(n: number): number {
   return Math.min(MAX_NOTES_WINDOW, Math.max(1, Math.round(n) || DEFAULT_NOTES_WINDOW));
 }
 
+/** Save stays disabled until something changes, so it is clear when there is nothing to save. */
+function setDirty(on: boolean): void {
+  saveBtn.disabled = !on;
+  statusEl.textContent = on ? "Unsaved changes" : "";
+}
+
 function showPane(id: string): void {
   modal.querySelectorAll<HTMLElement>(".settings-nav-item").forEach((el) => {
     const on = el.dataset.pane === id;
@@ -91,6 +102,7 @@ async function loadAbout(): Promise<void> {
 /// Seed the AI config fields from the Rust-side store.
 function loadAiConfigFields(): void {
   aiTestResult.textContent = "";
+  delete aiTestResult.dataset.state;
   loadAiConfig()
     .then((cfg) => {
       aiBaseUrl.value = cfg.base_url;
@@ -114,16 +126,27 @@ async function saveAiConfigFields(): Promise<void> {
 /// Verify the configured client with a trivial prompt.
 async function runAiTest(): Promise<void> {
   aiTestBtn.disabled = true;
+  aiTestResult.dataset.state = "busy";
   aiTestResult.textContent = "Testing…";
   try {
     await saveAiConfigFields();
     const reply = await testAiConnection(loadStoredApiKey());
-    aiTestResult.textContent = `OK — model replied: ${reply}`;
+    aiTestResult.dataset.state = "ok";
+    aiTestResult.textContent = `Connected. Model replied: ${reply}`;
   } catch (err) {
+    aiTestResult.dataset.state = "error";
     aiTestResult.textContent = String(err).replace(/^Error:\s*/, "");
   } finally {
     aiTestBtn.disabled = false;
   }
+}
+
+function loadPersonaPane(): void {
+  personaDraft = null;
+  const root = document.getElementById("settings-persona-picker")!;
+  loadPersona()
+    .then((p) => mountPersonaPicker(root, p ?? { roleId: null, meetings: [] }, (v) => ((personaDraft = v), setDirty(true))))
+    .catch((err) => (root.textContent = String(err)));
 }
 
 /// Open the settings modal, seeding both char-limit and AI config.
@@ -134,6 +157,10 @@ export function openSettings(): void {
   notesWindowInput.value = String(settings.notesWindowMins);
   showPane("llm");
   loadAiConfigFields();
+  loadPersonaPane();
+  aiApiKey.type = "password";
+  document.getElementById("ai-key-toggle")!.textContent = "Show";
+  setDirty(false);
   modal.classList.add("open");
 }
 
@@ -147,6 +174,7 @@ function saveSettings(): void {
   const notesWindowMins = clampNotesWindow(parseInt(notesWindowInput.value, 10));
   localStorage.setItem(KEY, JSON.stringify({ charLimit, maxOpenQuestions, notesWindowMins } satisfies LiveSessionSettings));
   saveAiConfigFields()
+    .then(() => personaDraft && savePersona(personaDraft))
     .catch((err) => {
       aiKeyState.textContent = String(err);
     })
@@ -171,6 +199,14 @@ function init(): void {
   aiTestResult = document.getElementById("ai-test-result") as HTMLSpanElement;
   aiTestBtn = document.getElementById("ai-test") as HTMLButtonElement;
 
+  saveBtn = document.getElementById("settings-save") as HTMLButtonElement;
+  statusEl = document.getElementById("settings-status")!;
+  modal.addEventListener("input", () => setDirty(true));
+  document.getElementById("ai-key-toggle")!.addEventListener("click", (e) => {
+    const show = aiApiKey.type === "password";
+    aiApiKey.type = show ? "text" : "password";
+    (e.currentTarget as HTMLElement).textContent = show ? "Hide" : "Show";
+  });
   document.getElementById("settings-close")!.addEventListener("click", closeSettings);
   document.getElementById("settings-cancel")!.addEventListener("click", closeSettings);
   document.getElementById("settings-save")!.addEventListener("click", saveSettings);

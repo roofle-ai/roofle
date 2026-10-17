@@ -8,7 +8,7 @@ const THEME_KEY = "roofle-theme";
 
 function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
-  dom.themeToggle.innerHTML = `<i data-lucide="${theme === "dark" ? "sun" : "moon"}" aria-hidden="true"></i><span>${theme === "dark" ? "Light mode" : "Dark mode"}</span>`;
+  dom.themeToggle.innerHTML = `<i data-lucide="${theme === "dark" ? "sun" : "moon"}" aria-hidden="true"></i>`;
   dom.themeToggle.setAttribute(
     "aria-label",
     theme === "dark" ? "Switch to light theme" : "Switch to dark theme",

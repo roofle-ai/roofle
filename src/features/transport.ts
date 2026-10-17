@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 import { loadStoredApiKey } from "../ai";
+import { ensureLicensed, showLicenseModal } from "../license";
 import { session, type SessionState } from "../app/state";
 import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
@@ -85,6 +86,7 @@ async function applyCallSetup({ kind, goal }: CallSetup): Promise<void> {
 }
 
 async function start(): Promise<void> {
+  if (!(await ensureLicensed())) return;
   if (!(await ensureModel())) return;
   const setup = await askCallSetup();
   if (setup === null) return;
@@ -112,7 +114,8 @@ async function start(): Promise<void> {
     await applyCallSetup(setup);
     setSessionState("recording");
   } catch (err) {
-    setStatus("error", describeError(err));
+    if (String(err) === "license_required") showLicenseModal(); // backend refused: license lapsed mid-session
+    else setStatus("error", describeError(err));
   }
 }
 

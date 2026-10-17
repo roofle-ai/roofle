@@ -10,4 +10,6 @@ pub const TITLE: &str = "title-update";
 /// The end-of-call notes pass finished; recipes can now run on the final notes.
 pub const WRAP_UP: &str = "call-wrapped-up";
 /// The tray asked to start a call; the UI collects the goal first.
+/// A start was attempted without a license; the UI shows the buy/activate popup.
+pub const LICENSE_REQUIRED: &str = "license-required";
 pub const START_REQUESTED: &str = "start-requested";

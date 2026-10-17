@@ -6,6 +6,7 @@ mod dev_log;
 mod engine;
 mod events;
 mod export;
+mod license;
 mod models;
 mod notify;
 mod session_worker;
