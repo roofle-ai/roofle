@@ -244,6 +244,8 @@ pub struct WriteInput<'a> {
     pub quote: &'a str,
     pub note: &'a str,       // Stage 1 "why it's a gap"
     pub speaker: &'a str,
+    pub meeting_type: &'a str,
+    pub persona: &'a str,    // deterministic paragraph from PersonaProfile::describe
     pub goal: &'a str,
     pub summary: &'a str,
     pub shown: &'a [String], // already suggested questions
@@ -268,6 +270,7 @@ pub fn render_user_prompt(i: &WriteInput) -> String {
         bullets(i.shown.iter().rev().take(10))
     };
     let goal = if i.goal.trim().is_empty() { "(not given)" } else { i.goal };
+    let persona = if i.persona.trim().is_empty() { "(not given)" } else { i.persona };
     let glossary = if i.glossary.trim().is_empty() { "(none)" } else { i.glossary };
     let examples_block = if examples.is_empty() {
         "(none)".to_string()
@@ -283,6 +286,8 @@ pub fn render_user_prompt(i: &WriteInput) -> String {
          FULL QUOTE: \"{}\"\n\
          WHY IT'S A GAP: {}\n\
          SPEAKER: {}\n\n\
+         MEETING TYPE: {}\n\
+         ABOUT THE USER: {}\n\
          GOAL: {}\n\
          SUMMARY SO FAR: {}\n\
          GLOSSARY: {}\n\n\
@@ -290,7 +295,7 @@ pub fn render_user_prompt(i: &WriteInput) -> String {
          STYLE EXAMPLES (do not copy their wording):\n{}\n\n\
          ALREADY SUGGESTED (do not repeat or rephrase):\n{}",
         i.gap_type.name(), spec.intent, spec.answer_type, i.key_phrase, i.quote, i.note,
-        i.speaker, goal, i.summary, glossary, bullets(spec.avoid), examples_block, shown
+        i.speaker, i.meeting_type, persona, goal, i.summary, glossary, bullets(spec.avoid), examples_block, shown
     )
 }
 

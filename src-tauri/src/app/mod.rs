@@ -25,6 +25,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             persona::get_persona,
             persona::save_persona,
+            persona::describe_persona,
             license::license_status,
             license::activate_license,
             recording::start_recording,

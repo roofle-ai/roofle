@@ -6,13 +6,13 @@ use serde_json::{json, Value};
 use super::gaps::GapType;
 use super::memory::Speaker;
 
-pub const UNDERSTAND_VERSION: &str = "understand.v1";
-pub const WRITE_VERSION: &str = "write.v1";
-pub const JUDGE_VERSION: &str = "judge.v1";
+pub const UNDERSTAND_VERSION: &str = "understand.v2";
+pub const WRITE_VERSION: &str = "write.v2";
+pub const JUDGE_VERSION: &str = "judge.v2";
 
-pub const UNDERSTAND_SYSTEM: &str = include_str!("../../prompts/pipeline/understand.v1.md");
-pub const WRITE_SYSTEM: &str = include_str!("../../prompts/pipeline/write.v1.md");
-pub const JUDGE_SYSTEM: &str = include_str!("../../prompts/pipeline/judge.v1.md");
+pub const UNDERSTAND_SYSTEM: &str = include_str!("../../prompts/pipeline/understand.v2.md");
+pub const WRITE_SYSTEM: &str = include_str!("../../prompts/pipeline/write.v2.md");
+pub const JUDGE_SYSTEM: &str = include_str!("../../prompts/pipeline/judge.v2.md");
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Gap {
@@ -38,7 +38,10 @@ pub struct Understand {
 
 #[derive(Debug, Deserialize)]
 pub struct Written {
-    pub question: String,
+    /// One-line reasoning (what the user would do differently per answer); logged, not shown.
+    #[serde(default)]
+    pub angle: String,
+    pub question: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,7 +54,15 @@ pub struct Verdict {
     pub goal_relevant: bool,
     pub high_impact: bool,
     pub outcome_change: String,
+    /// 1 to 5 from the user's point of view; a reply without it is not held back.
+    #[serde(default = "default_usefulness")]
+    pub usefulness: u8,
 }
+
+/// Lowest usefulness score that still passes the judge.
+pub const MIN_USEFULNESS: u8 = 3;
+
+fn default_usefulness() -> u8 { MIN_USEFULNESS }
 
 impl Verdict {
     /// The judge passes only when every check is clean and it can name an
@@ -62,6 +73,7 @@ impl Verdict {
             && !self.generic
             && !self.detail_only
             && self.outcome_change.trim().chars().count() > 15
+            && self.usefulness >= MIN_USEFULNESS
             && (!need_goal || self.goal_relevant)
     }
 
@@ -72,7 +84,8 @@ impl Verdict {
         else if self.generic { "generic" }
         else if self.detail_only { "detail_only" }
         else if need_goal && !self.goal_relevant { "not goal relevant" }
-        else { "no outcome change" }
+        else if self.outcome_change.trim().chars().count() <= 15 { "no outcome change" }
+        else { "low usefulness" }
     }
 }
 
@@ -109,8 +122,8 @@ pub fn understand_schema() -> Value {
 pub fn write_schema() -> Value {
     json!({
         "type": "object", "additionalProperties": false,
-        "required": ["question"],
-        "properties": { "question": { "type": "string" } }
+        "required": ["angle", "question"],
+        "properties": { "angle": { "type": "string" }, "question": { "type": ["string", "null"] } }
     })
 }
 
@@ -119,11 +132,12 @@ pub fn judge_schema() -> Value {
     json!({
         "type": "object", "additionalProperties": false,
         "required": ["answered", "evidence", "duplicate", "generic", "detail_only",
-                     "goal_relevant", "high_impact", "outcome_change"],
+                     "goal_relevant", "high_impact", "outcome_change", "usefulness"],
         "properties": {
             "answered": b, "evidence": { "type": "string" }, "duplicate": b,
             "generic": b, "detail_only": b, "goal_relevant": b, "high_impact": b,
-            "outcome_change": { "type": "string" }
+            "outcome_change": { "type": "string" },
+            "usefulness": { "type": "integer", "minimum": 1, "maximum": 5 }
         }
     })
 }

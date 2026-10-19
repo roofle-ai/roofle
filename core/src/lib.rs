@@ -13,6 +13,7 @@
 
 pub mod asr;
 pub mod audio;
+pub mod persona;
 pub mod pipeline;
 pub mod storage;
 

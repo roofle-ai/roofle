@@ -96,6 +96,7 @@ fn run(app: AppHandle, session_id: i64, rx: std::sync::mpsc::Receiver<Msg>) {
     let tag = format!("pipeline session={session_id}");
     let storage = &app.state::<AppState>().storage;
     let mut session = Session::new(load_memory(&app, session_id));
+    session.mem.persona = crate::commands::persona::profile(storage);
 
     loop {
         let msg = rx.recv_timeout(TICK);

@@ -43,10 +43,14 @@ impl Chunk {
             .join("\n")
     }
 
+    fn line_of(&self, source_id: &str) -> Option<&Line> {
+        let id: u32 = source_id.trim_start_matches('T').parse().ok()?;
+        self.lines.iter().find(|l| l.id == id)
+    }
+
     /// Call time of the cited line, else the chunk start.
     fn ts_of(&self, source_id: &str) -> i64 {
-        let id: Option<u32> = source_id.trim_start_matches('T').parse().ok();
-        self.lines.iter().find(|l| Some(l.id) == id).map_or(self.t_start_ms, |l| l.ts_ms)
+        self.line_of(source_id).map_or(self.t_start_ms, |l| l.ts_ms)
     }
 }
 
@@ -111,9 +115,11 @@ pub fn process_chunk(
     let points: Vec<String> = mem.open_points.iter().map(|p| format!("{}: {}", p.id, p.text)).collect();
     let live: Vec<String> = mem.live_questions().iter().map(|q| format!("{}: {}", q.id, q.text)).collect();
     let recent: Vec<&str> = mem.recent_text.iter().map(String::as_str).collect();
+    let persona = mem.persona.describe(&mem.goal);
     let user = format!(
-        "MEETING TYPE: {:?}\nGOAL:\n{}\n\nGLOSSARY:\n{}\n\nSUMMARY:\n{}\n\nRECENT text:\n{}\n\nOPEN POINTS:\n{}\n\nQUESTIONS:\n{}\n\nCHUNK:\n{}",
+        "MEETING TYPE: {:?}\nABOUT THE USER:\n{}\n\nGOAL:\n{}\n\nGLOSSARY:\n{}\n\nSUMMARY:\n{}\n\nRECENT text:\n{}\n\nOPEN POINTS:\n{}\n\nQUESTIONS:\n{}\n\nCHUNK:\n{}",
         mem.meeting_type,
+        or_none(&persona),
         or_none(&mem.goal),
         or_none(&glossary.join("\n")),
         or_none(&mem.summary),
@@ -122,7 +128,7 @@ pub fn process_chunk(
         or_none(&live.join("\n")),
         chunk.render(),
     );
-    let u: Understand = call(&mut out, stages.understand, "understand", UNDERSTAND_VERSION, UNDERSTAND_SYSTEM, user, &understand_schema())?;
+    let mut u: Understand = call(&mut out, stages.understand, "understand", UNDERSTAND_VERSION, UNDERSTAND_SYSTEM, user, &understand_schema())?;
 
     // The judge must not find "the answer" in the chunk that raised the gap, so
     // it sees the memory as it was before this chunk was folded in.
@@ -144,6 +150,13 @@ pub fn process_chunk(
             out.resolved.push(qid.clone());
         }
     }
+    // Questions are only ever raised from the other party's words. The model's own
+    // `speaker` is not trusted: keep a gap only if the line it cites really came from
+    // the Presenter (system audio), never the user's mic or an unknown/uncited line.
+    u.gaps.retain(|g| chunk.line_of(&g.source_id).is_some_and(|l| l.speaker == Speaker::Presenter));
+    for g in &mut u.gaps {
+        g.speaker = Speaker::Presenter;
+    }
     out.gaps = u.gaps.len();
     for g in &u.gaps {
         mem.add_point(&g.quote, g.gap_type, g.speaker, chunk.id, chunk.ts_of(&g.source_id));
@@ -164,6 +177,8 @@ pub fn process_chunk(
         quote: &gap.quote,
         note: &gap.note,
         speaker: &format!("{:?}", gap.speaker),
+        meeting_type: &format!("{:?}", mem.meeting_type),
+        persona: &persona,
         goal: &mem.goal,
         summary: &mem.summary,
         shown: &shown,
@@ -171,7 +186,8 @@ pub fn process_chunk(
         chunk_id: chunk.id,
     });
     let text = match call::<Written>(&mut out, stages.write, "write", WRITE_VERSION, WRITE_SYSTEM, user, &write_schema()) {
-        Ok(w) => w.question.trim().to_string(),
+        Ok(Written { question: Some(q), .. }) if !q.trim().is_empty() => q.trim().to_string(),
+        Ok(w) => return Ok(drop_with(out, format!("write: no question [{}]", w.angle.chars().take(120).collect::<String>()))),
         Err(e) => return Ok(drop_with(out, format!("write failed: {e}"))),
     };
     out.candidate = Some(text.clone());
@@ -184,8 +200,9 @@ pub fn process_chunk(
     // Stage 3: judge (fail closed).
     let existing: Vec<&str> = mem.recent_question_texts();
     let user = format!(
-        "MEETING TYPE: {:?}\nGOAL:\n{}\n\nPRIOR SUMMARY (before this chunk):\n{}\n\nPRIOR TEXT:\n{}\n\nCURRENT CHUNK (the gap was spotted here):\n{}\n\nOPEN POINTS:\n{}\n\nEXISTING QUESTIONS:\n{}\n\nCANDIDATE QUESTION:\n{}",
+        "MEETING TYPE: {:?}\nABOUT THE USER:\n{}\n\nGOAL:\n{}\n\nPRIOR SUMMARY (before this chunk):\n{}\n\nPRIOR TEXT:\n{}\n\nCURRENT CHUNK (the gap was spotted here):\n{}\n\nOPEN POINTS:\n{}\n\nEXISTING QUESTIONS:\n{}\n\nCANDIDATE QUESTION:\n{}",
         mem.meeting_type,
+        or_none(&persona),
         or_none(&mem.goal),
         or_none(&prior_summary),
         or_none(&prior_text),
@@ -271,6 +288,7 @@ mod tests {
     const ONE_GAP: &str = r#"{"clean_chunk":"c","summary":"s","answered_points":[],"answered_questions":[],"gaps":[{"type":"PLAN_NO_FALLBACK","quote":"trigger dbt","speaker":"presenter","source_id":"T12","note":"no failure handling"}]}"#;
     const Q: &str = r#"{"question":"What happens if the Glue job succeeds but the dbt trigger call fails?"}"#;
     const PASS: &str = r#"{"answered":false,"evidence":"","duplicate":false,"generic":false,"detail_only":false,"goal_relevant":true,"high_impact":false,"outcome_change":"A manual rerun answer would justify Step Functions"}"#;
+    const LOW_VALUE: &str = r#"{"answered":false,"evidence":"","duplicate":false,"generic":false,"detail_only":false,"goal_relevant":true,"high_impact":false,"outcome_change":"A manual rerun answer would justify Step Functions","usefulness":2}"#;
     const GENERIC: &str = r#"{"answered":false,"evidence":"","duplicate":false,"generic":true,"detail_only":false,"goal_relevant":true,"high_impact":false,"outcome_change":"A manual rerun answer would justify Step Functions"}"#;
 
     fn run(mem: &mut Memory, replies: &[Result<&str, &str>]) -> (Result<Outcome, String>, usize) {
@@ -315,6 +333,8 @@ mod tests {
         let (r, _) = run(&mut m, &[Ok(ONE_GAP), Ok(Q), Ok(GENERIC)]);
         assert!(r.unwrap().dropped.unwrap().starts_with("judge: generic"));
         assert!(m.questions.is_empty());
+        let (r, _) = run(&mut m, &[Ok(ONE_GAP), Ok(Q), Ok(LOW_VALUE)]);
+        assert!(r.unwrap().dropped.unwrap().starts_with("judge: low usefulness"));
     }
 
     #[test]
@@ -357,6 +377,41 @@ mod tests {
         let (r, _) = run(&mut m, &[Ok(reply)]);
         assert_eq!(r.unwrap().resolved, vec!["Q1"]);
         assert_eq!(m.question("Q1").unwrap().state, QuestionState::Dismissed);
+    }
+
+    #[test]
+    fn gaps_cited_from_the_mic_are_ignored() {
+        let mut m = user_goal_memory();
+        let mut c = chunk();
+        c.lines.push(Line { id: 13, speaker: Speaker::Other, ts_ms: 50_000, text: "I think the dbt trigger might fail".into() });
+        let s = Script::new(&[Ok(&ONE_GAP.replace("T12", "T13"))]);
+        let stages = Stages { understand: &s, write: &s, judge: &s };
+        let out = process_chunk(&mut m, &c, &stages, &PipelineConfig::default(), 100_000).unwrap();
+        assert_eq!((s.calls(), out.gaps, m.open_points.len()), (1, 0, 0));
+    }
+
+    #[test]
+    fn write_prompt_carries_persona_and_null_is_a_clean_drop() {
+        struct Spy(RefCell<String>);
+        impl CompletionClient for Spy {
+            fn complete(&self, _: &str, _: &str) -> Result<String, String> { unreachable!() }
+            fn complete_json(&self, system: &str, user: &str, _: &serde_json::Value) -> Result<String, String> {
+                if system.starts_with("You write ONE") {
+                    *self.0.borrow_mut() = user.to_string();
+                    return Ok(r#"{"angle":"nothing changes","question":null}"#.into());
+                }
+                Ok(ONE_GAP.into())
+            }
+        }
+        let mut m = user_goal_memory();
+        m.meeting_type = crate::pipeline::MeetingType::Interview;
+        m.persona = roofle_core::persona::PersonaProfile { role: "Tech Lead".into(), ..Default::default() };
+        let spy = Spy(RefCell::default());
+        let stages = Stages { understand: &spy, write: &spy, judge: &spy };
+        let out = process_chunk(&mut m, &chunk(), &stages, &PipelineConfig::default(), 100_000).unwrap();
+        let sent = spy.0.borrow().clone();
+        assert!(sent.contains("MEETING TYPE: Interview") && sent.contains("I am a Tech Lead."));
+        assert!(out.dropped.unwrap().starts_with("write: no question"));
     }
 
     #[test]

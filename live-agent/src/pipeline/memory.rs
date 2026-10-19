@@ -118,6 +118,9 @@ pub struct Memory {
     pub goal: String,
     pub goal_inferred: bool,
     pub meeting_type: MeetingType,
+    /// Who the user is; rendered into the write prompt with the current goal.
+    #[serde(default)]
+    pub persona: roofle_core::persona::PersonaProfile,
     pub glossary: Vec<GlossaryEntry>,
     /// Rolling, rewritten each chunk.
     pub summary: String,

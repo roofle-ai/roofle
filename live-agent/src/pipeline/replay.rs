@@ -246,8 +246,8 @@ mod tests {
 
     const TRANSCRIPT: &str = "\
 # a comment
-00:05 Presenter: We will deploy with Glue and then call the dbt trigger.
-00:20 Other: Sounds fine, the migration should be cheaper than what we run today for sure.
+00:05 Presenter: We will deploy with Glue and the migration should be cheaper than what we run today.
+00:20 Other: Sounds fine, we will look at the numbers.
 01:10 Presenter: Next topic then.
 03:00 Other: Thanks everyone.";
 
@@ -270,7 +270,7 @@ mod tests {
         fn complete(&self, _: &str, _: &str) -> Result<String, String> { unreachable!() }
         fn complete_json(&self, system: &str, _: &str, _: &serde_json::Value) -> Result<String, String> {
             Ok(if system.starts_with("You listen to one chunk") {
-                r#"{"clean_chunk":"c","summary":"s","answered_points":[],"answered_questions":[],"gaps":[{"type":"NO_NUMBER","quote":"cheaper","speaker":"other","source_id":"T2","note":"n"}]}"#.into()
+                r#"{"clean_chunk":"c","summary":"s","answered_points":[],"answered_questions":[],"gaps":[{"type":"NO_NUMBER","quote":"cheaper","speaker":"other","source_id":"T1","note":"n"}]}"#.into()
             } else if system.starts_with("You write ONE") {
                 r#"{"question":"What is the actual annual cost of the migration versus today?"}"#.into()
 
@@ -288,7 +288,7 @@ mod tests {
         assert_eq!(r.surfaced.len(), 1);
         // Queued at 00:20, released only after the 30 s hold.
         assert!(r.surfaced[0].opened_ms >= 50_000);
-        assert_eq!(r.surfaced[0].source_ts_ms, 20_000);
+        assert_eq!(r.surfaced[0].source_ts_ms, 5_000);
 
         let ok: Labels = serde_json::from_str(r#"{"must_surface":[["annual cost","price"]],"must_not_surface":["what specific"],"max_questions_per_10_min":2}"#).unwrap();
         assert!(check(&r, &ok).is_empty());
