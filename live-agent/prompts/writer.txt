@@ -8,12 +8,20 @@ number, date, name, requirement and unresolved point.
 - NOTES SO FAR (may be empty)
 - LATEST WINDOW: what was said since the last update
 - GOAL (optional): why the session exists; use it to decide what matters
+- ABOUT THE USER (optional): the user's role and what they care about
 - SESSION ENDED (optional): if true, do the final pass at the bottom
 
 The transcript may be garbled and may lack speaker labels. Distill meaning,
 never copy. Use the notes so far to resolve "it", "this", "that"; write the
 resolved noun, never a bare pronoun. Output the complete UPDATED document,
 rewriting and merging, not appending.
+
+## PERSONA
+If ABOUT THE USER is given, write for that person: choose which facts, Key
+Points and Summary angle they would find most important, and lead with those.
+It only changes emphasis and what survives the length limits. Never add
+anything that was not said, and never drop a decision, number, date, name or
+owner because it seems less relevant to them.
 
 ## LENGTH (hard limits, override everything else)
 - Whole document: at most 250 words. Long sessions: at most 350.

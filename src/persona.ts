@@ -9,7 +9,11 @@ import { mountLicensePanel, needsLicense } from "./license";
 export interface Persona {
   roleId: string | null;
   meetings: string[];
+  /** Editable first-person summary, max SUMMARY_MAX chars. */
+  summary?: string;
 }
+
+const SUMMARY_MAX = 400;
 
 const roles = data.roles;
 const EMPTY: Persona = { roleId: null, meetings: [] };
@@ -68,7 +72,7 @@ export function mountPersonaPicker(
   render();
 }
 
-type Step = "role" | "meetings" | "unlock" | "model";
+type Step = "role" | "meetings" | "summary" | "unlock" | "model";
 
 const COPY: Record<Step, { title: string; sub: string }> = {
   role: {
@@ -78,6 +82,10 @@ const COPY: Record<Step, { title: string; sub: string }> = {
   meetings: {
     title: "Which meetings do you join?",
     sub: "Tell us which meetings you join so Roofle knows what matters in them, such as next steps in a sales call or risks in a review. Pick all that apply.",
+  },
+  summary: {
+    title: "Your persona",
+    sub: "This is how Roofle will describe you to its AI. Edit it to say it your own way.",
   },
   unlock: {
     title: "Unlock Roofle",
@@ -94,7 +102,7 @@ export async function initPersona(): Promise<void> {
   const personaDone = (await loadPersona()) !== null;
   const modelReady = await invoke<boolean>("models_ready");
   const steps: Step[] = [];
-  if (!personaDone) steps.push("role", "meetings");
+  if (!personaDone) steps.push("role", "meetings", "summary");
   if (!personaDone && (await needsLicense())) steps.push("unlock");
   if (!modelReady) steps.push("model");
   if (steps.length === 0) return;
@@ -180,11 +188,25 @@ export async function initPersona(): Promise<void> {
     picker.classList.toggle("onb-card", step === "unlock" || step === "model");
     next.hidden = step === "unlock"; // the license form has its own Activate button
     left.hidden = step === "model"; // the model download cannot be skipped
-    if (step === "role" || step === "meetings") {
+    if (step === "summary") {
+      left.textContent = "Back";
+      next.textContent = at + 1 < steps.length ? "Continue" : "Get started";
+      next.disabled = false;
+      picker.innerHTML = `<textarea id="onb-summary" class="onb-summary" maxlength="${SUMMARY_MAX}" rows="5" aria-label="Persona summary"></textarea>
+        <span id="onb-summary-count" class="onb-count"></span>`;
+      const box = $("onb-summary") as HTMLTextAreaElement;
+      const count = () => ($("onb-summary-count").textContent = `${box.value.length} / ${SUMMARY_MAX}`);
+      box.addEventListener("input", () => ((choice = { ...choice, summary: box.value }), count()));
+      if (choice.summary !== undefined) (box.value = choice.summary), count();
+      else
+        invoke<string>("describe_persona", { persona: choice })
+          .then((t) => ((box.value = choice.summary = t.slice(0, SUMMARY_MAX)), count()))
+          .catch((err) => (error.textContent = String(err)));
+    } else if (step === "role" || step === "meetings") {
       left.textContent = step === "role" ? "Skip for now" : "Back";
       next.textContent = at + 1 < steps.length ? "Continue" : "Get started";
       next.disabled = step === "role" && !choice.roleId;
-      mountPersonaPicker(picker, choice, (p) => ((choice = p), (next.disabled = !p.roleId)), step === "role" ? "role" : "meetings");
+      mountPersonaPicker(picker, choice, (p) => ((choice = { ...p, summary: undefined }), (next.disabled = !p.roleId)), step === "role" ? "role" : "meetings");
     } else if (step === "unlock") {
       left.textContent = "I'll do it later";
       mountLicensePanel(picker, advance);
@@ -202,13 +224,14 @@ export async function initPersona(): Promise<void> {
   next.addEventListener("click", () => {
     const step = steps[at];
     if (step === "role") go(at + 1);
-    else if (step === "meetings") void savePersonaThen(choice);
+    else if (step === "meetings") go(at + 1);
+    else if (step === "summary") void savePersonaThen(choice);
     else if (!downloading) void download();
   });
   left.addEventListener("click", () => {
     const step = steps[at];
     if (step === "role") void savePersonaThen(EMPTY); // skip: save the empty persona so it is not asked again
-    else if (step === "meetings") go(at - 1);
+    else if (step === "meetings" || step === "summary") go(at - 1);
     else advance();
   });
   render();

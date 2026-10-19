@@ -4,6 +4,7 @@
       "id": "sales",
       "label": "Sales / Account Exec",
       "icon": "handshake",
+      "focus": ["budget and who holds it", "decision process and timeline", "competing options", "what could stall the deal"],
       "meetings": [
         { "type": "sales", "label": "Sales calls" },
         { "type": "discovery", "label": "Discovery calls" },
@@ -15,6 +16,7 @@
       "id": "product",
       "label": "Product Manager",
       "icon": "boxes",
+      "focus": ["the user problem behind a request", "impact and prioritisation trade-offs", "scope and success metrics", "dependencies and risks to the plan"],
       "meetings": [
         { "type": "discovery", "label": "Customer discovery" },
         { "type": "planning", "label": "Roadmap & planning" },
@@ -27,6 +29,7 @@
       "id": "engineering",
       "label": "Engineer / Tech Lead",
       "icon": "code",
+      "focus": ["correctness and failure modes", "ownership and dependencies", "risk to delivery", "maintainability and operational impact"],
       "meetings": [
         { "type": "review", "label": "Design & code reviews" },
         { "type": "decision", "label": "Architecture decisions" },
@@ -39,6 +42,7 @@
       "id": "recruiting",
       "label": "Recruiter / HR",
       "icon": "users",
+      "focus": ["evidence of real ownership and results", "fit for the role", "motivation and availability", "risks to an offer being accepted"],
       "meetings": [
         { "type": "interview", "label": "Candidate interviews" },
         { "type": "negotiation", "label": "Offer discussions" },
@@ -50,6 +54,7 @@
       "id": "founder",
       "label": "Founder / Executive",
       "icon": "rocket",
+      "focus": ["the decision at stake and who makes it", "cost, risk and runway impact", "commitments and deadlines", "what could go wrong"],
       "meetings": [
         { "type": "decision", "label": "Strategic decisions" },
         { "type": "planning", "label": "Planning & OKRs" },
@@ -62,6 +67,7 @@
       "id": "success",
       "label": "Customer Success / Support",
       "icon": "life-buoy",
+      "focus": ["the customer's actual problem and impact", "what was already tried", "next steps and ownership", "risk of churn or escalation"],
       "meetings": [
         { "type": "support", "label": "Support calls" },
         { "type": "status", "label": "Account check-ins" },
@@ -73,6 +79,7 @@
       "id": "consulting",
       "label": "Consultant / Freelancer",
       "icon": "briefcase",
+      "focus": ["scope and deliverables", "who decides and who pays", "constraints and dependencies", "success criteria"],
       "meetings": [
         { "type": "discovery", "label": "Scoping calls" },
         { "type": "negotiation", "label": "Proposals & rates" },
@@ -85,6 +92,7 @@
       "id": "other",
       "label": "Something else",
       "icon": "compass",
+      "focus": ["what is being decided", "who owns the next step", "risks and unknowns", "what would change the plan"],
       "meetings": [
         { "type": "decision", "label": "Decisions" },
         { "type": "review", "label": "Reviews" },

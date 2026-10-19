@@ -77,7 +77,7 @@ fn update_notes(app: &AppHandle, session_id: i64, ended: bool) -> bool {
         let goal = state.goals.lock().unwrap().get(&session_id).cloned().unwrap_or_default();
         let existing = last.map(|n| n.text).unwrap_or_default();
 
-        match agent_notes(&client, &transcript, &existing, &goal, ended, log) {
+        match agent_notes(&client, &transcript, &existing, &goal, &crate::commands::persona::profile(storage).describe(""), ended, log) {
             Ok(text) => {
                 log_step(log, &tag, &format!("final notes = {} chars", text.chars().count()));
                 let _ = storage.save_note(session_id, seq, &text);

@@ -71,13 +71,15 @@ pub fn log_step(enabled: bool, step: &str, msg: &str) {
 ///
 /// `transcript` is everything said since the last update; `existing_notes` is
 /// the notes document produced so far (empty on the first window); `goal` is
-/// the call's stated purpose (may be empty); `ended` marks the final pass.
+/// the call's stated purpose (may be empty); `persona` is who the user is
+/// (from `PersonaProfile::describe`, may be empty); `ended` marks the final pass.
 /// These are the writer prompt's four inputs.
 pub fn agent_notes(
     client: &dyn CompletionClient,
     transcript: &str,
     existing_notes: &str,
     goal: &str,
+    persona: &str,
     ended: bool,
     log: bool,
 ) -> Result<String, String> {
@@ -93,6 +95,9 @@ pub fn agent_notes(
     );
     if !goal.trim().is_empty() {
         writer_user.push_str(&format!("\n\nGOAL:\n{}", goal.trim()));
+    }
+    if !persona.trim().is_empty() {
+        writer_user.push_str(&format!("\n\nABOUT THE USER:\n{}", persona.trim()));
     }
     if ended {
         writer_user.push_str("\n\nSESSION ENDED: true");
@@ -139,7 +144,7 @@ mod tests {
     #[test]
     fn agent_runs_writer_then_validator() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        let notes = agent_notes(&client, "window", "old notes", "ship v2", true, false).unwrap();
+        let notes = agent_notes(&client, "window", "old notes", "ship v2", "I am a PM.", true, false).unwrap();
         assert!(notes.contains("validator saw"), "final notes must come from validator: {notes}");
         let calls = client.calls.borrow();
         let order: Vec<_> = calls.iter().map(|(r, _)| *r).collect();
@@ -149,9 +154,9 @@ mod tests {
     #[test]
     fn writer_gets_every_input_its_prompt_names() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        agent_notes(&client, "window text", "old notes", "ship v2", true, false).unwrap();
+        agent_notes(&client, "window text", "old notes", "ship v2", "I am a PM.", true, false).unwrap();
         let user = client.calls.borrow()[0].1.clone();
-        for part in ["NOTES SO FAR:\nold notes", "LATEST WINDOW:\nwindow text", "GOAL:\nship v2", "SESSION ENDED: true"] {
+        for part in ["NOTES SO FAR:\nold notes", "LATEST WINDOW:\nwindow text", "GOAL:\nship v2", "ABOUT THE USER:\nI am a PM.", "SESSION ENDED: true"] {
             assert!(user.contains(part), "missing {part:?} in {user}");
         }
     }
@@ -159,10 +164,10 @@ mod tests {
     #[test]
     fn optional_inputs_are_omitted_when_absent() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        agent_notes(&client, "first", "", "", false, false).unwrap();
+        agent_notes(&client, "first", "", "", "", false, false).unwrap();
         let user = client.calls.borrow()[0].1.clone();
         assert!(user.contains("(none yet)"));
-        assert!(!user.contains("GOAL:") && !user.contains("SESSION ENDED"));
+        assert!(!user.contains("GOAL:") && !user.contains("ABOUT THE USER") && !user.contains("SESSION ENDED"));
     }
 
     #[test]
