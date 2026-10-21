@@ -22,6 +22,17 @@ export interface Session {
 /** A session as listed in the history sidebar. */
 export interface SessionSummary extends Session {
   preview: string; // first words of the transcript
+  topic_id: number | null;
+}
+
+export interface Topic {
+  id: number;
+  name: string;
+}
+
+/** What a conversation is called in lists and search. */
+export function sessionTitle(s: SessionSummary): string {
+  return s.title || s.preview || "Untitled conversation";
 }
 
 export interface AudioSegment {
@@ -143,4 +154,27 @@ export function runRecipe(id: number, recipe: RecipeKind, apiKey: string): Promi
  */
 export function keyFigures(id: number, refresh: boolean, apiKey: string): Promise<KeyFigures | null> {
   return invoke<KeyFigures | null>("key_figures", { id, refresh, apiKey });
+}
+
+export function listTopics(): Promise<Topic[]> {
+  return invoke<Topic[]>("list_topics");
+}
+
+/** Creates the topic, or returns the existing one with the same name. */
+export function createTopic(name: string): Promise<Topic> {
+  return invoke<Topic>("create_topic", { name });
+}
+
+/** File a session under a topic; `null` clears it. */
+export function setSessionTopic(id: number, topicId: number | null): Promise<void> {
+  return invoke<void>("set_session_topic", { id, topicId });
+}
+
+/** Delete a topic; its conversations stay, untagged. */
+export function deleteTopic(id: number): Promise<void> {
+  return invoke<void>("delete_topic", { id });
+}
+
+export function renameSession(id: number, title: string): Promise<void> {
+  return invoke<void>("rename_session", { id, title });
 }

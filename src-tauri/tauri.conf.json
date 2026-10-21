@@ -11,10 +11,12 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Roofle",
         "visible": false,
+        "transparent": true,
         "width": 980,
         "height": 680,
         "minWidth": 560,

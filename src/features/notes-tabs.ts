@@ -3,7 +3,6 @@ import { create, dom } from "../lib/dom";
 import { setStatus } from "../lib/status";
 import { getSession, type AudioSegment } from "../transcripts";
 import type { QuestionSource } from "../types";
-import { updateNotesSaveVisibility } from "./notes";
 
 const SOURCE_LABELS: Record<AudioSegment["source"], string> = {
   mic: "Mic",
@@ -132,7 +131,6 @@ export function setNotesTab(tab: NotesTab): void {
   });
   dom.notesPane.hidden = !showingNotes;
   dom.transcriptionPane.hidden = showingNotes;
-  updateNotesSaveVisibility();
   refreshTranscription();
 }
 

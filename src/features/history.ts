@@ -1,6 +1,7 @@
 import { session } from "../app/state";
+import { confirmDialog } from "../lib/confirm";
 import { create, dom } from "../lib/dom";
-import { formatDuration, formatWhen, previewWords } from "../lib/format";
+import { previewWords } from "../lib/format";
 import { refreshIcons } from "../lib/icons";
 import { setStatus } from "../lib/status";
 import {
@@ -8,22 +9,29 @@ import {
   getSession,
   listSessionQuestions,
   listSessions,
+  sessionTitle,
   type SessionSummary,
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
-import { refreshNotesTitle, showLoadedNotes, updateNotesSaveVisibility } from "./notes";
+import { refreshNotesTitle, showLoadedNotes } from "./notes";
 import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
+import { matchesSearch } from "./history-search";
+import { groupByTopic, rememberTopics, topicName } from "./topics";
 import { resetView } from "./view";
 import { syncWrapUp } from "./wrap-up";
 
 export async function loadHistory(): Promise<void> {
   const sessions = await listSessions();
-  dom.historyList.querySelectorAll(".history-item").forEach((el) => el.remove());
-  dom.historyCount.textContent = String(sessions.length);
+  rememberTopics(sessions);
+  dom.historyList.querySelectorAll(".history-item, .topic-bucket").forEach((el) => el.remove());
   dom.historyRailBadge.hidden = sessions.length === 0;
   dom.historyRailBadge.textContent = sessions.length > 99 ? "99+" : String(sessions.length);
   dom.historyEmpty.hidden = sessions.length !== 0;
-  dom.historyList.append(...sessions.map(renderItem));
+  // A conversation is found by its title or by the topic it is filed under.
+  const visible = sessions.filter((s) => matchesSearch(sessionTitle(s)) || matchesSearch(topicName(s.topic_id) ?? ""));
+  const rows = groupByTopic(visible, renderItem);
+  dom.historyNoResults.hidden = rows.length !== 0 || sessions.length === 0;
+  dom.historyList.append(...rows);
   refreshIcons();
 }
 
@@ -33,16 +41,9 @@ function renderItem(s: SessionSummary): HTMLElement {
   item.classList.toggle("is-active", s.id === session.viewedId);
   item.classList.toggle("is-recording", s.status === "recording");
 
-  const title = create("span", "history-title", s.title || s.preview || "Untitled conversation");
-  const meta = create(
-    "span",
-    "history-meta",
-    `${formatDuration(s.duration_secs)} · ${formatWhen(s.started_at)}`,
-  );
-  item.append(title, meta);
-
-  const label = title.textContent ?? "";
-  item.title = `${label}\n${meta.textContent}`;
+  const title = create("span", "history-title", sessionTitle(s));
+  item.append(title);
+  item.title = title.textContent ?? "";
 
   item.tabIndex = 0;
   item.setAttribute("role", "button");
@@ -62,6 +63,29 @@ function renderItem(s: SessionSummary): HTMLElement {
   return item;
 }
 
+/** Delete a conversation after confirming, resetting the notes view if it was the one open. */
+export async function removeSession(id: number): Promise<void> {
+  const ok = await confirmDialog(
+    "Delete this conversation?",
+    "Its notes and transcript will be permanently deleted. This can't be undone.",
+    "Delete",
+  );
+  if (!ok) return;
+  try {
+    await deleteSession(id);
+    if (session.viewedId === id) {
+      session.viewedId = null;
+      refreshNotesTitle();
+      resetView();
+      updateAnalyseVisibility();
+      syncWrapUp();
+    }
+    await loadHistory();
+  } catch (err) {
+    setStatus("error", String(err));
+  }
+}
+
 function renderDeleteButton(id: number): HTMLButtonElement {
   const del = create("button", "history-delete");
   del.type = "button";
@@ -70,19 +94,7 @@ function renderDeleteButton(id: number): HTMLButtonElement {
   del.innerHTML = `<i data-lucide="trash" aria-hidden="true"></i>`;
   del.addEventListener("click", (e) => {
     e.stopPropagation();
-    void deleteSession(id)
-      .then(() => {
-        if (session.viewedId === id) {
-          session.viewedId = null;
-          refreshNotesTitle();
-          resetView();
-          updateAnalyseVisibility();
-          updateNotesSaveVisibility();
-          syncWrapUp();
-        }
-        void loadHistory();
-      })
-      .catch((err) => setStatus("error", String(err)));
+    void removeSession(id);
   });
   return del;
 }
@@ -94,7 +106,6 @@ export async function openSession(id: number): Promise<void> {
 
     session.viewedId = id;
     updateAnalyseVisibility();
-    updateNotesSaveVisibility();
 
     resetView();
     // Prefer the persisted title (agent-renamed) over the transcript's first words.

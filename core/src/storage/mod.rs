@@ -15,7 +15,7 @@ pub use questions::{
     LiveNote, NewPipelineQuestion, PipelineRun, Question, QuestionStatus, QuestionStore,
 };
 pub use repository::{SessionRepository, StorageError};
-pub use sqlite::{StoredAnalysis, StoredRecipe};
+pub use sqlite::{StoredAnalysis, StoredRecipe, Topic};
 pub use sqlite::SqliteStorage;
 pub use transcript::{TranscriptEntry, TranscriptStore};
 
@@ -92,6 +92,8 @@ pub struct SessionSummary {
     pub updated_at: DateTime<Utc>,
     /// First words of the transcript, for the history list preview.
     pub preview: String,
+    /// The user-assigned topic, if any.
+    pub topic_id: Option<i64>,
 }
 
 /// Input for creating a session row.

@@ -101,6 +101,7 @@ impl SessionRepository for SqliteStorage {
                 r.get::<_, String>(7)?,
                 r.get::<_, String>(8)?,
                 r.get::<_, Option<String>>(9)?,
+                r.get::<_, Option<i64>>(10)?,
             ))
         })?;
         rows.map(|r| {
@@ -115,6 +116,7 @@ impl SessionRepository for SqliteStorage {
                 status,
                 updated,
                 preview,
+                topic_id,
             ) = r?;
             Ok(SessionSummary {
                 id,
@@ -127,6 +129,7 @@ impl SessionRepository for SqliteStorage {
                 status: parse_status(&status),
                 updated_at: parse_utc(&updated)?,
                 preview: preview_words(preview.as_deref().unwrap_or(""), PREVIEW_WORDS),
+                topic_id,
             })
         })
         .collect()

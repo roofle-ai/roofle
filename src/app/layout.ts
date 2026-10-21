@@ -3,6 +3,7 @@ import { storeGet, storeSet } from "../lib/storage";
 
 type PanelSide = "history" | "questions";
 
+/** Narrowest a side panel can be dragged; below this its header would overlap (collapse instead). */
 const MIN_PANEL_WIDTH = 180;
 /** Side panels never grow past these, however wide the window is. */
 const MAX_PANEL_WIDTH: Record<PanelSide, number> = { history: 320, questions: 440 };

@@ -12,6 +12,7 @@ mod recipes;
 mod schema;
 mod sessions;
 mod sql;
+mod topics;
 mod transcript;
 
 use chrono::{DateTime, Utc};
@@ -21,6 +22,7 @@ use std::sync::Mutex;
 use crate::storage::StorageError;
 
 pub use recipes::StoredRecipe;
+pub use topics::Topic;
 
 /// A session's persisted offline self-assessment: the analysis context that
 /// produced it plus the raw `AnalysisResult` JSON.

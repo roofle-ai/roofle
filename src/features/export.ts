@@ -6,13 +6,9 @@ import { dom } from "../lib/dom";
 import { exportStamp } from "../lib/format";
 import { showToast } from "../lib/status";
 import { getSession } from "../transcripts";
+import { closeMenu } from "./topics";
 
 type ExportKind = "transcript" | "notes";
-
-function closeMenu(): void {
-  dom.assistMenu.hidden = true;
-  dom.assistBtn.setAttribute("aria-expanded", "false");
-}
 
 async function contentFor(kind: ExportKind): Promise<string> {
   if (kind === "notes") return dom.notesInput.value;
@@ -25,7 +21,7 @@ async function contentFor(kind: ExportKind): Promise<string> {
 }
 
 /** Write a `.txt` to ~/Downloads and reveal it in the file manager. */
-async function runExport(kind: ExportKind): Promise<void> {
+export async function runExport(kind: ExportKind): Promise<void> {
   closeMenu();
   const content = await contentFor(kind);
   if (!content.trim()) {
@@ -42,11 +38,4 @@ async function runExport(kind: ExportKind): Promise<void> {
   } catch (err) {
     showToast(String(err));
   }
-}
-
-/** Export lives in the Assist menu; wire its two export items. */
-export function initExport(): void {
-  dom.assistMenu.querySelectorAll<HTMLButtonElement>("[data-export]").forEach((item) => {
-    item.addEventListener("click", () => void runExport(item.dataset.export as ExportKind));
-  });
 }

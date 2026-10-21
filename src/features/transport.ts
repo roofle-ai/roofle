@@ -9,7 +9,7 @@ import { describeError, setStatus } from "../lib/status";
 import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
 import { adoptActiveSession, loadHistory } from "./history";
-import { refreshNotesTitle, saveNotesNow, setNotesPreview, updateNotesSaveVisibility } from "./notes";
+import { refreshNotesTitle, saveNotesNow, setNotesPreview } from "./notes";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
@@ -61,7 +61,6 @@ export function setSessionState(state: SessionState): void {
 
   setQuestionsHint();
   updateAnalyseVisibility();
-  updateNotesSaveVisibility();
   syncWrapUp();
 }
 
@@ -140,7 +139,6 @@ async function newSession(): Promise<void> {
   if (session.state !== "idle") await stop();
   session.viewedId = null;
   updateAnalyseVisibility();
-  updateNotesSaveVisibility();
   refreshNotesTitle();
   resetView();
   syncWrapUp();

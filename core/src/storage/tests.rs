@@ -22,8 +22,29 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
-    // The current schema is V7 (post-call recipe drafts).
-    assert_eq!(storage.schema_version().unwrap(), 7);
+    // The current schema is V8 (topics).
+    assert_eq!(storage.schema_version().unwrap(), 8);
+}
+
+#[test]
+fn topics_tag_sessions_and_dedupe_by_name() {
+    let storage = store();
+    let s = storage.create_session(new_session("mic", Utc::now())).unwrap();
+
+    let t = storage.create_topic("Acme deal").unwrap();
+    assert_eq!(storage.create_topic("acme DEAL").unwrap().id, t.id);
+    assert_eq!(storage.list_topics().unwrap().len(), 1);
+
+    storage.set_session_topic(s.id, Some(t.id)).unwrap();
+    assert_eq!(storage.list_sessions(None).unwrap()[0].topic_id, Some(t.id));
+    storage.set_session_topic(s.id, None).unwrap();
+    assert_eq!(storage.list_sessions(None).unwrap()[0].topic_id, None);
+
+    // Deleting a topic keeps its sessions, untagged.
+    storage.set_session_topic(s.id, Some(t.id)).unwrap();
+    storage.delete_topic(t.id).unwrap();
+    assert!(storage.list_topics().unwrap().is_empty());
+    assert_eq!(storage.list_sessions(None).unwrap()[0].topic_id, None);
 }
 
 #[test]

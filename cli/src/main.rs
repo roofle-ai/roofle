@@ -1,14 +1,4 @@
 //! roofle-cli — headless spike binary.
-//!
-//! Exercises the `core/` pipeline in the terminal before any Tauri/UI work.
-//!
-//! - default: open the system-default input device and print a live level meter
-//! - `--list`: enumerate input devices and exit
-//! - `--device <name>`: open a specific input device
-//! - `transcribe --wav <file>`: offline ASR over a WAV file (S5)
-//! - `stream`: live mic -> pipeline (S6/S7), printing partial and final
-//!   segments as typed events arrive from the background ASR thread
-
 use std::error::Error;
 use std::io::{self, Write};
 use std::sync::mpsc;

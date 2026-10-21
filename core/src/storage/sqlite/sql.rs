@@ -30,7 +30,8 @@ pub(super) const UPDATE_SESSION_RESUME: &str =
 pub(super) const SELECT_SESSIONS: &str = r#"
 SELECT s.id, s.title, s.source, s.model_id, s.started_at, s.ended_at,
        s.duration_secs, s.status, s.updated_at,
-       (SELECT text FROM audio_segments WHERE session_id = s.id ORDER BY id LIMIT 1)
+       (SELECT text FROM audio_segments WHERE session_id = s.id ORDER BY id LIMIT 1),
+       s.topic_id
 FROM sessions s
 ORDER BY s.updated_at DESC
 LIMIT ?1

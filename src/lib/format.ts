@@ -7,23 +7,6 @@ export function formatTime(totalSec: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function formatDuration(secs: number): string {
-  if (secs <= 0) return "—";
-  const m = Math.floor(secs / 60);
-  if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`;
-  if (m > 0) return `${m}m`;
-  return `${secs}s`;
-}
-
-export function formatWhen(iso: string): string {
-  const d = new Date(iso);
-  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (diffDays <= 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return d.toLocaleDateString([], { weekday: "short" });
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
 export function previewWords(text: string, max: number = TITLE_WORDS): string {
   return text.split(/\s+/).filter(Boolean).slice(0, max).join(" ");
 }

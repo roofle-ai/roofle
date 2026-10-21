@@ -20,12 +20,8 @@
     <span id="history-rail-badge" class="rail-badge" hidden></span>
   </button>
 
-  <div class="history-label">
-    <span>Recent</span>
-    <span id="history-count" class="history-count">0</span>
-  </div>
-
   <div class="history-list">
+    <p id="history-no-results" class="history-no-results" hidden>Nothing matches your search.</p>
     <div id="history-empty" class="history-empty">
       <span class="empty-orb" aria-hidden="true">
         <svg class="history-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -37,12 +33,17 @@
       <p class="empty-copy">Start a new conversation and it will appear here.</p>
     </div>
   </div>
-  <div class="history-footer">
-    <button id="theme-toggle" type="button" class="icon-btn" aria-label="Toggle theme" title="Toggle light / dark theme">
-      <i data-lucide="moon" aria-hidden="true"></i>
+  <div class="history-search">
+    <i data-lucide="search" aria-hidden="true"></i>
+    <input id="history-search" type="text" class="history-search-input" placeholder="Search" aria-label="Search conversations and topics" autocomplete="off" spellcheck="false" />
+    <button id="history-search-clear" type="button" class="history-search-clear" aria-label="Clear search" hidden>
+      <i data-lucide="x" aria-hidden="true"></i>
     </button>
-    <button id="settings-btn" type="button" class="icon-btn" aria-label="Settings">
-      <i data-lucide="settings" aria-hidden="true"></i>
+  </div>
+
+  <div class="history-footer">
+    <button id="settings-btn" type="button" class="icon-btn icon-btn-label" aria-label="Settings">
+      <i data-lucide="settings" aria-hidden="true"></i><span>Settings</span>
     </button>
   </div>
 </aside>

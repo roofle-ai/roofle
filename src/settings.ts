@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
+import { initAppearance } from "./app/theme";
 import { refreshIcons } from "./lib/icons";
 import { loadPersona, mountPersonaPicker, savePersona, type Persona } from "./persona";
 import settingsHtml from "./ui/partials/settings.html?raw";
@@ -30,6 +31,7 @@ let personaDraft: Persona | null = null;
 let saveBtn: HTMLButtonElement;
 let statusEl: HTMLElement;
 let modal: HTMLElement;
+let syncAppearance: () => void;
 let input: HTMLInputElement;
 let maxOpenInput: HTMLInputElement;
 let notesWindowInput: HTMLInputElement;
@@ -81,8 +83,8 @@ function showPane(id: string): void {
   modal.querySelectorAll<HTMLElement>(".settings-pane").forEach((el) => {
     el.classList.toggle("active", el.dataset.pane === id);
   });
-  // Nothing to save on About.
-  document.getElementById("settings-actions")!.hidden = id === "about";
+  // About is read-only; Appearance applies live.
+  document.getElementById("settings-actions")!.hidden = id === "about" || id === "appearance";
   if (id === "about") void loadAbout();
 }
 
@@ -155,7 +157,8 @@ export function openSettings(): void {
   input.value = String(settings.charLimit);
   maxOpenInput.value = String(settings.maxOpenQuestions);
   notesWindowInput.value = String(settings.notesWindowMins);
-  showPane("llm");
+  syncAppearance();
+  showPane("persona");
   loadAiConfigFields();
   loadPersonaPane();
   aiApiKey.type = "password";
@@ -191,6 +194,7 @@ function init(): void {
   modal.querySelectorAll<HTMLElement>(".settings-nav-item").forEach((el) =>
     el.addEventListener("click", () => showPane(el.dataset.pane!)),
   );
+  syncAppearance = initAppearance();
   refreshIcons();
   aiBaseUrl = document.getElementById("ai-base-url") as HTMLInputElement;
   aiModel = document.getElementById("ai-model") as HTMLInputElement;

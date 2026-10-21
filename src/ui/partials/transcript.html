@@ -35,22 +35,14 @@
             <span class="assist-item-desc">Strengths and areas to improve in your conversation.</span>
           </span>
         </button>
-        <div class="assist-sep" role="separator"></div>
-        <button type="button" role="menuitem" data-export="transcript">
-          <i data-lucide="download" aria-hidden="true"></i>
-          <span class="assist-item-text">
-            <span class="assist-item-label">Export transcript</span>
-            <span class="assist-item-desc">Download the full transcript as a .txt file.</span>
-          </span>
-        </button>
-        <button type="button" role="menuitem" data-export="notes">
-          <i data-lucide="download" aria-hidden="true"></i>
-          <span class="assist-item-text">
-            <span class="assist-item-label">Export notes</span>
-            <span class="assist-item-desc">Download your meeting notes as a .txt file.</span>
-          </span>
-        </button>
       </div>
+    </div>
+    <!-- More: conversation options (topic, export). -->
+    <div id="topic-control" class="topic-control" hidden>
+      <button id="topic-btn" type="button" class="more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Conversation options" title="Conversation options">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
+      </button>
+      <div id="topic-menu" class="topic-menu" role="menu" aria-label="Topic" hidden></div>
     </div>
   </div>
 
@@ -78,18 +70,6 @@
       <ol id="transcription-list" class="transcription-list" aria-label="Transcription (read-only)"></ol>
       <p id="transcription-empty" class="transcription-empty" hidden>No transcription yet.</p>
     </div>
-  </div>
-
-  <!-- Save/Discard: bottom-right of the panel, shown only with unsaved edits. -->
-  <div id="notes-save" class="notes-save" hidden>
-    <button id="notes-discard-btn" type="button" class="save-btn discard-btn">
-      <i data-lucide="rotate-ccw" aria-hidden="true"></i>
-      <span>Discard changes</span>
-    </button>
-    <button id="notes-save-btn" type="button" class="save-btn">
-      <i data-lucide="save" aria-hidden="true"></i>
-      <span>Save changes</span>
-    </button>
   </div>
 
   <!-- Recap card: the answer to Assist → Recap last 30 seconds. -->
@@ -141,12 +121,11 @@
     </footer>
   </aside>
 
-  <!-- Wrap-up: quick follow-ups, always offered for a finished session that has notes. -->
+  <!-- Wrap-up: quick follow-ups, a slim icon rail (labels on hover) for a finished session that has notes. -->
   <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
-    <span class="wrapup-pill-label">Follow up</span>
-    <button type="button" class="wrapup-chip" data-recipe="recap-email" title="Draft a recap email from the notes"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="slack-post" title="Draft a Slack update from the notes"><i data-lucide="hash" aria-hidden="true"></i><span>Slack post</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="action-items" title="List action items with owners and due dates"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
+    <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
+    <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
+    <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
   </div>
   <aside id="wrapup-result" class="recap-card wrapup-result" role="status" aria-live="polite" hidden>
     <header class="recap-head">
@@ -205,6 +184,21 @@
 </section>
 
 <div class="resizer" data-resizer="questions" role="separator" aria-orientation="vertical" aria-label="Resize questions panel" tabindex="0"></div>
+
+<!-- Save prompt: shown when leaving the notes editor with unsaved edits. -->
+<div id="save-notes-modal" class="analyse-overlay" role="dialog" aria-modal="true" aria-labelledby="save-notes-title" hidden>
+  <div class="analyse-dialog">
+    <div class="analyse-head">
+      <h2 id="save-notes-title" class="analyse-title">Save your changes?</h2>
+    </div>
+    <p class="analyse-desc">You have unsaved edits to these notes.</p>
+    <div class="analyse-actions">
+      <button id="save-notes-keep" type="button" class="btn-ghost">Keep editing</button>
+      <button id="save-notes-discard" type="button" class="btn-ghost">Discard</button>
+      <button id="save-notes-save" type="button" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
 
 <!-- Analyse modal: pick the conversation type, then run the offline-agent. -->
 <!-- Call setup: asked when recording starts; steers which gaps matter. -->

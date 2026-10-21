@@ -180,8 +180,7 @@ function toggleAssistMenu(): void {
 export function initAnalysis(): void {
   // Feature flag, baked in at build time: VITE_FEATURE_REVIEW=on shows Conversation review.
   if (import.meta.env.VITE_FEATURE_REVIEW !== "on") dom.assistReviewItem.remove();
-  dom.assistBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
+  dom.assistBtn.addEventListener("click", () => {
     toggleAssistMenu();
   });
   document.addEventListener("click", (e) => {

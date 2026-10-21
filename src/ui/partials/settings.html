@@ -4,7 +4,7 @@
       <span class="settings-head-icon"><i data-lucide="settings" aria-hidden="true"></i></span>
       <div class="settings-head-text">
         <h2 id="settings-title" class="settings-title">Settings</h2>
-        <p class="settings-subtitle">AI connection, live session behaviour and your persona.</p>
+        <p class="settings-subtitle">AI connection, live session, profile and appearance.</p>
       </div>
       <button id="settings-close" type="button" class="settings-close" aria-label="Close settings">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -15,14 +15,17 @@
 
     <div class="settings-body">
       <nav class="settings-nav" role="tablist" aria-label="Settings sections" aria-orientation="vertical">
-        <button type="button" role="tab" class="settings-nav-item active" data-pane="llm" aria-selected="true" aria-controls="settings-pane-llm">
+        <button type="button" role="tab" class="settings-nav-item active" data-pane="persona" aria-selected="true" aria-controls="settings-pane-persona">
+          <i data-lucide="user-round" aria-hidden="true"></i><span>Profile</span>
+        </button>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="llm" aria-selected="false" aria-controls="settings-pane-llm">
           <i data-lucide="cpu" aria-hidden="true"></i><span>LLM Configuration</span>
         </button>
         <button type="button" role="tab" class="settings-nav-item" data-pane="live" aria-selected="false" aria-controls="settings-pane-live">
           <i data-lucide="radio" aria-hidden="true"></i><span>Live Session</span>
         </button>
-        <button type="button" role="tab" class="settings-nav-item" data-pane="persona" aria-selected="false" aria-controls="settings-pane-persona">
-          <i data-lucide="user-round" aria-hidden="true"></i><span>Your Persona</span>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="appearance" aria-selected="false" aria-controls="settings-pane-appearance">
+          <i data-lucide="palette" aria-hidden="true"></i><span>Appearance</span>
         </button>
         <button type="button" role="tab" class="settings-nav-item" data-pane="about" aria-selected="false" aria-controls="settings-pane-about">
           <i data-lucide="info" aria-hidden="true"></i><span>About</span>
@@ -30,7 +33,7 @@
       </nav>
 
       <div class="settings-content">
-        <div id="settings-pane-llm" class="settings-pane active" role="tabpanel" data-pane="llm">
+        <div id="settings-pane-llm" class="settings-pane" role="tabpanel" data-pane="llm">
           <header class="pane-head">
             <h3 class="pane-title">LLM Configuration</h3>
             <p class="pane-desc">Connect any OpenAI-compatible model.</p>
@@ -100,12 +103,39 @@
           </div>
         </div>
 
-        <div id="settings-pane-persona" class="settings-pane" role="tabpanel" data-pane="persona">
+        <div id="settings-pane-persona" class="settings-pane active" role="tabpanel" data-pane="persona">
           <header class="pane-head">
-            <h3 class="pane-title">Your Persona</h3>
+            <h3 class="pane-title">Profile</h3>
             <p class="pane-desc">Your role and the meetings you join. Roofle uses this to fit the way you work.</p>
           </header>
           <div id="settings-persona-picker"></div>
+        </div>
+
+        <div id="settings-pane-appearance" class="settings-pane" role="tabpanel" data-pane="appearance">
+          <header class="pane-head">
+            <h3 class="pane-title">Appearance</h3>
+            <p class="pane-desc">Changes apply immediately.</p>
+          </header>
+          <div class="settings-group">
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <label for="theme-select" class="settings-field-label">Theme</label>
+                </div>
+                <select id="theme-select" class="settings-input">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <label for="opacity-range" class="settings-field-label">Window opacity</label>
+                  <p class="settings-field-hint">Lower it to see what is beneath the Roofle window.</p>
+                </div>
+                <div class="settings-unit"><input id="opacity-range" type="range" min="10" max="100" step="5" /><span id="opacity-value">100%</span></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="settings-pane-about" class="settings-pane" role="tabpanel" data-pane="about">

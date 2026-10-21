@@ -4,6 +4,7 @@ import { loadStoredApiKey } from "../ai";
 import { session } from "../app/state";
 import { create, dom } from "../lib/dom";
 import { showToast } from "../lib/status";
+import { syncTopic } from "./topics";
 import { getActionItems, getRecipe, runRecipe } from "../transcripts";
 import type { ActionItem, Draft, RecipeKind, WrapUp } from "../types";
 
@@ -47,6 +48,7 @@ export function syncWrapUp(): void {
   dom.wrapupPill.hidden = !(idle && (waiting || available));
   dom.wrapupTriggers.forEach((t) => (t.disabled = !available || waiting));
   if (!idle || resultFor !== id) closeResult();
+  syncTopic();
 }
 
 function closeResult(): void {
