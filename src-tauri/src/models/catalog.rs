@@ -14,9 +14,9 @@ pub struct ModelCatalogEntry {
 }
 
 pub const CATALOG: &[ModelCatalogEntry] = &[ModelCatalogEntry {
-    id: "sherpa-onnx-whisper-base.en",
-    label: "Whisper base.en (offline, higher accuracy)",
-    url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2",
+    id: "sherpa-onnx-whisper-small.en",
+    label: "Whisper small.en (offline, higher accuracy)",
+    url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-small.en.tar.bz2",
     sha256: None,
 }];
 
