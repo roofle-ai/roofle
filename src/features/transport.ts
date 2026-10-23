@@ -9,7 +9,7 @@ import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
-import { adoptActiveSession, loadHistory } from "./history";
+import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
 import { refreshNotesTitle, saveNotesNow, setNotesPreview } from "./notes";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
@@ -47,7 +47,6 @@ export function setSessionState(state: SessionState): void {
   // from "New conversation" (or the tray / Cmd+R).
   dom.recordIconPlay.toggleAttribute("hidden", state !== "paused");
   dom.recordIconPause.toggleAttribute("hidden", state !== "recording");
-  dom.floatingControl.classList.toggle("is-idle", state === "idle");
   dom.stopBtn.hidden = state === "idle";
 
   // Live text is appended to the editor, so it must be showing while a session is active.
@@ -63,6 +62,7 @@ export function setSessionState(state: SessionState): void {
   setQuestionsHint();
   updateAnalyseVisibility();
   syncWrapUp();
+  syncTransportPlacement();
 }
 
 async function command(name: "pause_recording" | "resume_recording", next: SessionState): Promise<void> {

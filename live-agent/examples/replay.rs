@@ -2,7 +2,10 @@
 //! chunk-by-chunk table.
 //!
 //!   OPENROUTER_API_KEY=... cargo run -p live-agent --example replay -- \
-//!       live-agent/fixtures/sample_architecture_review.txt [--goal "..."]
+//!       live-agent/fixtures/sample_architecture_review.txt [--goal "..."] [--persona-led]
+//!
+//! `--persona-led` raises questions the way the app does (from the user's persona,
+//! no fixed gap types); without it the older gap-type flow runs, for comparison.
 //!
 //! Env: OPENROUTER_API_KEY (or OPENAI_API_KEY), ROOFLE_MODEL (all stages,
 //! default openai/gpt-4o-mini), ROOFLE_BASE_URL (default OpenRouter). Replies are cached in `<name>.cache.json`: that file is what
@@ -72,7 +75,8 @@ fn main() {
     let text = std::fs::read_to_string(&path).expect("read transcript");
     let utts = parse_transcript(&text).unwrap_or_else(|_| parse_plain(&text));
     let stages = Stages { understand: &client, write: &client, judge: &client };
-    let report = replay(&utts, &goal, &stages, &PipelineConfig::default());
+    let cfg = if flag("--persona-led").is_some() { PipelineConfig::persona_led() } else { PipelineConfig::default() };
+    let report = replay(&utts, &goal, &stages, &cfg);
 
     let mmss = |ms: i64| format!("{:02}:{:02}", ms / 60_000, ms / 1000 % 60);
 

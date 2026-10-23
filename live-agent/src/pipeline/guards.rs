@@ -21,12 +21,14 @@ const MAX_WORDS: usize = 30;
 pub const DEDUP_THRESHOLD: f64 = 0.8;
 
 /// Check a drafted question. `gap_speaker` is who said the gap; `recent` are
-/// the last questions asked (any state).
+/// the last questions asked (any state). `ban_openings` also rejects stock
+/// openings; the persona path leaves that call to the judge.
 pub fn check(
     text: &str,
     gap_speaker: Speaker,
     glossary: &[GlossaryEntry],
     recent: &[&str],
+    ban_openings: bool,
 ) -> Result<(), String> {
     let lower = text.trim().to_lowercase();
 
@@ -34,7 +36,7 @@ pub fn check(
     if !(MIN_WORDS..=MAX_WORDS).contains(&words) {
         return Err(format!("length: {words} words"));
     }
-    if let Some(b) = BANNED_OPENINGS.iter().find(|b| lower.starts_with(**b)) {
+    if let Some(b) = BANNED_OPENINGS.iter().filter(|_| ban_openings).find(|b| lower.starts_with(**b)) {
         return Err(format!("banned opening: {b}"));
     }
     if lower.matches('?').count() > 1 {
@@ -91,12 +93,12 @@ mod tests {
 
     #[test]
     fn good_question_passes() {
-        assert_eq!(check(GOOD, Speaker::Presenter, &[], &[]), Ok(()));
+        assert_eq!(check(GOOD, Speaker::Presenter, &[], &[], true), Ok(()));
     }
 
     #[test]
     fn rejects_known_bad_shapes() {
-        let bad = |t: &str| check(t, Speaker::Presenter, &[], &[]).is_err();
+        let bad = |t: &str| check(t, Speaker::Presenter, &[], &[], true).is_err();
         assert!(bad("What specific timeframe are you referring to for the switchover?"));
         assert!(bad("What has to be true for the new pipeline to count as ready?"));
         assert!(bad("Why?"));
@@ -107,10 +109,10 @@ mod tests {
 
     #[test]
     fn attribution_and_glossary_and_dedup() {
-        assert!(check("You mentioned the purge needs table config changes, correct?", Speaker::Other, &[], &[]).is_err());
+        assert!(check("You mentioned the purge needs table config changes, correct?", Speaker::Other, &[], &[], true).is_err());
         let g = [GlossaryEntry { term: "Fivetran".into(), heard_as: vec!["5-tran".into()] }];
-        assert!(check("What does running 5-tran in hybrid mode cost per year?", Speaker::Presenter, &g, &[]).is_err());
-        assert!(check(GOOD, Speaker::Presenter, &[], &[GOOD]).is_err());
-        assert!(check(GOOD, Speaker::Presenter, &[], &["What is the annual cost of Fivetran versus Glue?"]).is_ok());
+        assert!(check("What does running 5-tran in hybrid mode cost per year?", Speaker::Presenter, &g, &[], true).is_err());
+        assert!(check(GOOD, Speaker::Presenter, &[], &[GOOD], true).is_err());
+        assert!(check(GOOD, Speaker::Presenter, &[], &["What is the annual cost of Fivetran versus Glue?"], true).is_ok());
     }
 }

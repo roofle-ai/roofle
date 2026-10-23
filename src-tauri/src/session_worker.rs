@@ -12,7 +12,7 @@ use std::time::Duration;
 use chrono::Utc;
 use live_agent::notes::{log_step, logging_enabled};
 use live_agent::pipeline::memory::SCHEMA_VERSION;
-use live_agent::pipeline::{Chunk, Feedback, Line, Memory, MeetingType, Outcome, Session, UiEvent};
+use live_agent::pipeline::{Chunk, Feedback, Line, Memory, MeetingType, Outcome, PipelineConfig, Session, UiEvent};
 use roofle_core::storage::{NewPipelineQuestion, PipelineRun, QuestionStatus, QuestionStore};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -96,6 +96,8 @@ fn run(app: AppHandle, session_id: i64, rx: std::sync::mpsc::Receiver<Msg>) {
     let tag = format!("pipeline session={session_id}");
     let storage = &app.state::<AppState>().storage;
     let mut session = Session::new(load_memory(&app, session_id));
+    // Questions come from the user's persona; `PipelineConfig::default()` is the old gap-type flow.
+    session.cfg = PipelineConfig::persona_led();
     session.mem.persona = crate::commands::persona::profile(storage);
 
     loop {
@@ -186,7 +188,7 @@ fn log_outcome(
     for run in &outcome.runs {
         let model = match run.stage {
             "understand" => &clients.models[0],
-            "write" => &clients.models[1],
+            "write" | "ask" => &clients.models[1],
             _ => &clients.models[2],
         };
         let (output, error) = match &run.output {

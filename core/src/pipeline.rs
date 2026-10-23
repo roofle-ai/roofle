@@ -708,137 +708,84 @@ impl EchoSuppressor {
     }
 }
 
-/// A mic utterance is only a candidate for echo when at least this share of it
-/// overlapped system audio.
-const ECHO_OVERLAP: f32 = 0.6;
+/// Mic blocks (~0.8 s) of silence from the call before it gives up the turn.
+/// Covers the delay and tail of its echo in the mic: a room rings on after the
+/// speakers stop, and an echo that outlasts this is taken for you speaking.
+const SYSTEM_HANG_BLOCKS: usize = 8;
 
-/// ...and it is echo when the mic's loudness over time follows the system's this
-/// closely (Pearson correlation). Speaker echo is a copy of the system signal, so
-/// it rises and falls with it; a person talking over headphones does not.
-const ECHO_CORRELATION: f32 = 0.7;
+/// Consecutive blocks without mic speech (~0.4 s) before the mic gives up the turn.
+const MIC_HANG_BLOCKS: usize = 4;
 
-/// Fewest chunks (~0.8 s) with which that correlation is trusted. Shorter
-/// utterances are kept: a lost word costs more than a repeated echo fragment.
-const MIN_ECHO_CHUNKS: usize = 8;
-
-/// How many chunks of history to keep (~60 s), longer than any utterance.
-const ECHO_HISTORY_CHUNKS: usize = 600;
-
-/// The most recent values of a per-chunk series, indexed by chunk number since
-/// the stream began.
-struct Window<T> {
-    items: std::collections::VecDeque<T>,
-    /// Chunk number of `items[0]`.
-    first: usize,
+/// Who is being transcribed right now.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Floor {
+    /// Nobody is talking.
+    Open,
+    System,
+    Mic,
 }
 
-impl<T: Copy> Window<T> {
-    fn new() -> Self {
-        Self { items: Default::default(), first: 0 }
-    }
-
-    fn push(&mut self, item: T) {
-        self.items.push_back(item);
-        if self.items.len() > ECHO_HISTORY_CHUNKS {
-            self.items.pop_front();
-            self.first += 1;
-        }
-    }
-
-    fn get(&self, chunk: usize) -> Option<T> {
-        self.items.get(chunk.checked_sub(self.first)?).copied()
-    }
-}
-
-/// How an utterance matched the system audio.
-struct EchoMatch {
-    overlap: f32,
-    correlation: f32,
-}
-
-/// Judges whole mic utterances against the system audio that played meanwhile.
+/// Turn-taking between the call and you, so one never shows up as the other.
 ///
-/// The streaming path gates the mic chunk by chunk, which discards the first
-/// words of a reply that starts just as the other side stops, and every word
-/// spoken over the other side, even on headphones where nothing leaks into the
-/// mic. Here nothing is discarded up front: the VAD sees all mic audio, and a
-/// finished utterance is dropped only when most of it overlapped system speech
-/// *and* its loudness tracked the system's, the signature of echo.
-struct EchoTracker {
-    suppressor: EchoSuppressor,
-    /// Per system chunk: its level, and whether the speaker was active (or in its echo tail).
-    system: Window<(f32, bool)>,
-    /// Per mic chunk: its level.
-    mic: Window<f32>,
+/// Whoever starts talking holds the floor, and the other stream is treated as
+/// silence until the speaker has been quiet for a moment. That removes speaker
+/// echo from the mic (it only exists while the call is talking) without trying
+/// to tell echo from speech.
+///
+/// The call always wins. Whenever it carries sound it takes the floor, even from
+/// the mic: echo of the call keeps the mic "speaking", so if the mic could hold
+/// the floor against the call it would lock the call out for as long as the echo
+/// lasts. The price is that you are not transcribed while the call is sounding,
+/// including when you talk over it.
+struct Turns {
+    floor: Floor,
+    /// Mic blocks the holder has been quiet for. Counted on the mic stream, which
+    /// never stops, so the floor frees up even if the system capture sends
+    /// nothing while the call is silent.
+    quiet: usize,
+    /// Whether the latest system block carried sound.
+    call_sounding: bool,
 }
 
-impl EchoTracker {
+impl Turns {
     fn new() -> Self {
-        Self { suppressor: EchoSuppressor::new(), system: Window::new(), mic: Window::new() }
+        Self { floor: Floor::Open, quiet: 0, call_sounding: false }
     }
 
-    /// Feed the RMS of each system chunk, in order.
-    fn observe_system(&mut self, rms: f32) {
-        self.suppressor.observe_system(rms);
-        self.system.push((rms, !self.suppressor.passes(rms)));
-    }
-
-    /// Feed the RMS of each mic chunk, in order.
-    fn observe_mic(&mut self, rms: f32) {
-        self.mic.push(rms);
-    }
-
-    /// Chunk numbers covering `start..start + len` samples.
-    fn chunks(start: usize, len: usize) -> std::ops::RangeInclusive<usize> {
-        start / CHUNK_FRAMES..=(start + len.max(1) - 1) / CHUNK_FRAMES
-    }
-
-    /// Share (0.0..=1.0) of the span that overlapped system audio. Chunks outside
-    /// the history count as not overlapping.
-    fn overlap(&self, start: usize, len: usize) -> f32 {
-        let chunks = Self::chunks(start, len);
-        let total = chunks.clone().count();
-        let active = chunks.filter(|&c| self.system.get(c).is_some_and(|(_, on)| on)).count();
-        active as f32 / total as f32
-    }
-
-    /// Correlation of mic and system loudness over the span, when enough of both
-    /// was seen to trust it.
-    fn correlation(&self, start: usize, len: usize) -> Option<f32> {
-        let (mic, system): (Vec<f32>, Vec<f32>) = Self::chunks(start, len)
-            .filter_map(|c| Some((self.mic.get(c)?, self.system.get(c)?.0)))
-            .unzip();
-        (mic.len() >= MIN_ECHO_CHUNKS).then(|| pearson(&mic, &system))
-    }
-
-    /// `Some` when the utterance at `start..start + len` samples is echo.
-    fn echo_match(&self, start: usize, len: usize) -> Option<EchoMatch> {
-        let overlap = self.overlap(start, len);
-        if overlap < ECHO_OVERLAP {
-            return None;
+    /// One system block heard; `active` is whether it carries sound.
+    fn hear_system(&mut self, active: bool) {
+        self.call_sounding = active;
+        if active {
+            self.take(Floor::System);
         }
-        let correlation = self.correlation(start, len)?;
-        (correlation >= ECHO_CORRELATION).then_some(EchoMatch { overlap, correlation })
     }
-}
 
-/// Pearson correlation of two equal-length series; 0.0 when either is flat.
-fn pearson(a: &[f32], b: &[f32]) -> f32 {
-    let n = a.len() as f32;
-    let (mean_a, mean_b) = (a.iter().sum::<f32>() / n, b.iter().sum::<f32>() / n);
-    let (mut cov, mut var_a, mut var_b) = (0.0, 0.0, 0.0);
-    for (x, y) in a.iter().zip(b) {
-        let (dx, dy) = (x - mean_a, y - mean_b);
-        cov += dx * dy;
-        var_a += dx * dx;
-        var_b += dy * dy;
+    /// One mic block heard; `speaking` is whether it carries speech.
+    fn hear_mic(&mut self, speaking: bool) {
+        match self.floor {
+            Floor::System if !self.call_sounding => self.rest(SYSTEM_HANG_BLOCKS),
+            Floor::Open if speaking => self.take(Floor::Mic),
+            Floor::Mic if speaking => self.quiet = 0,
+            Floor::Mic => self.rest(MIC_HANG_BLOCKS),
+            _ => {} // the call holds the floor: the mic is ignored
+        }
     }
-    // Below this a series is flat for our purposes (levels span ~0.01..0.3).
-    const FLAT: f32 = 1e-6;
-    if var_a < FLAT || var_b < FLAT {
-        0.0
-    } else {
-        cov / (var_a * var_b).sqrt()
+
+    fn take(&mut self, floor: Floor) {
+        if self.floor != floor {
+            eprintln!("[roofle-core] turn: {floor:?}");
+        }
+        self.floor = floor;
+        self.quiet = 0;
+    }
+
+    /// The holder was quiet for one more block; give up the floor after `limit`.
+    fn rest(&mut self, limit: usize) {
+        self.quiet += 1;
+        if self.quiet >= limit {
+            self.floor = Floor::Open;
+            eprintln!("[roofle-core] turn: {:?}", self.floor);
+        }
     }
 }
 
@@ -988,8 +935,8 @@ fn process_chunk(
 /// Without a VAD it falls back to ~28 s windows (the Whisper context). One VAD
 /// (if configured) and one window accumulator exist per ring; every emitted
 /// final is tagged with its ring's [`AudioSource`]. Partial events are never
-/// emitted. Mic utterances that are mostly echo of the system audio are dropped
-/// after detection (see [`EchoTracker`]), never before.
+/// emitted. [`Turns`] keeps one party at a time: the stream without the floor is
+/// fed as silence, so echo and crosstalk never reach the transcript.
 fn whisper_asr_loop(
     engine: asr::whisper::WhisperEngine,
     vad_model: Option<PathBuf>,
@@ -1011,11 +958,12 @@ fn whisper_asr_loop(
     let mut windows: Vec<Vec<f32>> = (0..n)
         .map(|_| Vec::with_capacity(asr::whisper::WINDOW_SAMPLES))
         .collect();
-    let mut echo = EchoTracker::new();
+    let mut turns = Turns::new();
+    let silence = vec![0.0f32; block_cap];
 
-    // One block per ring per pass, system first: every mic block is then judged
-    // against the system audio of the same moment, even while catching up after
-    // a long decode.
+    // One block per ring per pass, system first, so the call gets the floor before
+    // the mic block of the same moment is routed, even while catching up after a
+    // long decode.
     let mut order: Vec<usize> = (0..n).collect();
     order.sort_by_key(|&i| rings[i].source != AudioSource::System);
 
@@ -1037,11 +985,17 @@ fn whisper_asr_loop(
             let level = rms(&blocks[i]);
             let _ = levels.send(level);
             let source = rings[i].source;
-            match source {
-                AudioSource::System => echo.observe_system(level),
-                AudioSource::Mic => echo.observe_mic(level),
+            if source == AudioSource::System {
+                turns.hear_system(level > SYS_VAD_THRESHOLD);
             }
-            feed_whisper_block(&engine, &mut vads[i], &mut windows[i], source, &blocks[i], &echo, &events);
+            // The stream that does not hold the floor is fed as silence, which keeps
+            // its timeline intact and ends any utterance it had under way.
+            let ignored = matches!((source, turns.floor), (AudioSource::Mic, Floor::System) | (AudioSource::System, Floor::Mic));
+            let routed = if ignored { &silence[..blocks[i].len()] } else { &blocks[i][..] };
+            feed_whisper_block(&engine, &mut vads[i], &mut windows[i], source, routed, &events);
+            if source == AudioSource::Mic {
+                turns.hear_mic(vads[i].as_ref().is_some_and(asr::vad::Vad::speaking));
+            }
             blocks[i].clear();
         }
         if !any_open {
@@ -1054,11 +1008,11 @@ fn whisper_asr_loop(
         let source = rings[i].source;
         // Feed any remaining partial block.
         if !blocks[i].is_empty() {
-            feed_whisper_block(&engine, &mut vads[i], &mut windows[i], source, &blocks[i], &echo, &events);
+            feed_whisper_block(&engine, &mut vads[i], &mut windows[i], source, &blocks[i], &events);
             blocks[i].clear();
         }
         match &mut vads[i] {
-            Some(vad) => emit_speech(&engine, source, vad.flush(), &echo, &events),
+            Some(vad) => emit_speech(&engine, source, vad.flush(), &events),
             None => {
                 if !windows[i].is_empty() {
                     let _ = levels.send(rms(&windows[i]));
@@ -1077,7 +1031,6 @@ fn feed_whisper_block(
     window: &mut Vec<f32>,
     source: AudioSource,
     block: &[f32],
-    echo: &EchoTracker,
     events: &Sender<Segment>,
 ) {
     match vad {
@@ -1085,7 +1038,7 @@ fn feed_whisper_block(
         // utterance standalone.
         Some(vad) => {
             vad.push(block);
-            emit_speech(engine, source, vad.drain(), echo, events);
+            emit_speech(engine, source, vad.drain(), events);
         }
         // Fallback routing: accumulate into fixed windows.
         None => {
@@ -1098,47 +1051,65 @@ fn feed_whisper_block(
     }
 }
 
-/// Decode each utterance and emit it, except mic utterances that are mostly echo.
+/// Decode each utterance and emit it as a final [`Segment`].
 fn emit_speech(
     engine: &asr::whisper::WhisperEngine,
     source: AudioSource,
-    speech: Vec<asr::vad::Speech>,
-    echo: &EchoTracker,
+    speech: Vec<Vec<f32>>,
     events: &Sender<Segment>,
 ) {
-    for utterance in speech {
-        if source == AudioSource::Mic {
-            if let Some(m) = echo.echo_match(utterance.start, utterance.len) {
-                eprintln!(
-                    "[roofle-core] mic utterance at {:.1}s dropped as echo ({:.0}% over system audio, loudness correlation {:.2})",
-                    utterance.start as f32 / engine.sample_rate() as f32,
-                    m.overlap * 100.0,
-                    m.correlation,
-                );
-                continue;
-            }
-        }
-        emit_final(engine, source, &utterance.samples, events);
+    for samples in speech {
+        emit_final(engine, source, &samples, events);
     }
 }
 
-/// Decode one clip into a final [`Segment`]. A clip that yields no text is
-/// logged, not silently lost.
+/// Decode one clip into a final [`Segment`].
 fn emit_final(
     engine: &asr::whisper::WhisperEngine,
     source: AudioSource,
     samples: &[f32],
     events: &Sender<Segment>,
 ) {
+    if let Some(text) = transcribe(engine, source, samples) {
+        let _ = events.send(Segment::final_(source, text));
+    }
+}
+
+/// Whisper writes tags such as `[BLANK_AUDIO]` or `(silence)` for audio with no
+/// speech, sometimes cut off mid-tag. A transcript that is nothing but tags is
+/// not something anyone said.
+fn is_non_speech(text: &str) -> bool {
+    let mut depth = 0usize;
+    let spoken = text.chars().filter(|&c| match c {
+        '[' | '(' => {
+            depth += 1;
+            false
+        }
+        ']' | ')' => {
+            depth = depth.saturating_sub(1);
+            false
+        }
+        _ => depth == 0,
+    });
+    !spoken.into_iter().any(char::is_alphanumeric)
+}
+
+/// The clip's text. A clip that yields none is logged, not silently lost.
+fn transcribe(engine: &asr::whisper::WhisperEngine, source: AudioSource, samples: &[f32]) -> Option<String> {
     let rate = engine.sample_rate();
     match engine.transcribe(rate, &normalize(samples)) {
+        Ok(text) if !is_non_speech(&text) => Some(text),
         Ok(text) => {
-            let _ = events.send(Segment::final_(source, text));
+            eprintln!("[roofle-core] {source:?} utterance skipped, not speech: {text}");
+            None
         }
-        Err(e) => eprintln!(
-            "[roofle-core] {source:?} utterance ({:.1}s) gave no text: {e}",
-            samples.len() as f32 / rate as f32,
-        ),
+        Err(e) => {
+            eprintln!(
+                "[roofle-core] {source:?} utterance ({:.1}s) gave no text: {e}",
+                samples.len() as f32 / rate as f32,
+            );
+            None
+        }
     }
 }
 
@@ -1421,64 +1392,158 @@ mod tests {
         );
     }
 
-    /// Speech-like loudness: rises and falls irregularly from chunk to chunk.
-    fn envelope(n: usize, seed: usize) -> Vec<f32> {
-        (0..n).map(|i| 0.05 + 0.25 * (((i + seed) * 7919) % 13) as f32 / 13.0).collect()
-    }
-
-    /// Feed `system` and `mic` levels chunk by chunk, as the loop does.
-    fn tracker_with(system: &[f32], mic: &[f32]) -> EchoTracker {
-        let mut t = EchoTracker::new();
-        for (s, m) in system.iter().zip(mic) {
-            t.observe_system(*s);
-            t.observe_mic(*m);
+    fn turns_after(steps: &[(bool, bool)]) -> Turns {
+        let mut t = Turns::new();
+        for &(system_active, mic_speaking) in steps {
+            t.hear_system(system_active);
+            t.hear_mic(mic_speaking);
         }
         t
     }
 
     #[test]
-    fn echo_is_a_copy_of_the_system_signal() {
-        let system = envelope(30, 0);
-        let mic: Vec<f32> = system.iter().map(|s| s * 0.3 + 0.01).collect();
-        let t = tracker_with(&system, &mic);
-        assert!(t.echo_match(5 * CHUNK_FRAMES, 20 * CHUNK_FRAMES).is_some());
+    fn the_call_holds_the_floor_and_the_mic_is_ignored() {
+        assert_eq!(turns_after(&[(true, true)]).floor, Floor::System);
+        assert_eq!(turns_after(&[(true, false), (true, true), (true, true)]).floor, Floor::System);
     }
 
     #[test]
-    fn speech_over_headphones_is_kept_even_when_the_system_is_loud() {
-        let system = envelope(30, 0);
-        let mic = envelope(30, 5); // your own, unrelated, loudness pattern
-        let t = tracker_with(&system, &mic);
-        let m = t.overlap(5 * CHUNK_FRAMES, 20 * CHUNK_FRAMES);
-        assert!(m >= ECHO_OVERLAP, "system must count as active, got {m}");
-        assert!(t.echo_match(5 * CHUNK_FRAMES, 20 * CHUNK_FRAMES).is_none());
+    fn the_mic_takes_an_open_floor() {
+        assert_eq!(turns_after(&[(false, true)]).floor, Floor::Mic);
     }
 
     #[test]
-    fn a_reply_after_the_system_stops_is_kept() {
-        let mut system = envelope(10, 0);
-        system.extend([0.0; 20]);
-        let mic: Vec<f32> = system.iter().map(|s| s * 0.3).chain([]).collect();
-        let t = tracker_with(&system, &mic);
-        assert!(t.echo_match(14 * CHUNK_FRAMES, 12 * CHUNK_FRAMES).is_none());
+    fn the_call_takes_the_floor_even_from_the_mic() {
+        assert_eq!(turns_after(&[(false, true), (true, true), (true, true)]).floor, Floor::System);
+    }
+
+    /// The call pauses, its echo makes the mic "speak" and take the floor, then the
+    /// call resumes: it must not stay locked out while the echo keeps going.
+    #[test]
+    fn echo_cannot_lock_the_call_out() {
+        let mut steps = vec![(true, false)];
+        steps.extend(vec![(false, false); SYSTEM_HANG_BLOCKS]); // the call pauses
+        steps.extend(vec![(false, true); 3]); // echo tail: the mic takes the floor
+        assert_eq!(turns_after(&steps).floor, Floor::Mic);
+        steps.extend(vec![(true, true); 3]); // the call resumes, echo still going
+        assert_eq!(turns_after(&steps).floor, Floor::System);
     }
 
     #[test]
-    fn short_utterances_are_kept() {
-        let system = envelope(30, 0);
-        let mic: Vec<f32> = system.iter().map(|s| s * 0.3).collect();
-        let t = tracker_with(&system, &mic);
-        assert!(t.echo_match(5 * CHUNK_FRAMES, (MIN_ECHO_CHUNKS - 1) * CHUNK_FRAMES).is_none());
+    fn the_call_gives_up_the_floor_after_its_echo_tail() {
+        let mut steps = vec![(true, false)];
+        steps.extend(vec![(false, false); SYSTEM_HANG_BLOCKS - 1]);
+        assert_eq!(turns_after(&steps).floor, Floor::System);
+        steps.push((false, false));
+        assert_eq!(turns_after(&steps).floor, Floor::Open);
     }
 
     #[test]
-    fn utterances_outside_the_history_are_kept() {
-        let t = EchoTracker::new();
-        assert!(t.echo_match(0, 20 * CHUNK_FRAMES).is_none());
+    fn you_get_the_floor_back_after_the_call_stops() {
+        let mut steps = vec![(true, false)];
+        steps.extend(vec![(false, false); SYSTEM_HANG_BLOCKS]);
+        steps.push((false, true));
+        assert_eq!(turns_after(&steps).floor, Floor::Mic);
     }
 
     #[test]
-    fn pearson_of_flat_series_is_zero() {
-        assert_eq!(pearson(&[0.1; 8], &[0.1, 0.2, 0.3, 0.1, 0.2, 0.3, 0.1, 0.2]), 0.0);
+    fn the_call_resumes_after_you_stop_talking() {
+        let mut steps = vec![(false, true)];
+        steps.extend(vec![(false, false); MIC_HANG_BLOCKS]);
+        steps.push((true, false));
+        assert_eq!(turns_after(&steps).floor, Floor::System);
+    }
+
+    #[test]
+    fn whisper_tags_are_not_speech() {
+        for tag in ["[BLANK_AUDIO]", "[BLANK_", "[", "(silence)", " [ Silence ] ", "[MUSIC] (applause)", "..."] {
+            assert!(is_non_speech(tag), "{tag:?}");
+        }
+        for said in ["Okay.", "Thanks [laughs] everyone", "(sighs) fine", "[BLANK_AUDIO] and then I said yes"] {
+            assert!(!is_non_speech(said), "{said:?}");
+        }
+    }
+
+    #[test]
+    fn a_short_pause_does_not_give_up_the_floor() {
+        let steps = [(false, true), (false, false), (false, false), (false, true)];
+        assert_eq!(turns_after(&steps).floor, Floor::Mic);
+    }
+
+    /// A source with a ready-made mic and system stream, pushed at start.
+    struct FakeBothSource {
+        mic: Vec<f32>,
+        system: Vec<f32>,
+    }
+
+    impl Source for FakeBothSource {
+        fn stream_labels(&self) -> Vec<AudioSource> {
+            vec![AudioSource::Mic, AudioSource::System]
+        }
+
+        fn start(&mut self, rings: &[LabelledRing]) -> Result<(), SourceError> {
+            for (source, samples) in [(AudioSource::Mic, &self.mic), (AudioSource::System, &self.system)] {
+                labelled_ring(rings, source).expect("ring present").ring.push(samples);
+            }
+            Ok(())
+        }
+
+        fn stop(&mut self) {}
+    }
+
+    /// Run `mic` and `system` through the real VAD + Whisper pipeline and return
+    /// the final text per source, or `None` when the model files are missing.
+    fn transcribe_both(mic: Vec<f32>, system: Vec<f32>) -> Option<(String, String)> {
+        let root = repo_root();
+        let vad = root.join("assets/models/silero_vad.onnx");
+        if !assets_present() || !vad.is_file() {
+            eprintln!("SKIP: whisper model + silero_vad.onnx required");
+            return None;
+        }
+        let capacity = mic.len().max(system.len()) + 4096;
+        let mut pipe = Pipeline::new(PipelineConfig {
+            model_dir: root.join("assets/models/sherpa-onnx-whisper-base.en"),
+            source: Box::new(FakeBothSource { mic, system }),
+            ring_capacity: Some(capacity),
+            vad_model: Some(vad),
+        })
+        .expect("build pipeline");
+        pipe.start().expect("start pipeline");
+        pipe.stop();
+        // `events()` drains, so collect once and split by source.
+        let finals: Vec<_> = pipe.events().try_iter().filter(|s| s.kind == SegmentKind::Final).collect();
+        let text = |source| {
+            finals.iter().filter(|s| s.source == source).map(|s| s.text.as_str()).collect::<Vec<_>>().join(" ").to_lowercase()
+        };
+        Some((text(AudioSource::Mic), text(AudioSource::System)))
+    }
+
+    fn wav(name: &str) -> Vec<f32> {
+        let path = repo_root().join("assets/wavs").join(name);
+        sherpa_onnx::Wave::read(path.to_str().unwrap()).map(|w| w.samples().to_vec()).unwrap_or_default()
+    }
+
+    /// Speakers: the mic hears the call again, 0.3 s late and quieter. None of it
+    /// may come out as "you".
+    #[test]
+    fn speaker_echo_is_not_transcribed_as_the_mic() {
+        let system = wav("1.wav");
+        let delay = vec![0.0; 4_800];
+        let echo: Vec<f32> = delay.into_iter().chain(system.iter().map(|s| s * 0.3)).collect();
+        let Some((mic, sys)) = transcribe_both(echo, system) else { return };
+        assert!(sys.contains("direct consequence"), "system side lost: {sys:?}");
+        assert!(mic.trim().is_empty(), "echo leaked into the mic transcript: {mic:?}");
+    }
+
+    /// Taking turns: the call speaks, then you reply. Both are transcribed in full.
+    #[test]
+    fn turns_are_each_transcribed() {
+        let system = wav("1.wav");
+        let pause = vec![0.0; 2 * 16_000];
+        let reply = wav("0.wav");
+        let mic: Vec<f32> = vec![0.0; system.len()].into_iter().chain(pause).chain(reply).collect();
+        let Some((mic, sys)) = transcribe_both(mic, system) else { return };
+        assert!(sys.contains("direct consequence"), "the call was lost: {sys:?}");
+        assert!(!mic.trim().is_empty(), "your reply was lost");
     }
 }

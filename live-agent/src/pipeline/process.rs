@@ -4,7 +4,7 @@
 use crate::notes::CompletionClient;
 
 use super::config::PipelineConfig;
-use super::gaps::{pick_best, render_user_prompt, WriteInput};
+use super::gaps::{pick_best, render_user_prompt, GapType, WriteInput};
 use super::guards;
 use super::memory::{Memory, Question, QuestionState, Speaker};
 use super::stages::*;
@@ -44,14 +44,36 @@ impl Chunk {
     }
 
     fn line_of(&self, source_id: &str) -> Option<&Line> {
-        let id: u32 = source_id.trim_start_matches('T').parse().ok()?;
+        // Models echo the prompt's "[T12][Presenter]" form; take the first number.
+        let digits: String = source_id.chars().skip_while(|c| !c.is_ascii_digit()).take_while(char::is_ascii_digit).collect();
+        let id: u32 = digits.parse().ok()?;
         self.lines.iter().find(|l| l.id == id)
     }
 
-    /// Call time of the cited line, else the chunk start.
-    fn ts_of(&self, source_id: &str) -> i64 {
-        self.line_of(source_id).map_or(self.t_start_ms, |l| l.ts_ms)
+    /// The line a gap came from: found by its quote, since models copy words more reliably
+    /// than ids. If the quote sits in several lines the cited one wins; with no match
+    /// (a paraphrased quote) the cited id decides.
+    fn locate(&self, quote: &str, source_id: &str) -> Option<&Line> {
+        let q = normalize(quote);
+        let cited = self.line_of(source_id);
+        let mut hits = self.lines.iter().filter(|l| !q.is_empty() && normalize(&l.text).contains(&q));
+        let first = hits.next();
+        match (first, cited) {
+            (Some(f), Some(c)) if normalize(&c.text).contains(&q) => Some(c).or(Some(f)),
+            (Some(f), _) => Some(f),
+            (None, c) => c,
+        }
     }
+
+    /// Call time of the gap's line, else the chunk start.
+    fn ts_of(&self, quote: &str, source_id: &str) -> i64 {
+        self.locate(quote, source_id).map_or(self.t_start_ms, |l| l.ts_ms)
+    }
+}
+
+/// Lowercase words only, so punctuation and spacing differences don't break a match.
+fn normalize(s: &str) -> String {
+    s.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).collect::<Vec<_>>().join(" ").to_lowercase()
 }
 
 /// One client per stage so each can use its own model.
@@ -95,6 +117,14 @@ fn call<T: for<'de> serde::Deserialize<'de>>(
     let raw = client.complete_json(system, &user, schema);
     out.runs.push(StageRun { stage, prompt_version: version, input: user, output: raw.clone() });
     parse(&raw?)
+}
+
+/// A drafted question and where it came from, before it is checked.
+struct Candidate {
+    text: String,
+    gap_type: GapType,
+    speaker: Speaker,
+    source_ts_ms: i64,
 }
 
 pub fn process_chunk(
@@ -153,47 +183,85 @@ pub fn process_chunk(
     // Questions are only ever raised from the other party's words. The model's own
     // `speaker` is not trusted: keep a gap only if the line it cites really came from
     // the Presenter (system audio), never the user's mic or an unknown/uncited line.
-    u.gaps.retain(|g| chunk.line_of(&g.source_id).is_some_and(|l| l.speaker == Speaker::Presenter));
+    u.gaps.retain(|g| chunk.locate(&g.quote, &g.source_id).is_some_and(|l| l.speaker == Speaker::Presenter));
     for g in &mut u.gaps {
         g.speaker = Speaker::Presenter;
     }
     out.gaps = u.gaps.len();
     for g in &u.gaps {
-        mem.add_point(&g.quote, g.gap_type, g.speaker, chunk.id, chunk.ts_of(&g.source_id));
+        mem.add_point(&g.quote, g.gap_type, g.speaker, chunk.id, chunk.ts_of(&g.quote, &g.source_id));
     }
 
-    // Silence is the default: no gap, no more calls.
-    let Some(gap) = pick_best(&u.gaps, |g| g.gap_type) else { return Ok(out) };
-    if mem.chunks_seen <= cfg.warmup_chunks && !mem.goal_user_set() {
-        out.dropped = Some("warm-up".into());
-        return Ok(out);
-    }
-
-    // Stage 2: write.
+    let warming_up = mem.chunks_seen <= cfg.warmup_chunks && !mem.goal_user_set();
     let shown: Vec<String> = mem.recent_question_texts().iter().map(|q| q.to_string()).collect();
-    let user = render_user_prompt(&WriteInput {
-        gap_type: gap.gap_type,
-        key_phrase: &gap.key_phrase,
-        quote: &gap.quote,
-        note: &gap.note,
-        speaker: &format!("{:?}", gap.speaker),
-        meeting_type: &format!("{:?}", mem.meeting_type),
-        persona: &persona,
-        goal: &mem.goal,
-        summary: &mem.summary,
-        shown: &shown,
-        glossary: &glossary.join("\n"),
-        chunk_id: chunk.id,
-    });
-    let text = match call::<Written>(&mut out, stages.write, "write", WRITE_VERSION, WRITE_SYSTEM, user, &write_schema()) {
-        Ok(Written { question: Some(q), .. }) if !q.trim().is_empty() => q.trim().to_string(),
-        Ok(w) => return Ok(drop_with(out, format!("write: no question [{}]", w.angle.chars().take(120).collect::<String>()))),
-        Err(e) => return Ok(drop_with(out, format!("write failed: {e}"))),
+
+    // Stage 2: one candidate question, from a gap or from the user's persona.
+    let candidate = if cfg.persona_led {
+        // Questions only react to the other party, so a chunk without them costs nothing.
+        if !chunk.lines.iter().any(|l| l.speaker == Speaker::Presenter) {
+            return Ok(out);
+        }
+        if warming_up {
+            return Ok(drop_with(out, "warm-up".into()));
+        }
+        let user = format!(
+            "MEETING TYPE: {:?}\nABOUT THE USER:\n{}\n\nGOAL:\n{}\n\nGLOSSARY:\n{}\n\nSUMMARY:\n{}\n\nRECENT text (before this chunk):\n{}\n\nOPEN POINTS:\n{}\n\nEXISTING QUESTIONS:\n{}\n\nCHUNK:\n{}",
+            mem.meeting_type,
+            or_none(&persona),
+            or_none(&mem.goal),
+            or_none(&glossary.join("\n")),
+            or_none(&mem.summary),
+            or_none(&prior_text),
+            or_none(&points.join("\n")),
+            or_none(&shown.join("\n")),
+            u.clean_chunk,
+        );
+        let asked = match call::<Asked>(&mut out, stages.write, "ask", ASK_VERSION, ASK_SYSTEM, user, &ask_schema()) {
+            Ok(a) => a,
+            Err(e) => return Ok(drop_with(out, format!("ask failed: {e}"))),
+        };
+        let reason: String = asked.reason.chars().take(120).collect();
+        let Some(text) = asked.question.map(|q| q.trim().to_string()).filter(|q| !q.is_empty()) else {
+            return Ok(drop_with(out, format!("ask: no question [{reason}]")));
+        };
+        // The cited line is what ties the question to the call, and it must be the other party's.
+        let source = asked.source_id.as_deref().and_then(|id| chunk.line_of(id));
+        let Some(source) = source.filter(|l| l.speaker == Speaker::Presenter) else {
+            return Ok(drop_with(out, format!("ask: cited line is not from the other party [{reason}]")));
+        };
+        Candidate { text, gap_type: GapType::Other, speaker: Speaker::Presenter, source_ts_ms: source.ts_ms }
+    } else {
+        // Silence is the default: no gap, no more calls.
+        let Some(gap) = pick_best(&u.gaps, |g| g.gap_type) else { return Ok(out) };
+        if warming_up {
+            return Ok(drop_with(out, "warm-up".into()));
+        }
+        let user = render_user_prompt(&WriteInput {
+            gap_type: gap.gap_type,
+            key_phrase: &gap.key_phrase,
+            quote: &gap.quote,
+            note: &gap.note,
+            speaker: &format!("{:?}", gap.speaker),
+            meeting_type: &format!("{:?}", mem.meeting_type),
+            persona: &persona,
+            goal: &mem.goal,
+            summary: &mem.summary,
+            shown: &shown,
+            glossary: &glossary.join("\n"),
+            chunk_id: chunk.id,
+        });
+        let text = match call::<Written>(&mut out, stages.write, "write", WRITE_VERSION, WRITE_SYSTEM, user, &write_schema()) {
+            Ok(Written { question: Some(q), .. }) if !q.trim().is_empty() => q.trim().to_string(),
+            Ok(w) => return Ok(drop_with(out, format!("write: no question [{}]", w.angle.chars().take(120).collect::<String>()))),
+            Err(e) => return Ok(drop_with(out, format!("write failed: {e}"))),
+        };
+        Candidate { text, gap_type: gap.gap_type, speaker: gap.speaker, source_ts_ms: chunk.ts_of(&gap.quote, &gap.source_id) }
     };
+    let text = candidate.text.clone();
     out.candidate = Some(text.clone());
 
     // Code guards.
-    if let Err(reason) = guards::check(&text, gap.speaker, &mem.glossary, &mem.recent_question_texts()) {
+    if let Err(reason) = guards::check(&text, candidate.speaker, &mem.glossary, &mem.recent_question_texts(), !cfg.persona_led) {
         return Ok(drop_with(out, reason));
     }
 
@@ -216,7 +284,7 @@ pub fn process_chunk(
         Err(e) => return Ok(drop_with(out, format!("judge failed: {e}"))),
     };
     let need_goal = !mem.goal.trim().is_empty() && mem.goal_inferred;
-    if !verdict.passes(need_goal) {
+    if !verdict.passes(need_goal, cfg.min_usefulness) {
         let evidence: String = verdict.evidence.chars().take(120).collect();
         return Ok(drop_with(out, format!("judge: {} [{}]", verdict.failure(need_goal), evidence)));
     }
@@ -233,8 +301,8 @@ pub fn process_chunk(
     mem.questions.push(Question {
         id: id.clone(),
         text,
-        gap_type: gap.gap_type,
-        source_ts_ms: chunk.ts_of(&gap.source_id),
+        gap_type: candidate.gap_type,
+        source_ts_ms: candidate.source_ts_ms,
         source_chunk: chunk.id,
         state: QuestionState::Pending,
         created_at_ms: now_ms,
@@ -282,6 +350,25 @@ mod tests {
             id: 3, t_start_ms: 1_000, t_end_ms: 61_000,
             lines: vec![Line { id: 12, speaker: Speaker::Presenter, ts_ms: 42_000, text: "We deploy with Glue then trigger dbt".into() }],
         }
+    }
+
+    #[test]
+    fn quote_locates_the_line_before_the_cited_id() {
+        let c = chunk();
+        // Right quote, wrong id: the quote wins.
+        assert_eq!(c.locate("trigger dbt.", "T99").map(|l| l.id), Some(12));
+        // Paraphrased quote: fall back to the id.
+        assert_eq!(c.locate("something else", "[T12]").map(|l| l.id), Some(12));
+        assert_eq!(c.ts_of("something else", "nope"), c.t_start_ms);
+    }
+
+    #[test]
+    fn source_id_in_any_format_finds_the_line() {
+        let c = chunk();
+        for id in ["T12", "12", "[T12]", "[T12][Presenter]", "[12][Presenter]"] {
+            assert_eq!(c.line_of(id).map(|l| l.id), Some(12), "{id}");
+        }
+        assert!(c.line_of("[T99]").is_none() && c.line_of("Presenter").is_none());
     }
 
     const NO_GAP: &str = r#"{"clean_chunk":"c","summary":"s","answered_points":[],"answered_questions":[],"gaps":[]}"#;
@@ -384,7 +471,7 @@ mod tests {
         let mut m = user_goal_memory();
         let mut c = chunk();
         c.lines.push(Line { id: 13, speaker: Speaker::Other, ts_ms: 50_000, text: "I think the dbt trigger might fail".into() });
-        let s = Script::new(&[Ok(&ONE_GAP.replace("T12", "T13"))]);
+        let s = Script::new(&[Ok(&ONE_GAP.replace("T12", "T13").replace("trigger dbt", "dbt trigger might fail"))]);
         let stages = Stages { understand: &s, write: &s, judge: &s };
         let out = process_chunk(&mut m, &c, &stages, &PipelineConfig::default(), 100_000).unwrap();
         assert_eq!((s.calls(), out.gaps, m.open_points.len()), (1, 0, 0));
@@ -420,5 +507,100 @@ mod tests {
         let (r, calls) = run(&mut m, &[Ok(ONE_GAP)]);
         assert_eq!(calls, 1);
         assert_eq!(r.unwrap().dropped.unwrap(), "warm-up");
+    }
+
+    const ASK: &str = r#"{"reason":"I need the failure path","source_id":"T12","question":"What happens if the Glue job succeeds but the dbt trigger call fails?"}"#;
+    const ASK_NOTHING: &str = r#"{"reason":"just small talk","source_id":null,"question":null}"#;
+    const GOOD: &str = r#"{"answered":false,"evidence":"","duplicate":false,"generic":false,"detail_only":false,"goal_relevant":true,"high_impact":false,"outcome_change":"A manual rerun answer would justify Step Functions","usefulness":4}"#;
+
+    fn run_persona(mem: &mut Memory, replies: &[Result<&str, &str>]) -> (Result<Outcome, String>, usize) {
+        let s = Script::new(replies);
+        let stages = Stages { understand: &s, write: &s, judge: &s };
+        let r = process_chunk(mem, &chunk(), &stages, &PipelineConfig::persona_led(), 100_000);
+        (r, s.calls())
+    }
+
+    #[test]
+    fn persona_question_is_queued_without_any_gap() {
+        let mut m = user_goal_memory();
+        let (r, calls) = run_persona(&mut m, &[Ok(NO_GAP), Ok(ASK), Ok(GOOD)]);
+        assert_eq!(calls, 3);
+        let q = m.question(&r.unwrap().queued.unwrap()).unwrap();
+        assert_eq!((q.state, q.source_ts_ms), (QuestionState::Pending, 42_000));
+    }
+
+    #[test]
+    fn persona_stock_opening_is_left_to_the_judge() {
+        let mut m = user_goal_memory();
+        let ask = ASK.replace("What happens if", "What specific failure happens if");
+        let (r, calls) = run_persona(&mut m, &[Ok(NO_GAP), Ok(&ask), Ok(GOOD)]);
+        assert_eq!(calls, 3);
+        assert!(r.unwrap().queued.is_some());
+    }
+
+    #[test]
+    fn persona_may_stay_silent() {
+        let mut m = user_goal_memory();
+        let (r, calls) = run_persona(&mut m, &[Ok(NO_GAP), Ok(ASK_NOTHING)]);
+        assert_eq!(calls, 2);
+        assert!(r.unwrap().dropped.unwrap().starts_with("ask: no question"));
+        assert!(m.questions.is_empty());
+    }
+
+    #[test]
+    fn persona_question_must_cite_a_line_from_the_other_party() {
+        let mut m = user_goal_memory();
+        let missing = ASK.replace("T12", "T99");
+        let (r, calls) = run_persona(&mut m, &[Ok(NO_GAP), Ok(&missing)]);
+        assert_eq!(calls, 2);
+        assert!(r.unwrap().dropped.unwrap().starts_with("ask: cited line"));
+    }
+
+    #[test]
+    fn persona_questions_need_a_clearly_useful_verdict() {
+        let mut m = user_goal_memory();
+        let (r, _) = run_persona(&mut m, &[Ok(NO_GAP), Ok(ASK), Ok(LOW_VALUE)]); // usefulness 2
+        assert!(r.unwrap().dropped.unwrap().starts_with("judge: low usefulness"));
+        let acceptable = GOOD.replace(r#""usefulness":4"#, r#""usefulness":3"#);
+        let (r, _) = run_persona(&mut m, &[Ok(NO_GAP), Ok(ASK), Ok(&acceptable)]);
+        assert!(r.unwrap().dropped.unwrap().starts_with("judge: low usefulness"));
+        assert!(m.questions.is_empty());
+    }
+
+    #[test]
+    fn persona_mode_makes_no_calls_when_only_the_user_spoke() {
+        let mut m = user_goal_memory();
+        let mut c = chunk();
+        c.lines[0].speaker = Speaker::Other;
+        let s = Script::new(&[Ok(NO_GAP)]);
+        let stages = Stages { understand: &s, write: &s, judge: &s };
+        process_chunk(&mut m, &c, &stages, &PipelineConfig::persona_led(), 100_000).unwrap();
+        assert_eq!(s.calls(), 1); // understand only
+    }
+
+    #[test]
+    fn persona_prompt_carries_the_persona_goal_and_history() {
+        struct Spy(RefCell<String>);
+        impl CompletionClient for Spy {
+            fn complete(&self, _: &str, _: &str) -> Result<String, String> { unreachable!() }
+            fn complete_json(&self, system: &str, user: &str, _: &serde_json::Value) -> Result<String, String> {
+                if system.starts_with("You are the user of this app") {
+                    *self.0.borrow_mut() = user.to_string();
+                    return Ok(ASK_NOTHING.into());
+                }
+                Ok(NO_GAP.into())
+            }
+        }
+        let mut m = user_goal_memory();
+        m.meeting_type = crate::pipeline::MeetingType::Interview;
+        m.persona = roofle_core::persona::PersonaProfile { role: "Tech Lead".into(), ..Default::default() };
+        m.recent_text.push_back("EARLIER TALK".into());
+        let spy = Spy(RefCell::default());
+        let stages = Stages { understand: &spy, write: &spy, judge: &spy };
+        process_chunk(&mut m, &chunk(), &stages, &PipelineConfig::persona_led(), 100_000).unwrap();
+        let sent = spy.0.borrow().clone();
+        for part in ["MEETING TYPE: Interview", "I am a Tech Lead.", "Stay on Glue or move?", "EARLIER TALK"] {
+            assert!(sent.contains(part), "missing {part:?} in {sent}");
+        }
     }
 }

@@ -681,8 +681,63 @@ body {
   box-shadow: inset 2px 0 0 var(--brand);
 }
 
+/* Pause/stop on the live row, shown only while another conversation is open. */
+.row-transport {
+  display: none;
+  gap: 0.25rem;
+  align-self: flex-start;
+}
+
+.history-item:not(.is-active) > .row-transport {
+  display: flex;
+}
+
+.row-transport button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
+  cursor: pointer;
+  transition: color 200ms ease, background 200ms ease, border-color 200ms ease,
+    box-shadow 200ms ease, transform 200ms var(--ease);
+}
+
+.row-transport button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--ink) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+.row-transport button:active {
+  transform: scale(0.9);
+}
+
+.row-transport button.recording {
+  color: var(--record);
+  background: var(--record-soft);
+  border-color: color-mix(in srgb, var(--record) 35%, var(--line));
+}
+
+.row-transport button.paused {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, var(--bg));
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--line));
+}
+
+.row-transport svg {
+  width: 12px;
+  height: 12px;
+}
+
 .history-item.is-recording::after {
-  content: "● LIVE";
+  content: "●";
   align-self: flex-start;
   font-size: 0.55rem;
   font-weight: 700;
@@ -755,6 +810,12 @@ body {
 
 .new-title {
   margin: 0;
+  /* Stop short of the centered transport controls (they start ~6rem left of 65%). */
+  min-width: 0;
+  max-width: calc(65% - 7rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.015em;
@@ -1358,119 +1419,103 @@ body {
 /* ============================================================
    Floating transport control (inside the main/transcript panel)
    ============================================================ */
-/* Freely draggable pill — the user can move it anywhere in the main
-   panel. Its left/top are set from JS; it starts centered. */
-.floating-control {
+/* Fixed in the notes header, right-aligned. */
+.transport {
   position: absolute;
+  left: 65%; /* right of center so a long generated title doesn't run under it */
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: var(--shadow-3);
-  z-index: 6;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  transition: box-shadow 150ms var(--ease), transform 150ms var(--ease);
+  gap: 0.5rem;
 }
 
-.floating-control.dragging {
-  cursor: grabbing;
-  box-shadow: 0 16px 44px color-mix(in srgb, var(--ink) 26%, transparent);
-  transform: scale(1.02);
+.transcript-head {
+  position: relative;
+}
+
+/* Hidden when idle or when another conversation is open. */
+.transport.is-idle {
+  display: none;
+}
+
+/* Soft rounded-square buttons. */
+.record-btn,
+.stop-btn {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
+  cursor: pointer;
+  transition: color 200ms ease, background 200ms ease, border-color 200ms ease,
+    box-shadow 200ms ease, transform 200ms var(--ease);
 }
 
 .record-btn {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  cursor: pointer;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--brand) 40%, transparent);
-  transition: background 200ms ease, transform 200ms var(--ease),
-    box-shadow 200ms ease;
+  color: var(--brand);
 }
 
-.record-btn:hover {
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--brand) 50%, transparent);
-  filter: brightness(1.03);
+.stop-btn {
+  color: var(--muted);
 }
 
-.record-btn:active {
-  transform: scale(0.94);
+.record-btn:hover,
+.stop-btn:hover {
+  background: var(--surface-2);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--ink) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+.stop-btn:hover {
+  color: var(--ink);
+}
+
+.record-btn:active,
+.stop-btn:active {
+  transform: scale(0.9);
 }
 
 .record-btn:focus-visible,
 .stop-btn:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
+/* State tint: red while recording (with a soft pulse), amber while paused. */
 .record-btn.recording {
-  background: var(--record);
+  color: var(--record);
+  background: var(--record-soft);
+  border-color: color-mix(in srgb, var(--record) 35%, var(--line));
   animation: rec-pulse 1.8s ease-out infinite;
 }
 
 .record-btn.paused {
-  background: var(--amber);
-  animation: none;
-}
-
-@keyframes rec-pulse {
-  0% {
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--record) 40%, transparent),
-      0 0 0 0 color-mix(in srgb, var(--record) 45%, transparent);
-  }
-  70% {
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--record) 40%, transparent),
-      0 0 0 12px transparent;
-  }
-  100% {
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--record) 40%, transparent),
-      0 0 0 0 transparent;
-  }
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 14%, var(--bg));
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--line));
 }
 
 .record-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.stop-btn svg {
   width: 20px;
   height: 20px;
 }
 
-.stop-btn {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 auto;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  background: var(--bg);
-  cursor: pointer;
-  transition: background 200ms ease, color 200ms ease, transform 200ms var(--ease);
-}
-
-.stop-btn:hover {
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.stop-btn:active {
-  transform: scale(0.94);
-}
-
-.stop-btn svg {
-  width: 18px;
-  height: 18px;
+@keyframes rec-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--record) 40%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 /* ============================================================
@@ -2355,13 +2400,6 @@ body {
 /* Collapsed left rail keeps the same 8px gutter the resizer gives the others. */
 .workspace.history-collapsed #history-panel {
   margin-right: 8px;
-}
-
-/* No transport controls until a recording is live; `visibility` (not display)
-   keeps the pill's size so it still centers correctly when it appears. */
-.floating-control.is-idle {
-  visibility: hidden;
-  pointer-events: none;
 }
 
 /* ---------- Collapsed right rail ---------- */

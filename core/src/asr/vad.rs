@@ -27,16 +27,6 @@ const FORCED_SPLIT_SAMPLES: usize = ((MAX_SPEECH_SECS - 0.5) * VAD_SAMPLE_RATE a
 /// Audio kept so padding can reach back before an utterance.
 const HISTORY_SAMPLES: usize = 30 * VAD_SAMPLE_RATE as usize;
 
-/// One detected utterance.
-pub struct Speech {
-    /// What to decode: the detected speech plus padding of real audio either side.
-    pub samples: Vec<f32>,
-    /// Where the detected speech itself begins, in samples since the VAD started.
-    pub start: usize,
-    /// Length of the detected speech itself, padding excluded.
-    pub len: usize,
-}
-
 /// Turns a raw audio stream into discrete speech segments.
 pub struct Vad {
     detector: VoiceActivityDetector,
@@ -88,7 +78,13 @@ impl Vad {
         }
     }
 
-    pub fn drain(&mut self) -> Vec<Speech> {
+    /// Whether speech is happening right now, as of the last block pushed.
+    pub fn speaking(&self) -> bool {
+        self.detector.detected()
+    }
+
+    /// Finished utterances, each widened with the audio around it.
+    pub fn drain(&mut self) -> Vec<Vec<f32>> {
         let mut out = Vec::new();
         while let Some(segment) = self.detector.front() {
             let start = segment.start().max(0) as usize;
@@ -99,22 +95,20 @@ impl Vad {
         out
     }
 
-    pub fn flush(&mut self) -> Vec<Speech> {
+    pub fn flush(&mut self) -> Vec<Vec<f32>> {
         self.detector.flush();
         self.drain()
     }
 
     /// Add padding from the audio history around `speech`, which begins at `start`.
-    fn widen(&mut self, start: usize, speech: Vec<f32>) -> Speech {
-        let len = speech.len();
-        let forced = len >= FORCED_SPLIT_SAMPLES;
-        let range = padded_range(start, len, self.history_start, self.total, self.prev_end, forced);
-        self.prev_end = start + len;
-        let samples = match range {
+    fn widen(&mut self, start: usize, speech: Vec<f32>) -> Vec<f32> {
+        let forced = speech.len() >= FORCED_SPLIT_SAMPLES;
+        let range = padded_range(start, speech.len(), self.history_start, self.total, self.prev_end, forced);
+        self.prev_end = start + speech.len();
+        match range {
             Some(r) => self.history[r.start - self.history_start..r.end - self.history_start].to_vec(),
             None => speech,
-        };
-        Speech { samples, start, len }
+        }
     }
 }
 

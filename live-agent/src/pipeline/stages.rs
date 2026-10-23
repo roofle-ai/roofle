@@ -8,10 +8,12 @@ use super::memory::Speaker;
 
 pub const UNDERSTAND_VERSION: &str = "understand.v2";
 pub const WRITE_VERSION: &str = "write.v2";
+pub const ASK_VERSION: &str = "ask.v1";
 pub const JUDGE_VERSION: &str = "judge.v2";
 
 pub const UNDERSTAND_SYSTEM: &str = include_str!("../../prompts/pipeline/understand.v2.md");
 pub const WRITE_SYSTEM: &str = include_str!("../../prompts/pipeline/write.v2.md");
+pub const ASK_SYSTEM: &str = include_str!("../../prompts/pipeline/ask.v1.md");
 pub const JUDGE_SYSTEM: &str = include_str!("../../prompts/pipeline/judge.v2.md");
 
 #[derive(Debug, Clone, Deserialize)]
@@ -44,6 +46,17 @@ pub struct Written {
     pub question: Option<String>,
 }
 
+/// A persona-led reply: at most one question, tied to the line that prompted it.
+#[derive(Debug, Deserialize)]
+pub struct Asked {
+    /// One-line reasoning (why the user wants to know); logged, not shown.
+    #[serde(default)]
+    pub reason: String,
+    /// `T<id>` of the line the question reacts to.
+    pub source_id: Option<String>,
+    pub question: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Verdict {
     pub answered: bool,
@@ -66,14 +79,15 @@ fn default_usefulness() -> u8 { MIN_USEFULNESS }
 
 impl Verdict {
     /// The judge passes only when every check is clean and it can name an
-    /// answer that would change the plan. `need_goal` adds the inferred-goal check.
-    pub fn passes(&self, need_goal: bool) -> bool {
+    /// answer that would change the plan. `need_goal` adds the inferred-goal check;
+    /// `min_usefulness` is the lowest score accepted.
+    pub fn passes(&self, need_goal: bool, min_usefulness: u8) -> bool {
         !self.answered
             && !self.duplicate
             && !self.generic
             && !self.detail_only
             && self.outcome_change.trim().chars().count() > 15
-            && self.usefulness >= MIN_USEFULNESS
+            && self.usefulness >= min_usefulness
             && (!need_goal || self.goal_relevant)
     }
 
@@ -124,6 +138,18 @@ pub fn write_schema() -> Value {
         "type": "object", "additionalProperties": false,
         "required": ["angle", "question"],
         "properties": { "angle": { "type": "string" }, "question": { "type": ["string", "null"] } }
+    })
+}
+
+pub fn ask_schema() -> Value {
+    json!({
+        "type": "object", "additionalProperties": false,
+        "required": ["reason", "source_id", "question"],
+        "properties": {
+            "reason": { "type": "string" },
+            "source_id": { "type": ["string", "null"] },
+            "question": { "type": ["string", "null"] }
+        }
     })
 }
 
