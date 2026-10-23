@@ -17,25 +17,39 @@ static RUN: Mutex<()> = Mutex::new(());
 /// `ended` (call over) and anything is pending. Detached so a slow provider
 /// never blocks the engine.
 pub fn generate(app: AppHandle, session_id: i64, ended: bool) {
+    run(app, session_id, ended, false);
+}
+
+/// Rewrite a finished session's notes from its whole transcript, ignoring the
+/// notes saved so far. Like the end-of-call pass it ends with the wrap-up event.
+pub fn regenerate(app: AppHandle, session_id: i64) {
+    run(app, session_id, true, true);
+}
+
+fn run(app: AppHandle, session_id: i64, ended: bool, rebuild: bool) {
     std::thread::spawn(move || {
         let _run = RUN.lock().unwrap_or_else(|e| e.into_inner());
-        let ready = update_notes(&app, session_id, ended);
+        let ready = update_notes(&app, session_id, ended, rebuild);
         if ended {
             super::wrap_up::finish(&app, session_id, ready);
         }
     });
 }
 
+
+
+
 /// One notes pass. `true` when the saved notes are current afterwards
-/// (including "nothing new to add").
-fn update_notes(app: &AppHandle, session_id: i64, ended: bool) -> bool {
+/// (including "nothing new to add"). `rebuild` starts from an empty document and
+/// the whole transcript instead of continuing from the last pass.
+fn update_notes(app: &AppHandle, session_id: i64, ended: bool, rebuild: bool) -> bool {
     {
         let log = logging_enabled();
         let state = app.state::<AppState>();
         let storage = &state.storage;
 
         let last = storage.latest_note(session_id).ok().flatten();
-        let covered = last.as_ref().map_or(0, |n| n.sequence_no);
+        let covered = if rebuild { 0 } else { last.as_ref().map_or(0, |n| n.sequence_no) };
         let mut pending = match storage.get_session(session_id) {
             Ok(Some(d)) => d.segments,
             _ => return false,
@@ -75,7 +89,7 @@ fn update_notes(app: &AppHandle, session_id: i64, ended: bool) -> bool {
         );
 
         let goal = state.goals.lock().unwrap().get(&session_id).cloned().unwrap_or_default();
-        let existing = last.map(|n| n.text).unwrap_or_default();
+        let existing = if rebuild { String::new() } else { last.map(|n| n.text).unwrap_or_default() };
 
         match agent_notes(&client, &transcript, &existing, &goal, &crate::commands::persona::profile(storage).describe(""), ended, log) {
             Ok(text) => {

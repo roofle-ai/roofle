@@ -2,10 +2,11 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { loadStoredApiKey } from "../ai";
 import { session } from "../app/state";
+import { confirmDialog } from "../lib/confirm";
 import { create, dom } from "../lib/dom";
 import { showToast } from "../lib/status";
 import { syncTopic } from "./topics";
-import { getActionItems, getRecipe, runRecipe } from "../transcripts";
+import { getActionItems, getRecipe, regenerateNotes, runRecipe } from "../transcripts";
 import type { ActionItem, Draft, RecipeKind, WrapUp } from "../types";
 
 type Chip = RecipeKind | "action-items";
@@ -37,16 +38,17 @@ export function onWrapUp({ session_id }: WrapUp): void {
 }
 
 /**
- * The pill is offered for any finished session that
- * has notes; chips wait while the end-of-call notes are still being written.
+ * The pill is offered for any finished session with a transcript or notes. Recipes
+ * need notes; Regenerate only needs the transcript. All wait while notes are being written.
  */
 export function syncWrapUp(): void {
   const id = session.viewedId;
   const idle = session.state === "idle" && id !== null;
   const waiting = id !== null && pending.has(id);
-  const available = idle && hasNotes();
-  dom.wrapupPill.hidden = !(idle && (waiting || available));
-  dom.wrapupTriggers.forEach((t) => (t.disabled = !available || waiting));
+  const notes = hasNotes();
+  dom.wrapupPill.hidden = !(idle && (waiting || notes || session.hasTranscript));
+  dom.wrapupTriggers.forEach((t) => (t.disabled = !notes || waiting));
+  dom.wrapupRegen.disabled = !session.hasTranscript || waiting;
   if (!idle || resultFor !== id) closeResult();
   syncTopic();
 }
@@ -149,7 +151,23 @@ function openInMail(): void {
   openUrl(`mailto:?subject=${subject}&body=${body}`).catch(() => showToast("Couldn't open Mail"));
 }
 
+async function regenerate(): Promise<void> {
+  const id = session.viewedId;
+  if (id === null) return;
+  if (hasNotes() && !(await confirmDialog("Regenerate notes?", "The notes are rewritten from the transcript. Your edits to them will be replaced.", "Regenerate"))) return;
+  closeResult();
+  markWrapUpPending(id);
+  try {
+    await regenerateNotes(id);
+  } catch (err) {
+    pending.delete(id);
+    syncWrapUp();
+    showToast(String(err));
+  }
+}
+
 export function initWrapUp(): void {
+  dom.wrapupRegen.addEventListener("click", () => void regenerate());
   dom.wrapupTriggers.forEach((t) =>
     t.addEventListener("click", () => void runChip(t.dataset.recipe as Chip)),
   );

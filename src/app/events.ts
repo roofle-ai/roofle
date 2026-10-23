@@ -15,7 +15,10 @@ import { session } from "./state";
 const MODEL_PROGRESS_HIDE_MS = 900;
 
 function onTranscript({ kind, text }: Segment): void {
-  if (kind === "Final") refreshTranscription();
+  if (kind === "Final") {
+    session.hasTranscript = true;
+    refreshTranscription();
+  }
   // Notes come from the agent, not raw transcription; only the title uses it.
   if (kind !== "Final" || session.titleFromTranscript || !text.trim()) return;
   session.titleFromTranscript = previewWords(text);

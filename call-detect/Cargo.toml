@@ -1,0 +1,10 @@
+[package]
+name = "call-detect"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Detects when a Zoom or Teams call starts on this device"
+
+[dependencies]
+sysinfo = { version = "0.33", default-features = false, features = ["system"] }

@@ -1,10 +1,24 @@
 use roofle_core::storage::SqliteStorage;
-use tauri::{App, Manager};
+use std::time::Duration;
+
+use call_detect::CallApp;
+use tauri::{App, AppHandle, Manager};
 
 use super::tray;
 use crate::engine::spawn_engine;
 use crate::models::ModelManager;
 use crate::state::AppState;
+
+/// How often to look for a newly started Zoom or Teams call.
+const CALL_POLL_INTERVAL: Duration = Duration::from_secs(3);
+
+/// Invite the user to record a detected call, unless a recording is already running.
+fn on_call_started(app: &AppHandle, call: CallApp) {
+    if *app.state::<AppState>().recording.lock().unwrap() {
+        return;
+    }
+    crate::notify::notify_call_started(app, call.name());
+}
 
 pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     // Menu-bar-only app (LSUIElement covers the packaged build).
@@ -31,6 +45,9 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(target_os = "macos")]
     crate::notify::request_permission();
+
+    let handle = app.handle().clone();
+    call_detect::watch(CALL_POLL_INTERVAL, move |call| on_call_started(&handle, call));
 
     Ok(())
 }

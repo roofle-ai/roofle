@@ -14,6 +14,13 @@ pub fn get_action_items(app: AppHandle, id: i64) -> Vec<ActionItem> {
     parse_action_items(&session_notes(&app, id))
 }
 
+/// Write a finished session's notes again from its whole transcript. Returns at
+/// once; the notes arrive as `notes-update`, then `call-wrapped-up`.
+#[tauri::command]
+pub fn regenerate_notes(app: AppHandle, id: i64) {
+    crate::agents::notes::regenerate(app, id);
+}
+
 /// A draft generated earlier, so reopening a recipe never calls the LLM.
 #[tauri::command]
 pub fn get_recipe(state: State<'_, AppState>, id: i64, recipe: Recipe) -> Result<Option<Draft>, String> {

@@ -28,6 +28,7 @@ chrono = "0.4"
 roofle-core = { path = "../core" }
 live-agent = { path = "../live-agent" }
 offline-agent = { path = "../offline-agent" }
+call-detect = { path = "../call-detect" }
 
 # `json` feature powers the AI client's chat-completions requests.
 ureq = { version = "2", features = ["json"] }

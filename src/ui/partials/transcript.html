@@ -14,6 +14,9 @@
         </svg>
       </button>
       <div id="assist-menu" class="assist-menu" role="menu" aria-label="Assist options" hidden>
+        <div class="assist-groups">
+        <div class="assist-group" role="group" aria-labelledby="assist-catch-up">
+        <div id="assist-catch-up" class="assist-group-title">Catch up</div>
         <button type="button" role="menuitem" data-assist="last-30s">
           <i data-lucide="rewind" aria-hidden="true"></i>
           <span class="assist-item-text">
@@ -35,6 +38,10 @@
             <span class="assist-item-desc">Strengths and areas to improve in your conversation.</span>
           </span>
         </button>
+        </div>
+        <!-- Quick-prompt categories, rendered from features/assist-prompts.ts. -->
+        <div id="assist-prompts"></div>
+        </div>
       </div>
     </div>
     <!-- More: conversation options (topic, export). -->
@@ -121,11 +128,12 @@
     </footer>
   </aside>
 
-  <!-- Wrap-up: quick follow-ups, a slim icon rail (labels on hover) for a finished session that has notes. -->
+  <!-- Wrap-up: quick follow-ups, a slim icon rail (labels on hover) for a finished session that has a transcript. -->
   <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
     <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
     <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
     <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
+    <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
   </div>
   <aside id="wrapup-result" class="recap-card wrapup-result" role="status" aria-live="polite" hidden>
     <header class="recap-head">
@@ -183,7 +191,7 @@
   </div>
 </section>
 
-<div class="resizer" data-resizer="questions" role="separator" aria-orientation="vertical" aria-label="Resize questions panel" tabindex="0"></div>
+<div class="resizer" data-resizer="questions"></div>
 
 <!-- Save prompt: shown when leaving the notes editor with unsaved edits. -->
 <div id="save-notes-modal" class="analyse-overlay" role="dialog" aria-modal="true" aria-labelledby="save-notes-title" hidden>
@@ -214,18 +222,21 @@
     </div>
 
     <div class="analyse-field">
-      <label class="analyse-label" for="call-setup-type">Type of call</label>
+      <label class="analyse-label" for="call-setup-type">Type of conversation</label>
+      <span class="analyse-desc">Shapes which questions and gaps matter.</span>
       <select id="call-setup-type" class="analyse-select">
-        <option value="decision">Make a decision</option>
-        <option value="review">Review a design or plan</option>
-        <option value="sales">Sales or customer call</option>
-        <option value="status">Status update</option>
-        <option value="interview">Interview</option>
-        <option value="discovery">Discovery or requirements</option>
+        <option value="decision">Business Meeting</option>
+        <option value="recruitment">Recruitment</option>
+        <option value="agile">Agile Meeting</option>
+        <option value="software">Software Engineering</option>
+        <option value="taking-interview">Taking Interview</option>
+        <option value="giving-interview">Giving Interview</option>
+        <option value="sales-selling">Selling a product</option>
+        <option value="sales-buying">Buying a product</option>
         <option value="negotiation">Negotiation</option>
         <option value="planning">Planning or brainstorm</option>
-        <option value="training">Training or onboarding</option>
-        <option value="support">Support or incident</option>
+        <option value="training">Training</option>
+        <option value="lecture">Lecture and Webinars</option>
         <option value="other" selected>Something else</option>
       </select>
     </div>
@@ -235,7 +246,7 @@
       <span class="analyse-desc">The decision or outcome this call should reach. Questions are picked to serve it.</span>
       <textarea id="call-setup-goal" class="analyse-input analyse-textarea" rows="3" maxlength="200" placeholder="e.g. Decide whether to stay on Glue or move to Fivetran" autocomplete="off"></textarea>
       <div class="analyse-goal-foot">
-        <div id="call-setup-chips" class="analyse-chips" aria-label="Goal suggestions"></div>
+        <div id="call-setup-chips" class="analyse-chips" role="group" aria-label="Goal suggestions"></div>
         <span id="call-setup-count" class="analyse-count">0/200</span>
       </div>
     </div>

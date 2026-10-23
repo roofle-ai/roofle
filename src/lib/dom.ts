@@ -14,6 +14,7 @@ export const dom = {
   sessionPill: query<HTMLSpanElement>("#session-pill"),
   statusDot: query<HTMLSpanElement>("#status-dot"),
   statusText: query<HTMLSpanElement>("#status-text"),
+  statusDismiss: query<HTMLButtonElement>("#status-dismiss"),
   notesInput: query<HTMLTextAreaElement>("#notes-input"),
   notesEditing: query<HTMLSpanElement>("#notes-editing"),
   notesTabs: Array.from(document.querySelectorAll<HTMLButtonElement>(".notes-tab")),
@@ -62,6 +63,7 @@ export const dom = {
   assistControl: query<HTMLDivElement>("#assist-control"),
   assistBtn: query<HTMLButtonElement>("#assist-btn"),
   assistMenu: query<HTMLDivElement>("#assist-menu"),
+  assistPrompts: query<HTMLDivElement>("#assist-prompts"),
   assistRecapItem: query<HTMLButtonElement>('[data-assist="last-30s"]'),
   recapCard: query<HTMLElement>("#recap-card"),
   recapTitle: query<HTMLHeadingElement>("#recap-title"),
@@ -98,6 +100,7 @@ export const dom = {
   analysisClose: query<HTMLButtonElement>("#analysis-close"),
   wrapupPill: query<HTMLDivElement>("#wrapup-pill"),
   /** The pill's recipe chips. */
+  wrapupRegen: query<HTMLButtonElement>("#wrapup-regen"),
   wrapupTriggers: Array.from(document.querySelectorAll<HTMLButtonElement>("[data-recipe]")),
   wrapupResult: query<HTMLElement>("#wrapup-result"),
   wrapupMeta: query<HTMLSpanElement>("#wrapup-meta"),

@@ -6,19 +6,21 @@ export interface CallSetup {
   goal: string;
 }
 
-/** Example goals offered as one-click chips, per call type. */
-const GOAL_IDEAS: Record<string, string[]> = {
-  decision: ["Decide between two options", "Agree on a go/no-go"],
-  review: ["Find the risks in the plan", "Agree what to change before build"],
-  sales: ["Qualify budget and timeline", "Agree the next step"],
-  status: ["Find blockers and owners", "Confirm the delivery date"],
-  interview: ["Judge fit for the role", "Probe real depth of experience"],
-  discovery: ["Pin down scope and constraints", "Find who decides and when"],
-  negotiation: ["Agree price and terms", "Find what is flexible"],
-  planning: ["Agree priorities and owners", "Settle the first milestone"],
-  training: ["Check what has been understood", "Capture open questions"],
-  support: ["Find the root cause", "Agree the fix and its owner"],
-  other: [],
+/** Per dropdown value: the backend `MeetingType` it maps to, and goal chips. */
+const TYPES: Record<string, { kind: string; ideas: string[] }> = {
+  decision: { kind: "decision", ideas: ["Decide between the options on the table", "Agree a clear go or no-go"] },
+  recruitment: { kind: "interview", ideas: ["Agree the hiring criteria and timeline", "Align on the candidate shortlist"] },
+  agile: { kind: "planning", ideas: ["Surface blockers and who owns them", "Agree the sprint scope and priorities"] },
+  software: { kind: "review", ideas: ["Find the biggest risks in the design", "Agree the technical approach and owners"] },
+  "taking-interview": { kind: "interview", ideas: ["Judge fit for the role", "Test the depth of their experience"] },
+  "giving-interview": { kind: "interview", ideas: ["Show my strengths for the role", "Learn what the team and role really involve"] },
+  "sales-selling": { kind: "sales", ideas: ["Qualify their budget and timeline", "Agree a concrete next step"] },
+  "sales-buying": { kind: "sales", ideas: ["Check the product meets our requirements", "Understand pricing, terms and risks"] },
+  negotiation: { kind: "negotiation", ideas: ["Agree price and terms", "Learn what each side can flex on"] },
+  planning: { kind: "planning", ideas: ["Agree priorities and owners", "Settle the first milestone"] },
+  training: { kind: "training", ideas: ["Check what has been understood", "Capture open questions"] },
+  lecture: { kind: "training", ideas: ["Capture the key takeaways", "Note questions to follow up"] },
+  other: { kind: "other", ideas: ["Agree the outcome and next steps", "Capture decisions and action items"] },
 };
 
 /** Ask what the call is about; resolves null when the user cancels. */
@@ -29,7 +31,8 @@ export function askCallSetup(): Promise<CallSetup | null> {
       dom.callSetupStart.removeEventListener("click", onStart);
       dom.callSetupCancel.removeEventListener("click", onCancel);
       dom.callSetupClose.removeEventListener("click", onCancel);
-      dom.callSetupGoal.removeEventListener("keydown", onKey);
+      dom.callSetupModal.removeEventListener("keydown", onKey);
+      dom.callSetupModal.removeEventListener("mousedown", onBackdrop);
       dom.callSetupGoal.removeEventListener("input", syncCount);
       dom.callSetupType.removeEventListener("change", renderChips);
       resolve(value);
@@ -37,7 +40,7 @@ export function askCallSetup(): Promise<CallSetup | null> {
     const syncCount = () => (dom.callSetupCount.textContent = `${dom.callSetupGoal.value.length}/${dom.callSetupGoal.maxLength}`);
     const renderChips = () => {
       dom.callSetupChips.replaceChildren(
-        ...(GOAL_IDEAS[dom.callSetupType.value] ?? []).map((idea) => {
+        ...(TYPES[dom.callSetupType.value]?.ideas ?? []).map((idea) => {
           const b = document.createElement("button");
           b.type = "button";
           b.className = "analyse-chip";
@@ -51,8 +54,11 @@ export function askCallSetup(): Promise<CallSetup | null> {
         }),
       );
     };
-    const onStart = () => done({ kind: dom.callSetupType.value, goal: dom.callSetupGoal.value.trim() });
+    const onStart = () => done({ kind: TYPES[dom.callSetupType.value]?.kind ?? "other", goal: dom.callSetupGoal.value.trim() });
     const onCancel = () => done(null);
+    const onBackdrop = (e: MouseEvent) => {
+      if (e.target === dom.callSetupModal) onCancel();
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onStart();
       else if (e.key === "Escape") onCancel();
@@ -61,7 +67,8 @@ export function askCallSetup(): Promise<CallSetup | null> {
     dom.callSetupStart.addEventListener("click", onStart);
     dom.callSetupCancel.addEventListener("click", onCancel);
     dom.callSetupClose.addEventListener("click", onCancel);
-    dom.callSetupGoal.addEventListener("keydown", onKey);
+    dom.callSetupModal.addEventListener("keydown", onKey);
+    dom.callSetupModal.addEventListener("mousedown", onBackdrop);
     dom.callSetupGoal.addEventListener("input", syncCount);
     dom.callSetupType.addEventListener("change", renderChips);
     dom.callSetupGoal.value = "";

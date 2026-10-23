@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { loadStoredApiKey } from "../ai";
 import { ensureLicensed, showLicenseModal } from "../license";
 import { session, type SessionState } from "../app/state";
+import { confirmDialog } from "../lib/confirm";
 import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { loadLiveSessionSettings } from "../settings";
@@ -135,8 +136,17 @@ async function toggleRecording(): Promise<void> {
   else await resume();
 }
 
+/** A new conversation never starts over a live one: the user must agree to stop it first. */
 async function newSession(): Promise<void> {
-  if (session.state !== "idle") await stop();
+  if (session.state !== "idle") {
+    const ok = await confirmDialog(
+      "Stop the current conversation?",
+      "A conversation is still in progress. Stop it to start a new one.",
+      "Stop and start new",
+    );
+    if (!ok) return;
+    await stop();
+  }
   session.viewedId = null;
   updateAnalyseVisibility();
   refreshNotesTitle();
@@ -172,6 +182,6 @@ export function initTransport(openSettings: () => void): void {
   initShortcuts();
   // Tray "New conversation": same flow as the record button, goal prompt included.
   void listen("start-requested", () => {
-    if (session.state === "idle") void start();
+    void (session.state === "idle" ? start() : newSession());
   });
 }

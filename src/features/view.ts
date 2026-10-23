@@ -1,3 +1,4 @@
+import { session } from "../app/state";
 import { clearNotes } from "./notes";
 import { hideDashboard } from "./analysis";
 import { hideRecap } from "./recap";
@@ -6,6 +7,7 @@ import { resetQuestions, setAnalysisMode } from "./questions";
 
 /** Blank the notes, transcription, questions and analysis panes for a new or switched session. */
 export function resetView(): void {
+  session.hasTranscript = false;
   clearNotes();
   resetNotesTabs();
   resetQuestions();

@@ -70,6 +70,11 @@ export function saveNotes(id: number, notes: string): Promise<void> {
   return invoke<void>("save_notes", { id, notes });
 }
 
+/** Rewrite the notes from the whole transcript; the result arrives as `notes-update` + `call-wrapped-up`. */
+export function regenerateNotes(id: number): Promise<void> {
+  return invoke<void>("regenerate_notes", { id });
+}
+
 /** Delete a session; its segments cascade. */
 export function deleteSession(id: number): Promise<void> {
   return invoke<void>("delete_session", { id });

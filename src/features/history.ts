@@ -113,6 +113,7 @@ export async function openSession(id: number): Promise<void> {
       detail.session.title?.trim() ||
       (detail.transcript?.trim() ? previewWords(detail.transcript) : undefined);
     refreshNotesTitle(new Date(detail.session.started_at));
+    session.hasTranscript = detail.segments.length > 0;
     dom.notesInput.value = detail.notes ?? "";
     showLoadedNotes();
     syncWrapUp();

@@ -14,6 +14,9 @@ const NOTIF_TITLE: &str = "Roofle\nFollow up question";
 /// Title shown when the end-of-call recap is ready.
 const CALL_READY_TITLE: &str = "Roofle\nCall ended, recap ready";
 
+/// Title shown when a Zoom or Teams call is detected.
+const CALL_STARTED_TITLE: &str = "Roofle\nCall detected";
+
 /// Whether the process is running from a proper `.app` bundle on macOS.
 ///
 /// `UNUserNotificationCenter` requires a valid app bundle; when the binary runs
@@ -79,6 +82,11 @@ pub fn notify_call_ready(app: &AppHandle, summary: &str, action_items: usize) {
         n => format!("{summary}\n{n} action items"),
     };
     post(app, CALL_READY_TITLE, &body);
+}
+
+/// Invite the user to capture a call that just started in `call_app`.
+pub fn notify_call_started(app: &AppHandle, call_app: &str) {
+    post(app, CALL_STARTED_TITLE, &format!("{call_app} call started. Start a conversation in Roofle to capture notes."));
 }
 
 /// Whether the main window is on screen and focused.

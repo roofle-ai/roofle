@@ -10,6 +10,8 @@ export const session = {
   /** Which view of the meeting the centre panel shows. */
   notesTab: "notes" as NotesTab,
   elapsedSec: 0,
+  /** The viewed session has transcribed speech (so notes can be (re)generated). */
+  hasTranscript: false,
   /** First words of the live transcription, used as the panel title. */
   titleFromTranscript: undefined as string | undefined,
 };

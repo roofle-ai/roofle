@@ -7,7 +7,10 @@ use crate::state::AppState;
 /// A completion client built from the saved config and the key captured at
 /// recording start. `Err` carries the reason no client is available.
 pub fn configured_client(app: &AppHandle) -> Result<NotesClient, String> {
-    let api_key = app.state::<AppState>().api_key.lock().unwrap().clone();
+    let state = app.state::<AppState>();
+    // The recording-start key is empty for a finished session opened later; fall back to Settings.
+    let captured = state.api_key.lock().unwrap().clone();
+    let api_key = ai::resolve_api_key_with(&state.storage, &captured);
     let config = ai::load_for(app)?;
     if !config.is_usable_with(&api_key) {
         return Err(format!(

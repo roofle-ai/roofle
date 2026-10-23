@@ -43,6 +43,8 @@ export function groupByTopic(
     const open = searching || !collapsed.has(t.id);
     const bucket = create("div", "topic-bucket");
     bucket.classList.toggle("is-open", open);
+    // Golden-angle spacing keeps neighbouring ids visibly different; stable across reloads.
+    bucket.style.setProperty("--topic-hue", String((t.id * 137.5) % 360));
 
     const head = create("button", "topic-bucket-head");
     head.type = "button";
@@ -211,9 +213,9 @@ function renderMenu(): void {
     del.classList.add("topic-menu-danger");
     del.disabled = busy;
     dom.topicMenu.replaceChildren(
-      topic,
-      rename,
       editNotes,
+      rename,
+      topic,
       create("div", "topic-menu-sep"),
       item("Export transcript", "download", () => void runExport("transcript")),
       item("Export notes", "download", () => void runExport("notes")),

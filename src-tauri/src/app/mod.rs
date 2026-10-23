@@ -65,6 +65,7 @@ pub fn run() {
             ai::recap_session,
             ai::key_figures,
             recipes::get_action_items,
+            recipes::regenerate_notes,
             recipes::get_recipe,
             recipes::run_recipe
         ])
