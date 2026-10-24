@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 
 import { adoptActiveSession, loadHistory } from "../features/history";
-import { applyGeneratedNotes } from "../features/notes";
+import { applyGeneratedNotes, refreshTokens } from "../features/notes";
 import { refreshTranscription } from "../features/notes-tabs";
 import { ingestChallenges, setAnalysisMode } from "../features/questions";
 import { setSessionState } from "../features/transport";
@@ -65,9 +65,11 @@ export async function initEvents(): Promise<void> {
   await listen<Segment>("transcript-update", (e) => onTranscript(e.payload));
   await listen<ChallengeUpdate>("challenge-update", (e) => {
     if (e.payload.session_id === session.viewedId) ingestChallenges(e.payload.questions);
+    refreshTokens();
   });
   await listen<NotesUpdate>("notes-update", (e) => {
     if (e.payload.session_id === session.viewedId) applyGeneratedNotes(e.payload.text);
+    refreshTokens();
   });
   await listen<WrapUp>("call-wrapped-up", (e) => onWrapUp(e.payload));
   await listen<ModelProgress>("model-progress", (e) => onModelProgress(e.payload));

@@ -48,9 +48,9 @@ impl AiClient {
         config: &AiConfig,
         api_key: &str,
         messages: Vec<ChatMessage>,
-    ) -> Result<String, String> {
+    ) -> Result<(String, Usage), String> {
         let body = serde_json::json!({ "model": config.model, "messages": messages });
-        self.post(&self.http, config, api_key, body).map(|(text, _)| text)
+        self.post(&self.http, config, api_key, body)
     }
 
     /// Structured call: `temperature` 0 and a strict JSON schema, so the reply

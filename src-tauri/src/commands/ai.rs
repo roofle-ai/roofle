@@ -2,7 +2,7 @@ use live_agent::notes::{log_step, logging_enabled};
 use live_agent::figures::{extract_figures, KeyFigures};
 use live_agent::recap::{recap_recent, Recap, Utterance};
 use offline_agent::analysis::{analyse, AnalysisResult};
-use roofle_core::storage::{AudioSegment, AudioSource, SessionRepository, SessionStatus};
+use roofle_core::storage::{AudioSegment, AudioSource, SessionRepository, SessionStatus, SessionUsage};
 use tauri::{AppHandle, Manager, State};
 
 use crate::ai::{self, AiClient, AiConfig, AiConfigView, ChatMessage, NotesClient, ProviderKind};
@@ -51,7 +51,7 @@ pub async fn test_ai_connection(app: AppHandle, api_key: String) -> Result<Strin
     let api_key = ai::resolve_api_key_with(&app.state::<AppState>().storage, &api_key);
     tauri::async_runtime::spawn_blocking(move || {
         let messages = vec![ChatMessage::new("user", "Reply with the single word OK.")];
-        AiClient::new().chat(&config, &api_key, messages)
+        AiClient::new().chat(&config, &api_key, messages).map(|(text, _)| text)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?
@@ -82,6 +82,24 @@ fn friendly_error(raw: &str) -> String {
         None => "Connection test failed. Check the base URL, model and API key.".to_string(),
     };
     msg
+}
+
+/// Token totals per session for `month` (`YYYY-MM`), for the Settings report.
+#[tauri::command]
+pub fn usage_report(state: State<AppState>, month: String) -> Result<Vec<SessionUsage>, String> {
+    state.storage.usage_by_session(&month).map_err(|e| e.to_string())
+}
+
+/// Earliest month (`YYYY-MM`) with usage; bounds the Usage tab's back arrow.
+#[tauri::command]
+pub fn usage_first_month(state: State<AppState>) -> Result<Option<String>, String> {
+    state.storage.usage_first_month().map_err(|e| e.to_string())
+}
+
+/// All-time `(tokens_in, tokens_out)` for one session.
+#[tauri::command]
+pub fn session_usage(state: State<AppState>, id: i64) -> Result<(i64, i64), String> {
+    state.storage.usage_for_session(id).map_err(|e| e.to_string())
 }
 
 /// Evaluate a finished session and persist the result so a later click shows
@@ -121,8 +139,9 @@ pub async fn analyse_session(
     );
 
     let stored_context = context.clone();
+    let app_handle = app.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let client = NotesClient::new(config, api_key);
+        let client = NotesClient::new(config, api_key).with_usage(&app_handle, id);
         analyse(&client, &transcript, &context)
     })
     .await
@@ -217,9 +236,10 @@ pub async fn recap_session(
         .map(|d| d.segments)
         .unwrap_or_default();
     let utterances = utterances(segments);
+    let app_handle = app.clone();
 
     tauri::async_runtime::spawn_blocking(move || {
-        let client = NotesClient::new(config, api_key);
+        let client = NotesClient::new(config, api_key).with_usage(&app_handle, id);
         recap_recent(&client, &utterances, window_secs)
     })
     .await
@@ -258,8 +278,9 @@ pub async fn key_figures(
         return Err(NOT_CONFIGURED.to_string());
     }
     let utterances = utterances(detail.segments);
+    let app_handle = app.clone();
     let figures = tauri::async_runtime::spawn_blocking(move || {
-        extract_figures(&NotesClient::new(config, api_key), &utterances)
+        extract_figures(&NotesClient::new(config, api_key).with_usage(&app_handle, id), &utterances)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))??;

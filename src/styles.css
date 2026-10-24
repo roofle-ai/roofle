@@ -1007,9 +1007,20 @@ body {
   font-size: 0.9rem;
 }
 
-.notes-meta {
+.notes-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   flex: 0 0 auto;
   padding: 0 var(--notes-pad-x) 0.6rem;
+}
+.notes-tokens {
+  font-size: 0.78rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.notes-meta {
+  flex: 0 0 auto;
   font-size: 0.78rem;
   letter-spacing: 0.02em;
   color: var(--faint);
@@ -3944,7 +3955,7 @@ details.qgroup[open] > summary.qgroup-title {
 /* ============================================================
    Settings — compact density (overrides the rules above)
    ============================================================ */
-.settings-dialog { max-width: 54rem; height: min(38rem, 100%); }
+.settings-dialog { max-width: 72rem; height: min(50rem, 100%); }
 .settings-head { gap: 0.625rem; padding: 0.7rem 1rem; }
 .settings-head-icon { width: 1.75rem; height: 1.75rem; border-radius: 0.5rem; }
 .settings-head-icon [data-lucide] { width: 16px; height: 16px; }
@@ -4231,3 +4242,31 @@ details.qgroup[open] > summary.qgroup-title {
 .assist-group .assist-item-label { font-size: 0.8125rem; }
 .assist-group .assist-item-desc { font-size: 0.72rem; line-height: 1.3; }
 .assist-group button [data-lucide] { padding: 5px; }
+
+.usage-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.usage-table th, .usage-table td { padding: 0.6rem 1.15rem; text-align: left; border-top: 1px solid var(--line); }
+.usage-table th.num, .usage-table td.num, .usage-table th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.usage-table th { font-weight: 600; color: var(--muted, inherit); }
+
+.month-nav { display: flex; align-items: center; gap: 0.25rem; }
+.month-label { min-width: 8.5rem; text-align: center; font-weight: 600; font-size: 0.9rem; }
+.month-btn { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 1px solid var(--line); border-radius: var(--radius-md, 8px); background: transparent; color: inherit; cursor: pointer; }
+.month-btn:hover:not(:disabled) { background: var(--surface); }
+.month-btn:disabled { opacity: 0.35; cursor: default; }
+
+.usage-total { margin-top: 0.15rem; font-size: 0.95rem; color: var(--muted, inherit); }
+.usage-total strong { font-size: 1.15rem; color: inherit; }
+.usage-table { table-layout: fixed; }
+.usage-table th:first-child { width: 50%; }
+.usage-session { display: flex; flex-direction: column; min-width: 0; }
+.usage-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-when { font-size: 0.75rem; color: var(--faint); }
+.usage-sum { font-weight: 700; }
+
+.persona-summary { margin-top: 0; font-family: inherit; line-height: 1.55; min-height: 6.5rem; resize: vertical; }
+.persona-summary-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-top: 0.5rem; }
+.persona-summary-foot .settings-field-hint { margin: 0; }
+.persona-summary-count { flex: 0 0 auto; font-size: 0.6875rem; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.persona-summary-group { margin-top: 1.5rem; }
+.persona-summary-group .persona-q { margin-top: 0; }

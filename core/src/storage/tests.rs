@@ -22,8 +22,8 @@ fn new_session(source: &str, started: chrono::DateTime<Utc>) -> NewSession {
 #[test]
 fn open_in_memory_initializes_current_schema() {
     let storage = store();
-    // The current schema is V8 (topics).
-    assert_eq!(storage.schema_version().unwrap(), 8);
+    // The current schema is V9 (llm_usage).
+    assert_eq!(storage.schema_version().unwrap(), 9);
 }
 
 #[test]
@@ -466,4 +466,27 @@ fn pipeline_questions_memory_and_runs_round_trip() {
             prompt_version: "judge.v1", input: "", output: Some("{}"), error: None,
         })
         .unwrap();
+}
+
+#[test]
+fn usage_sums_per_session_for_a_month_and_survives_session_delete() {
+    let storage = store();
+    let s = storage.create_session(new_session("mic", Utc::now())).unwrap();
+    assert_eq!(storage.usage_first_month().unwrap(), None);
+    storage.record_usage(Some(s.id), "m", 100, 20).unwrap();
+    storage.record_usage(Some(s.id), "m", 50, 5).unwrap();
+    storage.record_usage(None, "m", 7, 1).unwrap();
+
+    let month = Utc::now().format("%Y-%m").to_string();
+    let rows = storage.usage_by_session(&month).unwrap();
+    let mine = rows.iter().find(|r| r.session_id == Some(s.id)).unwrap();
+    assert_eq!((mine.calls, mine.tokens_in, mine.tokens_out), (2, 150, 25));
+    assert_eq!(rows.iter().map(|r| r.tokens_in).sum::<i64>(), 157);
+    assert!(storage.usage_by_session("1999-01").unwrap().is_empty());
+    assert_eq!(storage.usage_first_month().unwrap(), Some(month.clone()));
+    assert_eq!(storage.usage_for_session(s.id).unwrap(), (150, 25));
+
+    storage.delete_session(s.id).unwrap();
+    let rows = storage.usage_by_session(&month).unwrap();
+    assert_eq!(rows.iter().map(|r| r.tokens_in).sum::<i64>(), 157);
 }

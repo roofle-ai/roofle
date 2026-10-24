@@ -23,6 +23,7 @@ export const dom = {
   transcriptionList: query<HTMLOListElement>("#transcription-list"),
   transcriptionEmpty: query<HTMLParagraphElement>("#transcription-empty"),
   notesMeta: query<HTMLTimeElement>("#notes-meta"),
+  notesTokens: query<HTMLElement>("#notes-tokens"),
   notesPreview: query<HTMLDivElement>("#notes-preview"),
   saveNotesModal: query<HTMLDivElement>("#save-notes-modal"),
   saveNotesKeep: query<HTMLButtonElement>("#save-notes-keep"),

@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { session } from "../app/state";
@@ -67,7 +68,21 @@ function renderNotesMeta(date: Date): void {
   dom.notesMeta.dateTime = date.toISOString();
 }
 
+/** Grey "12.4k tokens" at the right of the notes header; blank until the session has used any. */
+export function refreshTokens(): void {
+  const id = session.viewedId;
+  const show = (text: string): void => {
+    dom.notesTokens.textContent = text;
+  };
+  if (id === null) return show("");
+  const compact = new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 });
+  invoke<[number, number]>("session_usage", { id })
+    .then(([i, o]) => show(session.viewedId === id && i + o > 0 ? `${compact.format(i + o)} tokens` : ""))
+    .catch(() => show(""));
+}
+
 export function refreshNotesTitle(date?: Date): void {
+  refreshTokens();
   dom.chatTitle.textContent = notesTitle(date);
   // Continuing a saved session keeps its original start time.
   if (date || session.viewedId === null || !dom.notesMeta.dateTime) renderNotesMeta(date ?? new Date());

@@ -82,7 +82,10 @@
     <!-- Editable notes: the textarea holds the final notes (agent output +
          user edits) and is what gets persisted per session. -->
     <div id="notes-pane" class="notes-pane" role="tabpanel" aria-labelledby="tab-notes">
-      <time id="notes-meta" class="notes-meta"></time>
+      <div class="notes-meta-row">
+        <time id="notes-meta" class="notes-meta"></time>
+        <span id="notes-tokens" class="notes-tokens" title="LLM tokens used by this session"></span>
+      </div>
       <textarea
         id="notes-input"
         class="notes-input"

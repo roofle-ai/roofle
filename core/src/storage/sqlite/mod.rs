@@ -14,6 +14,7 @@ mod sessions;
 mod sql;
 mod topics;
 mod transcript;
+mod usage;
 
 use chrono::{DateTime, Utc};
 use std::path::Path;
@@ -23,6 +24,7 @@ use crate::storage::StorageError;
 
 pub use recipes::StoredRecipe;
 pub use topics::Topic;
+pub use usage::SessionUsage;
 
 /// A session's persisted offline self-assessment: the analysis context that
 /// produced it plus the raw `AnalysisResult` JSON.

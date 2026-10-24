@@ -6,7 +6,7 @@ use crate::state::AppState;
 
 /// A completion client built from the saved config and the key captured at
 /// recording start. `Err` carries the reason no client is available.
-pub fn configured_client(app: &AppHandle) -> Result<NotesClient, String> {
+pub fn configured_client(app: &AppHandle, session_id: i64) -> Result<NotesClient, String> {
     let state = app.state::<AppState>();
     // The recording-start key is empty for a finished session opened later; fall back to Settings.
     let captured = state.api_key.lock().unwrap().clone();
@@ -19,7 +19,7 @@ pub fn configured_client(app: &AppHandle) -> Result<NotesClient, String> {
             !api_key.trim().is_empty()
         ));
     }
-    Ok(NotesClient::new(config, api_key))
+    Ok(NotesClient::new(config, api_key).with_usage(app, session_id))
 }
 
 /// One client per pipeline stage, each on its own model.
@@ -36,7 +36,7 @@ impl StageClients {
     }
 }
 
-pub fn stage_clients(app: &AppHandle) -> Result<StageClients, String> {
+pub fn stage_clients(app: &AppHandle, session_id: i64) -> Result<StageClients, String> {
     let api_key = app.state::<AppState>().api_key.lock().unwrap().clone();
     let config = ai::load_for(app)?;
     if !config.is_usable_with(&api_key) {
@@ -46,7 +46,7 @@ pub fn stage_clients(app: &AppHandle) -> Result<StageClients, String> {
             !api_key.trim().is_empty()
         ));
     }
-    let make = |m: &str| NotesClient::new(config.for_stage(m), api_key.clone());
+    let make = |m: &str| NotesClient::new(config.for_stage(m), api_key.clone()).with_usage(app, session_id);
     let pick = |m: &str| if m.trim().is_empty() { config.model.clone() } else { m.trim().to_string() };
     Ok(StageClients {
         understand: make(&config.understand_model),

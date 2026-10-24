@@ -74,7 +74,7 @@ fn update_notes(app: &AppHandle, session_id: i64, ended: bool, rebuild: bool) ->
             .join("\n");
 
         let tag = format!("notes #{seq} session={session_id}");
-        let client = match configured_client(app) {
+        let client = match configured_client(app, session_id) {
             Ok(client) => client,
             Err(reason) => {
                 log_step(log, &tag, &format!("{reason}; skipping"));

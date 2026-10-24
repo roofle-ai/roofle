@@ -14,7 +14,7 @@ use crate::state::{AppState, TitleUpdate};
 pub(crate) fn rename_from_notes(app: AppHandle, session_id: i64) {
     let log = logging_enabled();
     let tag = format!("title session={session_id}");
-    let Ok(client) = configured_client(&app) else {
+    let Ok(client) = configured_client(&app, session_id) else {
         return;
     };
 

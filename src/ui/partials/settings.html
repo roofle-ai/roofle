@@ -24,6 +24,9 @@
         <button type="button" role="tab" class="settings-nav-item" data-pane="live" aria-selected="false" aria-controls="settings-pane-live">
           <i data-lucide="radio" aria-hidden="true"></i><span>Live Session</span>
         </button>
+        <button type="button" role="tab" class="settings-nav-item" data-pane="usage" aria-selected="false" aria-controls="settings-pane-usage">
+          <i data-lucide="chart-column" aria-hidden="true"></i><span>Usage</span>
+        </button>
         <button type="button" role="tab" class="settings-nav-item" data-pane="appearance" aria-selected="false" aria-controls="settings-pane-appearance">
           <i data-lucide="palette" aria-hidden="true"></i><span>Appearance</span>
         </button>
@@ -109,6 +112,44 @@
             <p class="pane-desc">Your role and the meetings you join. Roofle uses this to fit the way you work.</p>
           </header>
           <div id="settings-persona-picker"></div>
+          <div class="settings-group persona-summary-group">
+            <p class="persona-q">How should Roofle describe you?</p>
+            <div class="settings-card">
+              <div class="settings-field">
+                <textarea id="persona-summary" class="settings-input persona-summary" rows="4" maxlength="400" aria-label="Persona summary" placeholder="Pick a role above, or write a few lines about yourself."></textarea>
+                <div class="persona-summary-foot">
+                  <p class="settings-field-hint">Sent to the AI as context. Clear it to use the generated text. Changing your role or meetings rewrites it until you edit it.</p>
+                  <span id="persona-summary-count" class="persona-summary-count"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="settings-pane-usage" class="settings-pane" role="tabpanel" data-pane="usage">
+          <header class="pane-head">
+            <h3 class="pane-title">Usage</h3>
+            <p class="pane-desc">LLM tokens used per session, as reported by your provider. Cost is not tracked.</p>
+          </header>
+          <div class="settings-group">
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-field-label">Month</span>
+                  <p id="usage-total" class="usage-total"></p>
+                </div>
+                <div class="month-nav" role="group" aria-label="Month">
+                  <button id="usage-prev" type="button" class="month-btn" aria-label="Previous month"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+                  <span id="usage-month" class="month-label" aria-live="polite"></span>
+                  <button id="usage-next" type="button" class="month-btn" aria-label="Next month"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
+                </div>
+              </div>
+              <table class="usage-table">
+                <thead><tr><th>Session</th><th>In</th><th>Out</th><th>Total</th></tr></thead>
+                <tbody id="usage-rows"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <div id="settings-pane-appearance" class="settings-pane" role="tabpanel" data-pane="appearance">

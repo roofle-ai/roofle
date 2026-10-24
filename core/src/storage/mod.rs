@@ -15,7 +15,7 @@ pub use questions::{
     LiveNote, NewPipelineQuestion, PipelineRun, Question, QuestionStatus, QuestionStore,
 };
 pub use repository::{SessionRepository, StorageError};
-pub use sqlite::{StoredAnalysis, StoredRecipe, Topic};
+pub use sqlite::{SessionUsage, StoredAnalysis, StoredRecipe, Topic};
 pub use sqlite::SqliteStorage;
 pub use transcript::{TranscriptEntry, TranscriptStore};
 

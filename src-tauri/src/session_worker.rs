@@ -156,7 +156,7 @@ fn on_chunk(
     log: bool,
     tag: &str,
 ) -> Vec<UiEvent> {
-    let clients = match stage_clients(app) {
+    let clients = match stage_clients(app, session_id) {
         Ok(c) => c,
         Err(reason) => {
             log_step(log, tag, &format!("{reason}; skipping chunk {}", chunk.id));

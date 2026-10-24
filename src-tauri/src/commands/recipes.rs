@@ -46,8 +46,9 @@ pub async fn run_recipe(
     let notes = session_notes(&app, id);
     let goal = state.goals.lock().unwrap().get(&id).cloned().unwrap_or_default();
 
+    let app_handle = app.clone();
     let draft = tauri::async_runtime::spawn_blocking(move || {
-        recipes::run(&NotesClient::new(config, api_key), recipe, &notes, &goal)
+        recipes::run(&NotesClient::new(config, api_key).with_usage(&app_handle, id), recipe, &notes, &goal)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))??;

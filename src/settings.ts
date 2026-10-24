@@ -83,9 +83,87 @@ function showPane(id: string): void {
   modal.querySelectorAll<HTMLElement>(".settings-pane").forEach((el) => {
     el.classList.toggle("active", el.dataset.pane === id);
   });
-  // About is read-only; Appearance applies live.
-  document.getElementById("settings-actions")!.hidden = id === "about" || id === "appearance";
+  // About and Usage are read-only; Appearance applies live.
+  document.getElementById("settings-actions")!.hidden = ["about", "appearance", "usage"].includes(id);
   if (id === "about") void loadAbout();
+  if (id === "usage") void loadUsage();
+}
+
+interface SessionUsage {
+  session_id: number | null;
+  title: string;
+  started_at: string | null;
+  calls: number;
+  tokens_in: number;
+  tokens_out: number;
+}
+
+const utcMonth = (d: Date) => d.toISOString().slice(0, 7);
+/** Month shown in the Usage tab, `YYYY-MM` (UTC, as the DB groups it). */
+let usageMonth = utcMonth(new Date());
+/** Earliest month with usage; the back arrow stops here. */
+let firstUsageMonth = usageMonth;
+
+/// Move the Usage tab by `delta` months, never past the current one.
+function stepUsageMonth(delta: number): void {
+  const [y, m] = usageMonth.split("-").map(Number);
+  const next = utcMonth(new Date(Date.UTC(y, m - 1 + delta, 1)));
+  if (next > utcMonth(new Date()) || next < firstUsageMonth) return;
+  usageMonth = next;
+  void loadUsage();
+}
+
+/// Fill the Usage table for `usageMonth`.
+async function loadUsage(): Promise<void> {
+  const [y, m] = usageMonth.split("-").map(Number);
+  document.getElementById("usage-month")!.textContent = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString([], {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  firstUsageMonth = (await invoke<string | null>("usage_first_month").catch(() => null)) ?? utcMonth(new Date());
+  (document.getElementById("usage-prev") as HTMLButtonElement).disabled = usageMonth <= firstUsageMonth;
+  (document.getElementById("usage-next") as HTMLButtonElement).disabled = usageMonth >= utcMonth(new Date());
+  const rows = await invoke<SessionUsage[]>("usage_report", { month: usageMonth }).catch(() => []);
+  const sum = (f: (r: SessionUsage) => number) => rows.reduce((n, r) => n + f(r), 0);
+  const n = (v: number) => v.toLocaleString();
+  const total = document.getElementById("usage-total")!;
+  total.replaceChildren();
+  if (rows.length) {
+    const strong = document.createElement("strong");
+    strong.textContent = `${n(sum((r) => r.tokens_in + r.tokens_out))} tokens`;
+    total.append(strong, ` · ${rows.length} ${rows.length === 1 ? "session" : "sessions"}`);
+  } else {
+    total.textContent = "No usage recorded for this month.";
+  }
+  const body = document.getElementById("usage-rows")!;
+  body.replaceChildren(
+    ...rows.map((r) => {
+      const tr = document.createElement("tr");
+      const name = r.session_id === null ? "Other / deleted session" : r.title || `Session ${r.session_id}`;
+      const when = r.started_at
+        ? new Date(r.started_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+        : "";
+      const first = document.createElement("td");
+      first.className = "usage-session";
+      const title = document.createElement("span");
+      title.className = "usage-title";
+      title.textContent = name;
+      title.title = name;
+      const date = document.createElement("span");
+      date.className = "usage-when";
+      date.textContent = when;
+      first.append(title, date);
+      tr.append(first);
+      [r.tokens_in, r.tokens_out, r.tokens_in + r.tokens_out].forEach((v, i) => {
+        const td = document.createElement("td");
+        td.className = i === 2 ? "num usage-sum" : "num";
+        td.textContent = n(v);
+        tr.append(td);
+      });
+      return tr;
+    }),
+  );
 }
 
 async function loadAbout(): Promise<void> {
@@ -146,8 +224,38 @@ async function runAiTest(): Promise<void> {
 function loadPersonaPane(): void {
   personaDraft = null;
   const root = document.getElementById("settings-persona-picker")!;
+  const box = document.getElementById("persona-summary") as HTMLTextAreaElement;
+  const count = document.getElementById("persona-summary-count")!;
+  const showCount = () => (count.textContent = `${box.value.length} / ${box.maxLength}`);
+  let cur: Persona = { roleId: null, meetings: [] };
+  // Once the user types in the box, role changes stop overwriting it.
+  let edited = false;
+  const generate = (p: Persona) =>
+    invoke<string>("describe_persona", { persona: { ...p, summary: "" } }).then((t) => t.slice(0, box.maxLength));
+
+  box.value = "";
+  showCount();
+  box.oninput = () => {
+    edited = true;
+    personaDraft = cur = { ...cur, summary: box.value };
+    showCount();
+  };
   loadPersona()
-    .then((p) => mountPersonaPicker(root, p ?? { roleId: null, meetings: [] }, (v) => ((personaDraft = v), setDirty(true))))
+    .then(async (p) => {
+      cur = p ?? cur;
+      box.value = cur.summary || (await generate(cur));
+      showCount();
+      mountPersonaPicker(root, cur, async (picked) => {
+        cur = { ...picked, summary: box.value };
+        if (!edited) {
+          box.value = await generate(cur).catch(() => box.value);
+          cur.summary = box.value;
+          showCount();
+        }
+        personaDraft = cur;
+        setDirty(true);
+      });
+    })
     .catch((err) => (root.textContent = String(err)));
 }
 
@@ -158,6 +266,7 @@ export function openSettings(): void {
   maxOpenInput.value = String(settings.maxOpenQuestions);
   notesWindowInput.value = String(settings.notesWindowMins);
   syncAppearance();
+  usageMonth = utcMonth(new Date());
   showPane("persona");
   loadAiConfigFields();
   loadPersonaPane();
@@ -211,6 +320,8 @@ function init(): void {
     aiApiKey.type = show ? "text" : "password";
     (e.currentTarget as HTMLElement).textContent = show ? "Hide" : "Show";
   });
+  document.getElementById("usage-prev")!.addEventListener("click", () => stepUsageMonth(-1));
+  document.getElementById("usage-next")!.addEventListener("click", () => stepUsageMonth(1));
   document.getElementById("settings-close")!.addEventListener("click", closeSettings);
   document.getElementById("settings-cancel")!.addEventListener("click", closeSettings);
   document.getElementById("settings-save")!.addEventListener("click", saveSettings);
