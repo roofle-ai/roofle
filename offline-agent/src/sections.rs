@@ -1,5 +1,5 @@
 //! Read-only access to the `## Heading` sections of the markdown notes
-//! produced by the live notes agent (see `live-agent/prompts/writer.txt`).
+//! produced by the live notes agent (see `live-agent/prompts/notes/writer.txt`).
 
 /// Non-empty, trimmed lines under `## <name>` (case-insensitive), up to the
 /// next `## ` heading. Empty when the section is absent.

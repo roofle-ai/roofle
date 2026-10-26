@@ -36,12 +36,12 @@ pub trait CompletionClient {
 }
 
 /// Steers the writer toward concise, evolving session notes.
-/// Loaded from `prompts/writer.txt` at compile time.
-pub const WRITER_SYSTEM: &str = include_str!("../prompts/writer.txt");
+/// Loaded from `prompts/notes/writer.txt` at compile time.
+pub const WRITER_SYSTEM: &str = include_str!("../prompts/notes/writer.txt");
 
 /// Steers the validator toward checking the writer's notes against the source.
-/// Loaded from `prompts/validator.txt` at compile time.
-pub const VALIDATOR_SYSTEM: &str = include_str!("../prompts/validator.txt");
+/// Loaded from `prompts/notes/validator.txt` at compile time.
+pub const VALIDATOR_SYSTEM: &str = include_str!("../prompts/notes/validator.txt");
 
 /// Env var enabling AI-agent debug logging (`1`, `true` or `on`).
 pub const LOG_ENV_VAR: &str = "ROOFLE_LOG_AI";
@@ -89,16 +89,15 @@ pub fn agent_notes(
         &format!("window={} chars, existing_notes={} chars", transcript.chars().count(), existing_notes.chars().count()),
     );
 
-    let mut writer_user = format!(
-        "NOTES SO FAR:\n{}\n\nLATEST WINDOW:\n{transcript}",
-        if existing_notes.trim().is_empty() { "(none yet)" } else { existing_notes },
-    );
+    let mut context = String::new();
     if !goal.trim().is_empty() {
-        writer_user.push_str(&format!("\n\nGOAL:\n{}", goal.trim()));
+        context.push_str(&format!("\n\nGOAL:\n{}", goal.trim()));
     }
     if !persona.trim().is_empty() {
-        writer_user.push_str(&format!("\n\nABOUT THE USER:\n{}", persona.trim()));
+        context.push_str(&format!("\n\nABOUT THE USER:\n{}", persona.trim()));
     }
+    let prior = if existing_notes.trim().is_empty() { "(none yet)" } else { existing_notes };
+    let mut writer_user = format!("NOTES SO FAR:\n{prior}\n\nLATEST WINDOW:\n{transcript}{context}");
     if ended {
         writer_user.push_str("\n\nSESSION ENDED: true");
     }
@@ -106,7 +105,8 @@ pub fn agent_notes(
     log_step(log, "writer", &format!("returned {} chars", written.chars().count()));
 
     log_step(log, "validator", "checking writer notes against the window");
-    let validator_user = format!("Transcript window:\n{transcript}\n\nDraft notes to validate:\n{written}");
+    let validator_user =
+        format!("NOTES BEFORE THIS WINDOW:\n{prior}\n\nLATEST WINDOW:\n{transcript}{context}\n\nDRAFT:\n{written}");
     let validated = client.complete(VALIDATOR_SYSTEM, &validator_user)?;
     log_step(log, "validator", &format!("returned {} chars", validated.chars().count()));
 
@@ -149,7 +149,11 @@ mod tests {
         let calls = client.calls.borrow();
         let order: Vec<_> = calls.iter().map(|(r, _)| *r).collect();
         assert_eq!(order, ["writer", "validator"]);
-            }
+        let validator_user = &calls[1].1;
+        for part in ["NOTES BEFORE THIS WINDOW:\nold notes", "GOAL:\nship v2", "ABOUT THE USER:\nI am a PM."] {
+            assert!(validator_user.contains(part), "validator missing {part:?}: {validator_user}");
+        }
+    }
 
     #[test]
     fn writer_gets_every_input_its_prompt_names() {

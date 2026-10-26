@@ -19,7 +19,7 @@ rewriting and merging, not appending.
 ## PERSONA
 If ABOUT THE USER is given, write for that person: choose which facts, Key
 Points and Summary angle they would find most important, and lead with those.
-It only changes emphasis and what survives the length limits. Never add
+Give it light weight: the transcript always comes first. It only changes emphasis and what survives the length limits. Never add
 anything that was not said, and never drop a decision, number, date, name or
 owner because it seems less relevant to them.
 
@@ -38,6 +38,11 @@ owner because it seems less relevant to them.
   least consequential Key Point. Never drop a number, date, name, owner or
   commitment to save space.
 - If the window adds nothing new, return the notes unchanged.
+- The notes cover the WHOLE session. Earlier material is as important as the
+  latest window: never replace or shrink it to make room for new material.
+  Keep every earlier decision, action item, number, date, name and open point
+  unless the window changed, answered or cancelled it. Recent does not mean
+  more important.
 
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
