@@ -16,6 +16,7 @@ permissions:
 jobs:
   release:
     runs-on: macos-latest # Apple Silicon
+    timeout-minutes: 90 # first notarization can queue for a long time; don't burn minutes forever
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -57,7 +58,7 @@ jobs:
       # Models are downloaded by the app on first launch, so there is nothing to fetch here.
       # Tauri imports APPLE_CERTIFICATE into a temporary keychain, signs, then notarizes and staples.
       - name: Build, sign and notarize
-        run: npm run tauri build -- --bundles dmg
+        run: npm run tauri build -- --bundles app,dmg
 
       - name: Verify signature and notarization
         run: |
@@ -66,6 +67,7 @@ jobs:
           spctl --assess --type execute --verbose "$app"
 
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }} # keep the DMG even if the verification above failed
         with:
           name: Roofle-dmg
           path: target/release/bundle/dmg/*.dmg

@@ -1,6 +1,6 @@
 [package]
 name = "roofle"
-version = "1.0.0"
+version = "1.0.0-beta"
 description = "Roofle — meeting copilot"
 authors = ["Priyanshu Shekhar"]
 edition = "2021"

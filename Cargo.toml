@@ -3,7 +3,7 @@ members = ["core", "cli", "live-agent", "offline-agent", "call-detect", "src-tau
 resolver = "2"
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.0-beta"
 edition = "2021"
 license = "LicenseRef-Proprietary"
 authors = ["Priyanshu Shekhar"]

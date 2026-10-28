@@ -8,10 +8,10 @@ the first time; after that, jump to [Release checklist](#release-checklist).
 | Piece | State |
 |---|---|
 | Build the DMG (`npm run tauri build`) | Works |
-| Version in one place per file (all `1.0.0`) | Done |
+| Version in one place per file (all `1.0.0-beta`) | Done |
 | Homebrew cask generator (`scripts/make-cask.sh`) | Done |
 | Apple signing and notarization | **Needs your Developer ID** (see below) |
-| `src-tauri/entitlements.plist` | **Not added yet** (see [Entitlements](#entitlements)) |
+| `src-tauri/entitlements.plist` | Done, referenced from `tauri.conf.json` (see [Entitlements](#entitlements)) |
 | Homebrew tap repo (`homebrew-roofle`) | **Not created yet** |
 | Release CI workflow | **Not added yet**; releases are manual for now |
 
@@ -64,7 +64,7 @@ workflow file:
 ### Entitlements
 
 The signed app uses the hardened runtime, which blocks microphone access unless
-declared. Add `src-tauri/entitlements.plist`:
+declared. `src-tauri/entitlements.plist` declares it:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -77,7 +77,7 @@ declared. Add `src-tauri/entitlements.plist`:
 </plist>
 ```
 
-and reference it in `src-tauri/tauri.conf.json`:
+and `src-tauri/tauri.conf.json` references it:
 
 ```json
 "macOS": { "infoPlist": "Info.plist", "entitlements": "entitlements.plist" }

@@ -477,7 +477,7 @@ dependencies = [
 
 [[package]]
 name = "call-detect"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "sysinfo",
 ]
@@ -2355,7 +2355,7 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "live-agent"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "chrono",
  "roofle-core",
@@ -2943,7 +2943,7 @@ dependencies = [
 
 [[package]]
 name = "offline-agent"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "live-agent",
  "serde",
@@ -3491,7 +3491,7 @@ dependencies = [
 
 [[package]]
 name = "roofle"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "block2",
  "bzip2 0.4.4",
@@ -3518,7 +3518,7 @@ dependencies = [
 
 [[package]]
 name = "roofle-cli"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "ctrlc",
  "roofle-core",
@@ -3526,7 +3526,7 @@ dependencies = [
 
 [[package]]
 name = "roofle-core"
-version = "1.0.0"
+version = "1.0.0-beta"
 dependencies = [
  "block2",
  "chrono",
