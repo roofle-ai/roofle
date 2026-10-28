@@ -1,0 +1,49 @@
+{
+  "categories": [
+    {
+      "id": "respond-well",
+      "title": "Respond well",
+      "accent": "green",
+      "prompts": [
+        {
+          "id": "next-question",
+          "icon": "message-circle-question",
+          "label": "What should I ask next?",
+          "description": "Three follow-up questions based on the last minute."
+        },
+        {
+          "id": "say-simpler",
+          "icon": "lightbulb",
+          "label": "Say it simpler",
+          "description": "Plain-language version of what was just explained."
+        }
+      ]
+    },
+    {
+      "id": "understand-position",
+      "title": "Understand their position",
+      "accent": "insight",
+      "prompts": [
+        {
+          "id": "probe-interests",
+          "icon": "target",
+          "label": "What do they care about?",
+          "description": "Questions to probe their interests and motivations."
+        }
+      ]
+    },
+    {
+      "id": "stay-on-track",
+      "title": "Stay on track",
+      "accent": "amber",
+      "prompts": [
+        {
+          "id": "confirm-understanding",
+          "icon": "handshake",
+          "label": "Confirm understanding",
+          "description": "A short recap to read back to them and check you're aligned."
+        }
+      ]
+    }
+  ]
+}

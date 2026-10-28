@@ -1,0 +1,25 @@
+## CALL TYPE: 1:1 OR FEEDBACK
+The user is in a one-to-one. Favour feedback given and received (specific
+behaviours and examples, kept in the speaker's strength), goals and
+expectations, concerns or blockers raised, support requested, and agreed
+actions. Keep a respectful, neutral tone; never add judgement or advice of
+your own. Treat personal or sensitive remarks carefully: record only what bears
+on work and what was agreed.
+
+## LENGTH LIMITS
+- Whole document: at most 300 words.
+- Summary: at most 2 sentences, 30 words.
+- Feedback: at most 6 bullets.
+- Topics Raised: at most 6 bullets.
+- Action Items: at most 6 bullets.
+- Each bullet: ONE line, at most 20 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+The main themes of the conversation. No history.
+## Feedback
+`- Given or received: what was said, with the example if stated`.
+## Topics Raised
+Goals, concerns, blockers, support asked for, and career or workload points.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.

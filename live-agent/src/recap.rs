@@ -46,7 +46,7 @@ pub fn recap_recent(
 }
 
 /// The transcript excerpt for the trailing window and the seconds it covers.
-fn select_window(utterances: &[Utterance], window_secs: u32) -> Option<(String, u32)> {
+pub(crate) fn select_window(utterances: &[Utterance], window_secs: u32) -> Option<(String, u32)> {
     let spoken: Vec<&Utterance> = utterances.iter().filter(|u| !u.text.trim().is_empty()).collect();
     let latest_ms = spoken.iter().map(|u| u.end_ms).max()?;
     let window_ms = i64::from(window_secs) * 1000;

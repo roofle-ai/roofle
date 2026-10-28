@@ -11,10 +11,10 @@
 :root {
   color-scheme: light;
   /* UI sans — Inter is loaded from Google Fonts (see index.html). */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   /* Long-form transcription font: a readable serif. */
-  --font-serif: "Newsreader", Charter, "Iowan Old Style", "Palatino Linotype",
+  --font-serif: "Newsreader Variable", "Newsreader", Charter, "Iowan Old Style", "Palatino Linotype",
     "Book Antiqua", Georgia, "Times New Roman", serif;
   font-family: var(--font-sans);
   font-size: 16px;
@@ -3053,6 +3053,11 @@ select.settings-input {
   color: var(--record);
 }
 
+/* Assist answers are short lists; keep their line breaks. */
+.assist-card-body {
+  white-space: pre-wrap;
+}
+
 /* Loading placeholder: three shimmering lines instead of a spinner. */
 .recap-skeleton {
   display: none;
@@ -3330,6 +3335,87 @@ details.qgroup[open] > summary.qgroup-title {
   outline-offset: 2px;
 }
 
+/* First-run checklist */
+.onboarding {
+  flex: 0 0 auto;
+  margin: 0.75rem var(--gutter) 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.onboarding-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.onboarding-skip {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.onboarding-skip:hover {
+  color: var(--ink);
+}
+
+.onboarding-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.onboarding-tick {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--faint);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.is-done .onboarding-tick {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.onboarding-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-text span {
+  color: var(--muted);
+}
+
+.is-done .onboarding-text b {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.onboarding-btn {
+  background: var(--brand);
+  color: #fff;
+}
+
 .new-chat:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -3603,6 +3689,80 @@ details.qgroup[open] > summary.qgroup-title {
 
 .license-body {
   padding: 1.25rem 1.75rem 1.5rem;
+}
+
+/* Walkthrough slide that points at an element: no backdrop; popup and arrow are placed by walkthrough.ts. */
+.analyse-overlay.is-pointing {
+  display: block;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+.is-pointing .analyse-dialog {
+  position: fixed;
+  max-width: none;
+  pointer-events: auto;
+}
+
+.walkthrough-arrow {
+  display: none;
+  position: fixed;
+  width: 32px;
+  font-size: 2rem;
+  line-height: 1;
+  text-align: center;
+  color: var(--brand);
+}
+
+.is-pointing .walkthrough-arrow {
+  display: block;
+  animation: tour-nudge 0.9s ease-in-out infinite;
+}
+
+[data-side="up"] .walkthrough-arrow {
+  rotate: -90deg;
+}
+
+[data-side="left"] .walkthrough-arrow {
+  rotate: 180deg; /* composes with the nudge animation, which then moves the arrow left */
+}
+
+.tour-highlight {
+  animation: tour-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes tour-nudge {
+  50% {
+    transform: translateX(0.6rem);
+  }
+}
+
+@keyframes tour-glow {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--brand), 0 0 0 0 color-mix(in srgb, var(--brand) 55%, transparent);
+  }
+  60%,
+  100% {
+    box-shadow: inset 0 0 0 2px var(--brand), 0 0 0 12px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-pointing .walkthrough-arrow,
+  .tour-highlight {
+    animation: none;
+  }
+  .tour-highlight {
+    box-shadow: inset 0 0 0 2px var(--brand);
+  }
+}
+
+.walkthrough-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .license-benefits {
@@ -3897,6 +4057,9 @@ details.qgroup[open] > summary.qgroup-title {
 .settings-row-text .settings-field-hint { margin-top: 0.25rem; max-width: 32rem; line-height: 1.45; }
 .settings-unit { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--faint); }
 .settings-unit .settings-input { width: 5.5rem; margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.settings-link { color: var(--brand); text-decoration: none; }
+.settings-link:hover { text-decoration: underline; }
+button.settings-link { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
 .settings-value { margin: 0; font-size: 0.8125rem; color: var(--muted); text-align: right; }
 
 .settings-input { padding: 0.6rem 0.8rem; border-radius: 0.625rem; }

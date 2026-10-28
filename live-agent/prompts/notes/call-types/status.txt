@@ -1,0 +1,22 @@
+## CALL TYPE: STATUS OR STAND-UP
+The user is in a progress check. Favour progress against plan, blockers and
+who owns them, risks to dates, and what each person will do next. Keep one
+line per item with the owner if named. Skip narrative of how work was done.
+
+## LENGTH LIMITS
+- Whole document: at most 250 words. Long sessions: at most 350.
+- Summary: at most 2 sentences, 30 words.
+- Progress: at most 8 bullets.
+- Blockers: at most 5 bullets.
+- Next: at most 8 bullets.
+- Each bullet: ONE line, at most 15 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+Overall state in one or two sentences. No history.
+## Progress
+`- Owner or area: what is done or in flight`.
+## Blockers
+`- What is blocked: by whom or what, and who owns unblocking`.
+## Next
+`Owner: task — by date`. Owner and date only if stated.

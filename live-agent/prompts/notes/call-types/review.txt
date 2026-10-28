@@ -1,0 +1,27 @@
+## CALL TYPE: TECHNICAL OR DESIGN REVIEW
+The user is in a review. Favour the design or change under review, concerns
+raised and how they were answered, trade-offs, alternatives considered,
+agreed changes, and named components, services, versions and numbers exactly.
+Keep each concern with its outcome: resolved (with the answer), open, or
+accepted risk. Do not judge the design yourself.
+
+## LENGTH LIMITS
+- Whole document: at most 400 words. Long sessions: at most 500.
+- Summary: at most 2 sentences, 35 words.
+- Design Notes: at most 6 bullets.
+- Concerns: at most 8 bullets.
+- Decisions: at most 5 bullets.
+- Action Items: at most 6 bullets.
+- Each bullet: ONE line, at most 20 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+What is under review and the overall direction so far. No history.
+## Design Notes
+Key facts about the design: components, data flow, constraints, trade-offs.
+## Concerns
+`- Concern → outcome (resolved: answer / open / accepted risk)`.
+## Decisions
+Agreed changes or approach, with the reason in a few words.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.

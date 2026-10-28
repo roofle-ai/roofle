@@ -3,7 +3,9 @@ import { session } from "../app/state";
 import { dom } from "../lib/dom";
 import { showToast } from "../lib/status";
 import { recapSession } from "../transcripts";
+import { hideAssistCard } from "./assist-prompts";
 import { closeAssistMenu } from "./analysis";
+import { hideFigures } from "./figures";
 
 const RECAP_WINDOW_SECS = 30;
 const DEFAULT_TITLE = `Last ${RECAP_WINDOW_SECS} seconds`;
@@ -48,6 +50,8 @@ async function runRecap(): Promise<void> {
   const id = session.viewedId;
   if (id === null) return;
 
+  hideAssistCard();
+  hideFigures();
   renderRecap({ state: "loading", title: DEFAULT_TITLE, meta: "Catching up…" });
   try {
     const recap = await recapSession(id, RECAP_WINDOW_SECS, loadStoredApiKey());

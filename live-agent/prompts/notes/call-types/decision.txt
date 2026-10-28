@@ -1,0 +1,25 @@
+## CALL TYPE: DECISION OR BUSINESS MEETING
+The user is in a meeting meant to reach decisions. Favour what was decided and
+what is still open: options considered, reasons for and against, who decides,
+conditions ("unless", "depends on"), and the owners and dates that follow.
+A proposal under discussion is not a decision; record it under Open Points
+with the sticking point.
+
+## LENGTH LIMITS
+- Whole document: at most 300 words. Long sessions: at most 400.
+- Summary: at most 2 sentences, 35 words.
+- Decisions: at most 6 bullets.
+- Open Points: at most 5 bullets.
+- Action Items: at most 8 bullets.
+- Each bullet: ONE line, at most 20 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+The topic and the main outcome so far. No history.
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words.
+## Open Points
+Unresolved questions, options still on the table, blockers, and who must decide.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated. Not wishes or
+"we could".

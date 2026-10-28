@@ -7,7 +7,7 @@ mod window;
 
 use tauri_plugin_window_state::StateFlags;
 
-use crate::commands::{ai, export, license, models, persona, pipeline, recipes, recording, sessions};
+use crate::commands::{ai, export, license, models, permissions, persona, pipeline, recipes, recording, sessions};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +28,8 @@ pub fn run() {
             persona::describe_persona,
             license::license_status,
             license::activate_license,
+            permissions::permissions_status,
+            permissions::request_permission,
             recording::start_recording,
             recording::pause_recording,
             recording::resume_recording,
@@ -63,6 +65,7 @@ pub fn run() {
             ai::analyse_session,
             ai::get_session_analysis,
             ai::recap_session,
+            ai::assist_prompt,
             ai::key_figures,
             ai::usage_report,
             ai::session_usage,

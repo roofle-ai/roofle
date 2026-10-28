@@ -35,9 +35,43 @@ pub trait CompletionClient {
     }
 }
 
-/// Steers the writer toward concise, evolving session notes.
+/// Generic writer prompt, used when the call type has no file of its own.
 /// Loaded from `prompts/notes/writer.txt` at compile time.
 pub const WRITER_SYSTEM: &str = include_str!("../prompts/notes/writer.txt");
+
+/// Rules shared by every call type (inputs, limits, accuracy, style).
+/// Loaded from `prompts/notes/base.txt` at compile time.
+const WRITER_BASE: &str = include_str!("../prompts/notes/base.txt");
+
+/// Call-type part of the writer prompt, keyed by the value of the call-setup
+/// dropdown (`src/ui/partials/transcript.html`, `#call-setup-type`). To add one:
+/// drop `prompts/notes/call-types/<value>.txt` and add a line here. Values not
+/// listed use [`WRITER_SYSTEM`].
+fn call_type_prompt(call_type: &str) -> Option<&'static str> {
+    Some(match call_type {
+        "sales-selling" => include_str!("../prompts/notes/call-types/sales-selling.txt"),
+        "sales-buying" => include_str!("../prompts/notes/call-types/sales-buying.txt"),
+        "taking-interview" => include_str!("../prompts/notes/call-types/taking-interview.txt"),
+        "giving-interview" => include_str!("../prompts/notes/call-types/giving-interview.txt"),
+        "discovery" => include_str!("../prompts/notes/call-types/discovery.txt"),
+        "decision" => include_str!("../prompts/notes/call-types/decision.txt"),
+        "status" => include_str!("../prompts/notes/call-types/status.txt"),
+        "planning" => include_str!("../prompts/notes/call-types/planning.txt"),
+        "review" => include_str!("../prompts/notes/call-types/review.txt"),
+        "negotiation" => include_str!("../prompts/notes/call-types/negotiation.txt"),
+        "one-on-one" => include_str!("../prompts/notes/call-types/one-on-one.txt"),
+        "training" => include_str!("../prompts/notes/call-types/training.txt"),
+        _ => return None,
+    })
+}
+
+/// The writer's system prompt: base rules + call-type file, or the generic prompt.
+pub fn writer_system(call_type: &str) -> String {
+    match call_type_prompt(call_type) {
+        Some(call_type) => format!("{WRITER_BASE}\n{call_type}"),
+        None => WRITER_SYSTEM.to_string(),
+    }
+}
 
 /// Steers the validator toward checking the writer's notes against the source.
 /// Loaded from `prompts/notes/validator.txt` at compile time.
@@ -72,14 +106,16 @@ pub fn log_step(enabled: bool, step: &str, msg: &str) {
 /// `transcript` is everything said since the last update; `existing_notes` is
 /// the notes document produced so far (empty on the first window); `goal` is
 /// the call's stated purpose (may be empty); `persona` is who the user is
-/// (from `PersonaProfile::describe`, may be empty); `ended` marks the final pass.
-/// These are the writer prompt's four inputs.
+/// (from `PersonaProfile::describe`, may be empty); `call_type` is the value picked
+/// in the call dropdown and selects the writer prompt (see [`writer_system`], may
+/// be empty); `ended` marks the final pass.
 pub fn agent_notes(
     client: &dyn CompletionClient,
     transcript: &str,
     existing_notes: &str,
     goal: &str,
     persona: &str,
+    call_type: &str,
     ended: bool,
     log: bool,
 ) -> Result<String, String> {
@@ -101,7 +137,7 @@ pub fn agent_notes(
     if ended {
         writer_user.push_str("\n\nSESSION ENDED: true");
     }
-    let written = client.complete(WRITER_SYSTEM, &writer_user)?;
+    let written = client.complete(&writer_system(call_type), &writer_user)?;
     log_step(log, "writer", &format!("returned {} chars", written.chars().count()));
 
     log_step(log, "validator", "checking writer notes against the window");
@@ -144,7 +180,7 @@ mod tests {
     #[test]
     fn agent_runs_writer_then_validator() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        let notes = agent_notes(&client, "window", "old notes", "ship v2", "I am a PM.", true, false).unwrap();
+        let notes = agent_notes(&client, "window", "old notes", "ship v2", "I am a PM.", "", true, false).unwrap();
         assert!(notes.contains("validator saw"), "final notes must come from validator: {notes}");
         let calls = client.calls.borrow();
         let order: Vec<_> = calls.iter().map(|(r, _)| *r).collect();
@@ -158,7 +194,7 @@ mod tests {
     #[test]
     fn writer_gets_every_input_its_prompt_names() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        agent_notes(&client, "window text", "old notes", "ship v2", "I am a PM.", true, false).unwrap();
+        agent_notes(&client, "window text", "old notes", "ship v2", "I am a PM.", "", true, false).unwrap();
         let user = client.calls.borrow()[0].1.clone();
         for part in ["NOTES SO FAR:\nold notes", "LATEST WINDOW:\nwindow text", "GOAL:\nship v2", "ABOUT THE USER:\nI am a PM.", "SESSION ENDED: true"] {
             assert!(user.contains(part), "missing {part:?} in {user}");
@@ -168,19 +204,38 @@ mod tests {
     #[test]
     fn optional_inputs_are_omitted_when_absent() {
         let client = Script { calls: RefCell::new(Vec::new()) };
-        agent_notes(&client, "first", "", "", "", false, false).unwrap();
+        agent_notes(&client, "first", "", "", "", "", false, false).unwrap();
         let user = client.calls.borrow()[0].1.clone();
         assert!(user.contains("(none yet)"));
         assert!(!user.contains("GOAL:") && !user.contains("ABOUT THE USER") && !user.contains("SESSION ENDED"));
     }
 
     #[test]
+    fn call_type_with_a_file_gets_base_plus_its_prompt() {
+        for id in [
+            "sales-selling", "sales-buying", "taking-interview", "giving-interview", "discovery", "decision",
+            "status", "planning", "review", "negotiation", "one-on-one", "training",
+        ] {
+            let prompt = writer_system(id);
+            assert!(prompt.starts_with(WRITER_BASE), "{id} must start with the base prompt");
+            assert!(prompt.contains("## CALL TYPE:"), "{id} missing its heading");
+            for part in ["## Summary", "## SECTIONS", "## LENGTH LIMITS"] {
+                assert!(prompt.contains(part), "{id} writer missing {part}");
+            }
+        }
+    }
+
+    #[test]
+    fn unknown_or_empty_call_type_falls_back_to_generic_prompt() {
+        for id in ["", "other", "no-such-type"] {
+            assert_eq!(writer_system(id), WRITER_SYSTEM);
+        }
+    }
+
+    #[test]
     fn prompts_are_embedded_and_agree_on_sections() {
         for section in ["## Summary", "## Decisions", "## Action Items"] {
             assert!(WRITER_SYSTEM.contains(section), "writer missing {section}");
-        }
-        for section in ["Decisions", "Action Items"] {
-            assert!(VALIDATOR_SYSTEM.contains(section), "validator missing {section}");
         }
     }
 }

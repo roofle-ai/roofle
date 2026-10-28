@@ -32,6 +32,13 @@ const STATUS_TEXT: Record<SessionState, string> = {
 
 const IDLE_NOTES_PLACEHOLDER = "Start recording or type your notes here…";
 
+/** Empty notes during a session: say when they arrive (the user's interval) and where to look meanwhile. */
+function liveNotesPlaceholder(): string {
+  const mins = loadLiveSessionSettings().notesWindowMins;
+  const unit = mins === 1 ? "minute" : "minutes";
+  return `Notes appear after ${mins} ${unit} of conversation, then refresh every ${mins}. Want them sooner? Lower "Notes update interval" in Settings → Live Session. Meanwhile, follow along in the Transcription tab.`;
+}
+
 export function setSessionState(state: SessionState): void {
   session.state = state;
   if (state === "idle") {
@@ -53,7 +60,7 @@ export function setSessionState(state: SessionState): void {
   if (state !== "idle") setNotesPreview(false);
   // Shown only while the editor is empty, so it disappears once notes arrive.
   dom.notesInput.placeholder =
-    state === "idle" ? IDLE_NOTES_PLACEHOLDER : "Notes are being prepared. They appear after the first few minutes of conversation…";
+    state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder();
 
   if (state === "recording") startTimer();
   else stopTimer();
@@ -77,11 +84,11 @@ async function command(name: "pause_recording" | "resume_recording", next: Sessi
 const pause = () => command("pause_recording", "paused");
 const resume = () => command("resume_recording", "recording");
 
-/** Send the call's type and goal to the question pipeline of the session just started. */
-async function applyCallSetup({ kind, goal }: CallSetup): Promise<void> {
+/** Send the call's type and goal to the pipeline and notes agent of the session just started. */
+async function applyCallSetup({ kind, callType, goal }: CallSetup): Promise<void> {
   const sessionId = session.activeId ?? session.viewedId;
   if (sessionId === null) return;
-  await invoke("set_meeting_type", { sessionId, kind });
+  await invoke("set_meeting_type", { sessionId, kind, callType });
   if (goal) await invoke("set_goal", { sessionId, text: goal });
 }
 

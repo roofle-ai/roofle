@@ -1,0 +1,28 @@
+## CALL TYPE: CUSTOMER DISCOVERY
+The user is learning about someone's problem. Favour the other person's
+words: the problem and its cost, how they cope today, who is affected, what
+they have tried, what triggered the search, and what success looks like.
+Keep their phrasing in short quotes where it is telling. Do not record the
+user's pitch, hypotheses or leading questions as facts. Separate what they
+did from what they said they would do.
+
+## LENGTH LIMITS
+- Whole document: at most 350 words.
+- Summary: at most 2 sentences, 35 words.
+- Problems: at most 6 bullets.
+- Current Workarounds: at most 4 bullets.
+- Quotes: at most 3 bullets.
+- Follow-ups: at most 3 bullets.
+- Each bullet: ONE line, at most 20 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+Who was interviewed (role, company if stated) and the main insight so far.
+## Problems
+`- Problem: impact, frequency or cost if stated`.
+## Current Workarounds
+Tools, processes and spend they use today.
+## Quotes
+Short verbatim phrases that capture a pain or goal.
+## Follow-ups
+`Owner: task — by date`. Owner and date only if stated.

@@ -1,0 +1,26 @@
+## CALL TYPE: PLANNING OR BRAINSTORM
+The user is shaping what to do next. Favour the ideas raised, the priorities
+agreed, scope in and out, dependencies, estimates and milestones, and owners.
+Keep ideas distinct and in the speaker's words; an idea is not a decision
+until someone agrees to it. Merge near-duplicate ideas into one line.
+
+## LENGTH LIMITS
+- Whole document: at most 350 words. Long sessions: at most 450.
+- Summary: at most 2 sentences, 35 words.
+- Ideas: at most 8 bullets.
+- Plan: at most 8 bullets.
+- Risks & Dependencies: at most 5 bullets.
+- Action Items: at most 6 bullets.
+- Each bullet: ONE line, at most 18 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+What is being planned and where it stands. No history.
+## Ideas
+Options and suggestions raised, not yet agreed.
+## Plan
+Agreed priorities, scope, milestones and estimates, with dates as stated.
+## Risks & Dependencies
+What could slip the plan and what it waits on.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.

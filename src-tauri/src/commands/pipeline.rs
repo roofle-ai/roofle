@@ -19,7 +19,9 @@ pub fn set_meeting_type(
     state: State<AppState>,
     session_id: i64,
     kind: MeetingType,
+    call_type: String,
 ) {
+    state.call_types.lock().unwrap().insert(session_id, call_type);
     state.sessions.send(&app, session_id, Msg::SetMeetingType(kind));
 }
 

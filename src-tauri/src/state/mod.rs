@@ -43,6 +43,8 @@ pub struct AppState {
     pub notes_window_mins: AtomicUsize,
     /// Per live session: the call goal the user set, fed to the notes writer.
     pub goals: Mutex<std::collections::HashMap<i64, String>>,
+    /// Per live session: the call type id the user picked, which selects the notes prompt.
+    pub call_types: Mutex<std::collections::HashMap<i64, String>>,
 }
 
 impl AppState {
@@ -68,6 +70,7 @@ impl AppState {
             max_open_questions: AtomicUsize::new(live_agent::pipeline::PipelineConfig::default().max_open_questions),
             notes_window_mins: AtomicUsize::new(DEFAULT_NOTES_WINDOW_MINS),
             goals: Mutex::new(Default::default()),
+            call_types: Mutex::new(Default::default()),
         }
     }
 }

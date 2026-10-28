@@ -39,7 +39,7 @@
         <div id="settings-pane-llm" class="settings-pane" role="tabpanel" data-pane="llm">
           <header class="pane-head">
             <h3 class="pane-title">LLM Configuration</h3>
-            <p class="pane-desc">Connect any OpenAI-compatible model.</p>
+            <p class="pane-desc">Connect any OpenAI-compatible model. Transcription runs on-device.</p>
           </header>
 
           <div class="settings-group">
@@ -69,6 +69,20 @@
               <span id="ai-test-result" class="ai-test-result" role="status" aria-live="polite"></span>
               <button id="ai-test" type="button" class="btn-ghost btn-outline">Test connection</button>
             </div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h4 class="group-title">Speech-to-text</h4>
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="settings-row-text">
+                  <span class="settings-field-label">On-device model</span>
+                  <p id="stt-model" class="settings-field-hint"></p>
+                </div>
+                <span id="stt-status" class="ai-test-result" role="status" aria-live="polite"></span>
+                <button id="stt-download" type="button" class="btn-ghost btn-outline" hidden>Download</button>
+              </div>
             </div>
           </div>
         </div>
@@ -189,8 +203,9 @@
             <div class="settings-card">
               <div class="settings-row"><span class="settings-field-label">Version</span><p id="about-version" class="settings-value"></p></div>
               <div class="settings-row"><span class="settings-field-label">Speech model</span><p id="about-model" class="settings-value"></p></div>
-              <div class="settings-row"><span class="settings-field-label">Built with</span><p id="about-tauri" class="settings-value"></p></div>
-              <div class="settings-row"><span class="settings-field-label">License</span><p class="settings-value">MIT</p></div>
+              <div class="settings-row"><span class="settings-field-label">Guide</span><p class="settings-value"><button id="about-guide" type="button" class="settings-link">How Roofle works</button></p></div>
+              <div class="settings-row"><span class="settings-field-label">Website</span><p class="settings-value"><a id="about-website" class="settings-link" href="https://roofle.app">roofle.app</a></p></div>
+              <div class="settings-row"><span class="settings-field-label">Support</span><p class="settings-value"><a id="about-support" class="settings-link" href="mailto:support@roofle.app">support@roofle.app</a></p></div>
             </div>
           </div>
         </div>

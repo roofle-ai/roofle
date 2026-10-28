@@ -138,6 +138,11 @@ export function recapSession(id: number, windowSecs: number, apiKey: string): Pr
   return invoke<Recap | null>("recap_session", { id, windowSecs, apiKey });
 }
 
+/** Answer a quick assist prompt from the transcript; null when nothing has been said yet. */
+export function assistPrompt(id: number, prompt: string, apiKey: string): Promise<string | null> {
+  return invoke<string | null>("assist_prompt", { id, prompt, apiKey });
+}
+
 /** Owners, tasks and due dates parsed from a session's notes. */
 export function getActionItems(id: number): Promise<ActionItem[]> {
   return invoke<ActionItem[]>("get_action_items", { id });

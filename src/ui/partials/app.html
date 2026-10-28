@@ -1,8 +1,8 @@
 <main class="app">
-  <!-- First run: the speech model is downloaded on demand, not bundled -->
+  <!-- First run: the speech model is downloaded automatically on first launch, not bundled -->
   <div id="model-setup" class="model-banner" role="status" aria-live="polite" hidden>
     <i data-lucide="download" aria-hidden="true"></i>
-    <span id="model-setup-text" class="model-banner-text">Roofle needs a one-time speech model download before it can transcribe.</span>
+    <span id="model-setup-text" class="model-banner-text">Setting up speech recognition: a one-time download, starts automatically.</span>
     <div id="model-progress" class="model-progress" hidden>
       <div class="model-progress-track" aria-hidden="true">
         <div id="model-progress-fill" class="model-progress-fill"></div>
@@ -11,6 +11,8 @@
     </div>
     <button id="model-download-btn" type="button" class="model-banner-btn">Download model</button>
   </div>
+  <!-- First-run checklist, rendered by features/onboarding.ts -->
+  <section id="onboarding" class="onboarding" aria-label="Setup checklist" hidden></section>
   <!--@header-->
   <div class="workspace">
     <!--@workspace-->

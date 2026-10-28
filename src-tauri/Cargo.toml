@@ -1,5 +1,5 @@
 [package]
-name = "roofle-app"
+name = "roofle"
 version = "1.0.0"
 description = "Roofle — meeting copilot"
 authors = ["Priyanshu Shekhar"]
@@ -34,7 +34,6 @@ call-detect = { path = "../call-detect" }
 ureq = { version = "2", features = ["json"] }
 sha2 = "0.10"
 # Verify server-signed license tokens.
-ed25519-dalek = "2"
 hex = "0.4"
 tar = "0.4"
 bzip2 = "0.4"

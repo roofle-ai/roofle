@@ -1,9 +1,15 @@
 // Assist quick prompts: categorised, one-click questions the LLM will answer from the transcript.
-// UI only for now — `runAssistPrompt` is where the LLM call plugs in.
+// Each prompt id has a matching system prompt in `live-agent/prompts/assist/`.
+import { loadStoredApiKey } from "../ai";
+import { session } from "../app/state";
+import data from "../data/assist-prompts.json";
 import { create, dom } from "../lib/dom";
 import { refreshIcons } from "../lib/icons";
 import { showToast } from "../lib/status";
+import { assistPrompt } from "../transcripts";
 import { closeAssistMenu } from "./analysis";
+import { hideFigures } from "./figures";
+import { hideRecap } from "./recap";
 
 interface AssistPrompt {
   id: string;
@@ -22,94 +28,46 @@ interface AssistCategory {
   prompts: AssistPrompt[];
 }
 
-/** Add categories or prompts here; the menu renders from this list. */
-const CATEGORIES: AssistCategory[] = [
-  {
-    id: "respond-well",
-    title: "Respond well",
-    accent: "green",
-    prompts: [
-      {
-        id: "next-question",
-        icon: "message-circle-question",
-        label: "What should I ask next?",
-        description: "Three follow-up questions based on the last minute.",
-      },
-      {
-        id: "answer-this",
-        icon: "reply",
-        label: "Help me answer this",
-        description: "Drafts a short reply to the question just asked of you.",
-      },
-      {
-        id: "handle-objection",
-        icon: "shield-check",
-        label: "Handle this objection",
-        description: "Two ways to respond to the concern they just raised.",
-      },
-      {
-        id: "say-simpler",
-        icon: "lightbulb",
-        label: "Say it simpler",
-        description: "Plain-language version of what was just explained.",
-      },
-    ],
-  },
-  {
-    id: "understand-position",
-    title: "Understand their position",
-    accent: "insight",
-    prompts: [
-      {
-        id: "probe-interests",
-        icon: "target",
-        label: "What do they care about?",
-        description: "Questions to probe their interests and motivations.",
-      },
-      {
-        id: "uncover-constraints",
-        icon: "lock",
-        label: "What limits them?",
-        description: "Questions to uncover budget, timing and approval constraints.",
-      },
-      {
-        id: "assess-decision-criteria",
-        icon: "scale",
-        label: "How will they decide?",
-        description: "Questions to assess their decision criteria and process.",
-      },
-      {
-        id: "unsaid",
-        icon: "eye-off",
-        label: "What haven't they said?",
-        description: "Topics they avoided or left vague.",
-      },
-    ],
-  },
-  {
-    id: "stay-on-track",
-    title: "Stay on track",
-    accent: "amber",
-    prompts: [
-      {
-        id: "on-goal",
-        icon: "flag",
-        label: "Are we on goal?",
-        description: "Checks the talk against the goal you set at call start.",
-      },
-      {
-        id: "confirm-understanding",
-        icon: "handshake",
-        label: "Confirm understanding",
-        description: "A short recap to read back to them and check you're aligned.",
-      },
-    ],
-  },
-];
+/** Add categories or prompts to `src/data/assist-prompts.json`; the menu renders from this list. */
+const CATEGORIES: AssistCategory[] = data.categories as AssistCategory[];
 
-/** Run a prompt against the transcript. Placeholder until the LLM call is wired in. */
-function runAssistPrompt(prompt: AssistPrompt): void {
-  showToast(`${prompt.label} is coming soon`);
+const NOTHING_SAID = "Nothing has been said yet. Try again once the conversation gets going.";
+
+type CardState = "loading" | "ready" | "empty" | "error";
+
+/** The prompt behind the card, so Refresh can run it again. */
+let current: AssistPrompt | null = null;
+
+function renderCard(state: CardState, title: string, meta = "", body = ""): void {
+  const { assistCard, assistCardTitle, assistCardMeta, assistCardBody, assistCardCopy, assistCardRefresh } = dom;
+  assistCard.dataset.state = state;
+  assistCardTitle.textContent = title;
+  assistCardMeta.textContent = meta;
+  assistCardBody.textContent = body;
+  assistCardCopy.hidden = state !== "ready";
+  assistCardRefresh.disabled = state === "loading";
+  assistCardRefresh.querySelector("span")!.textContent = state === "error" ? "Try again" : "Refresh";
+  assistCard.hidden = false;
+}
+
+/** Run a prompt against the transcript and show the answer in the card. */
+async function runAssistPrompt(prompt: AssistPrompt): Promise<void> {
+  const id = session.viewedId;
+  if (id === null) return;
+  current = prompt;
+  hideRecap();
+  hideFigures();
+
+  renderCard("loading", prompt.label, "Thinking…");
+  try {
+    const answer = await assistPrompt(id, prompt.id, loadStoredApiKey());
+    if (session.viewedId !== id || current !== prompt) return;
+    if (!answer) return renderCard("empty", prompt.label, "", NOTHING_SAID);
+    const asOf = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    renderCard("ready", prompt.label, `as of ${asOf}`, answer);
+  } catch (err) {
+    if (session.viewedId === id && current === prompt) renderCard("error", "Assist unavailable", "", String(err));
+  }
 }
 
 function renderPrompt(prompt: AssistPrompt): HTMLButtonElement {
@@ -126,7 +84,7 @@ function renderPrompt(prompt: AssistPrompt): HTMLButtonElement {
   button.querySelector(".assist-item-desc")!.textContent = prompt.description;
   button.addEventListener("click", () => {
     closeAssistMenu();
-    runAssistPrompt(prompt);
+    void runAssistPrompt(prompt);
   });
   return button;
 }
@@ -144,5 +102,23 @@ function renderCategory({ id, title, accent, prompts }: AssistCategory): HTMLEle
 
 export function initAssistPrompts(): void {
   dom.assistPrompts.replaceChildren(...CATEGORIES.map(renderCategory));
+  dom.assistCardRefresh.addEventListener("click", () => current && void runAssistPrompt(current));
+  dom.assistCardCopy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(dom.assistCardBody.textContent ?? "");
+      showToast("Copied");
+    } catch {
+      showToast("Couldn't copy");
+    }
+  });
+  dom.assistCardClose.addEventListener("click", hideAssistCard);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !dom.assistCard.hidden) hideAssistCard();
+  });
   refreshIcons();
+}
+
+export function hideAssistCard(): void {
+  dom.assistCard.hidden = true;
+  current = null;
 }

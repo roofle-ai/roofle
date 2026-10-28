@@ -1,0 +1,53 @@
+## CALL TYPE: SALES
+The user is selling. Within the limits above, favour what moves a deal: budget and
+who holds it, decision makers and process, timeline and what drives it,
+competing options, objections and what could stall the deal. Capture buyer
+commitments and next steps with owner and date. Keep the buyer's wording on
+objections and pricing.
+
+## LENGTH LIMITS
+- Whole document: at most 250 words. Long sessions: at most 350.
+- Summary: at most 2 sentences, 35 words.
+- Key Points: at most 4 bullets.
+- Details: at most 8 bullets.
+- Timeline: at most 3 bullets.
+- Each bullet: ONE line, at most 15 words.
+- If a Key Point repeats something in Details or Timeline, delete the Key Point.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+What the session is about and the main outcome so far. No history.
+## Key Points
+Only the 2-4 ideas that carry the session and are not plain facts.
+## Details
+Facts as stated: counts, sizes, prices, systems, requirements, scope.
+Keep the speaker's strength ("a few thousand", "about 30").
+## Timeline
+Dates, deadlines, milestones, and what drives them. Keep firmness
+("ideally", "flexible").
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words. A proposal
+under discussion is not a decision.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated. Not wishes or
+"we could".
+
+## EXAMPLE (about the right size)
+## Summary
+Sales call with a logistics firm evaluating a fleet-tracking tool. Budget exists but needs CFO sign-off; a competitor is also being trialled.
+
+## Key Points
+- Buyer's pain is late deliveries, not tracking itself.
+- Decision depends on the CFO and a competing trial.
+
+## Details
+- Fleet: about 120 vans, two depots.
+- Budget: "somewhere around 40k", not yet approved.
+- Objection: worried about driver pushback on tracking.
+
+## Timeline
+- Decision by end of quarter; competitor trial ends in three weeks.
+
+## Action Items
+- Us: send pricing and driver-privacy FAQ — by Friday
+- Buyer: intro to CFO

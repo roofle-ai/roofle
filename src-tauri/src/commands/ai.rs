@@ -1,5 +1,6 @@
 use live_agent::notes::{log_step, logging_enabled};
 use live_agent::figures::{extract_figures, KeyFigures};
+use live_agent::assist::run_assist;
 use live_agent::recap::{recap_recent, Recap, Utterance};
 use offline_agent::analysis::{analyse, AnalysisResult};
 use roofle_core::storage::{AudioSegment, AudioSource, SessionRepository, SessionStatus, SessionUsage};
@@ -241,6 +242,38 @@ pub async fn recap_session(
     tauri::async_runtime::spawn_blocking(move || {
         let client = NotesClient::new(config, api_key).with_usage(&app_handle, id);
         recap_recent(&client, &utterances, window_secs)
+    })
+    .await
+    .map_err(|e| format!("task failed: {e}"))?
+}
+
+/// Answer a one-click assist prompt (see `src/data/assist-prompts.json`) from a
+/// session's transcript. `None` when nothing has been said yet.
+#[tauri::command]
+pub async fn assist_prompt(
+    app: AppHandle,
+    id: i64,
+    prompt: String,
+    api_key: String,
+) -> Result<Option<String>, String> {
+    let config = ai::load_for(&app)?;
+    let api_key = live_or_given_key(&app, &api_key);
+    if !config.is_usable_with(&api_key) {
+        return Err(NOT_CONFIGURED.to_string());
+    }
+    let segments = app
+        .state::<AppState>()
+        .storage
+        .get_session(id)
+        .map_err(|e| e.to_string())?
+        .map(|d| d.segments)
+        .unwrap_or_default();
+    let utterances = utterances(segments);
+    let app_handle = app.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = NotesClient::new(config, api_key).with_usage(&app_handle, id);
+        run_assist(&client, &prompt, &utterances)
     })
     .await
     .map_err(|e| format!("task failed: {e}"))?

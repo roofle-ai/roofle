@@ -126,6 +126,30 @@
     </footer>
   </aside>
 
+  <!-- Assist answer card: the answer to a quick prompt from the Assist menu. -->
+  <aside id="assist-card" class="recap-card" role="status" aria-live="polite" hidden>
+    <header class="recap-head">
+      <span class="recap-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
+      <div class="recap-heading">
+        <h3 id="assist-card-title" class="recap-title"></h3>
+        <span id="assist-card-meta" class="recap-meta"></span>
+      </div>
+      <button id="assist-card-close" type="button" class="recap-close" aria-label="Dismiss answer">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="recap-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p id="assist-card-body" class="recap-body assist-card-body"></p>
+    <footer class="recap-actions">
+      <button id="assist-card-copy" type="button" class="recap-action">
+        <i data-lucide="copy" aria-hidden="true"></i><span>Copy</span>
+      </button>
+      <button id="assist-card-refresh" type="button" class="recap-action">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i><span>Refresh</span>
+      </button>
+    </footer>
+  </aside>
+
   <!-- Key figures card: the answer to Assist → Key figures and dates. -->
   <aside id="figures-card" class="recap-card" role="status" aria-live="polite" hidden>
     <header class="recap-head">
@@ -202,9 +226,8 @@
     </div>
     <p class="analyse-desc">You have unsaved edits to these notes.</p>
     <div class="analyse-actions">
-      <button id="save-notes-keep" type="button" class="btn-ghost">Keep editing</button>
       <button id="save-notes-discard" type="button" class="btn-ghost">Discard</button>
-      <button id="save-notes-save" type="button" class="btn-primary">Save</button>
+      <button id="save-notes-save" type="button" class="btn-primary">Save changes</button>
     </div>
   </div>
 </div>
@@ -226,18 +249,18 @@
       <label class="analyse-label" for="call-setup-type">Type of conversation</label>
       <span class="analyse-desc">Shapes which questions and gaps matter.</span>
       <select id="call-setup-type" class="analyse-select">
-        <option value="decision">Business Meeting</option>
-        <option value="recruitment">Recruitment</option>
-        <option value="agile">Agile Meeting</option>
-        <option value="software">Software Engineering</option>
-        <option value="taking-interview">Taking Interview</option>
-        <option value="giving-interview">Giving Interview</option>
-        <option value="sales-selling">Selling a product</option>
-        <option value="sales-buying">Buying a product</option>
-        <option value="negotiation">Negotiation</option>
+        <option value="taking-interview">Interview: I'm interviewing</option>
+        <option value="giving-interview">Interview: I'm the candidate</option>
+        <option value="sales-selling">Sales call: I'm selling</option>
+        <option value="sales-buying">Sales call: I'm buying</option>
+        <option value="discovery">Customer discovery</option>
+        <option value="decision">Decision or business meeting</option>
+        <option value="status">Status or stand-up</option>
         <option value="planning">Planning or brainstorm</option>
-        <option value="training">Training</option>
-        <option value="lecture">Lecture and Webinars</option>
+        <option value="review">Technical or design review</option>
+        <option value="negotiation">Negotiation</option>
+        <option value="one-on-one">1:1 or feedback</option>
+        <option value="training">Training, lecture or webinar</option>
         <option value="other" selected>Something else</option>
       </select>
     </div>

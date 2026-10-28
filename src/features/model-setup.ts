@@ -14,7 +14,7 @@ export async function ensureModel(): Promise<boolean> {
 function setReady(ready: boolean): void {
   dom.modelSetup.hidden = ready;
   dom.newSessionBtn.disabled = !ready;
-  dom.newSessionBtn.title = ready ? "" : "Download the speech model first";
+  dom.newSessionBtn.title = ready ? "" : "Speech model is still downloading";
 }
 
 const INTRO = dom.modelSetupText.textContent ?? "";
@@ -50,5 +50,8 @@ export function initModelSetup(): void {
     if (downloading) void invoke("cancel_model_download");
     else void download();
   });
-  void ensureModel();
+  // Start the one-time download on first launch; the banner shows progress, Cancel/Retry stay available.
+  void ensureModel().then((ready) => {
+    if (!ready) void download();
+  });
 }

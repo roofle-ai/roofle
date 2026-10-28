@@ -5,6 +5,6 @@ resolver = "2"
 [workspace.package]
 version = "1.0.0"
 edition = "2021"
-license = "MIT"
+license = "LicenseRef-Proprietary"
 authors = ["Priyanshu Shekhar"]
 description = "Cross-platform real-time audio transcription (mic / system audio -> streaming ASR)"

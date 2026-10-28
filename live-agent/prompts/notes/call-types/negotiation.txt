@@ -1,0 +1,28 @@
+## CALL TYPE: NEGOTIATION
+The user is negotiating. Favour each side's position, the numbers and terms
+on the table, what each side said it can or cannot move on, concessions made
+and what was asked in return, and what is agreed. Keep exact figures and
+conditions ("if", "only when"). A position or offer is not an agreement.
+Attribute positions to a side only if labelled or named.
+
+## LENGTH LIMITS
+- Whole document: at most 300 words. Long sessions: at most 400.
+- Summary: at most 2 sentences, 35 words.
+- Positions: at most 6 bullets.
+- Agreed: at most 6 bullets.
+- Open Terms: at most 6 bullets.
+- Next Steps: at most 4 bullets.
+- Each bullet: ONE line, at most 20 words.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+What is being negotiated and how far apart or close the sides are. No history.
+## Positions
+`- Side or topic: ask or offer, with figures and conditions`, including what
+can and cannot flex.
+## Agreed
+Terms both sides accepted, with figures and conditions.
+## Open Terms
+Points still in dispute and what each side needs.
+## Next Steps
+`Owner: task — by date`. Owner and date only if stated.

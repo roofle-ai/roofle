@@ -2,10 +2,15 @@
 // Owns its modal HTML partial, persists the char-limit and the AI API key to
 // localStorage, and routes the non-secret AI config to the Rust-side store.
 import { invoke } from "@tauri-apps/api/core";
-import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
+import { getVersion } from "@tauri-apps/api/app";
+import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import { initAppearance } from "./app/theme";
+import { ensureModel } from "./features/model-setup";
+import { showWalkthrough } from "./features/walkthrough";
 import { refreshIcons } from "./lib/icons";
+import { describeError } from "./lib/status";
 import { loadPersona, mountPersonaPicker, savePersona, type Persona } from "./persona";
 import settingsHtml from "./ui/partials/settings.html?raw";
 
@@ -86,6 +91,7 @@ function showPane(id: string): void {
   // About and Usage are read-only; Appearance applies live.
   document.getElementById("settings-actions")!.hidden = ["about", "appearance", "usage"].includes(id);
   if (id === "about") void loadAbout();
+  if (id === "llm") void loadSttModel();
   if (id === "usage") void loadUsage();
 }
 
@@ -168,15 +174,53 @@ async function loadUsage(): Promise<void> {
 
 async function loadAbout(): Promise<void> {
   const set = (id: string, text: string) => (document.getElementById(id)!.textContent = text);
-  const [version, tauri, model, ready] = await Promise.all([
+  const [version, model, ready] = await Promise.all([
     getVersion(),
-    getTauriVersion(),
     invoke<string>("selected_model"),
     invoke<boolean>("models_ready"),
   ]);
   set("about-version", version);
-  set("about-tauri", `Tauri ${tauri}`);
   set("about-model", `${model} (${ready ? "downloaded" : "not downloaded"})`);
+}
+
+/// Show which on-device speech model transcribes calls, with a download button when it is missing.
+async function loadSttModel(): Promise<void> {
+  const status = document.getElementById("stt-status")!;
+  const button = document.getElementById("stt-download") as HTMLButtonElement;
+  const [id, models, ready] = await Promise.all([
+    invoke<string>("selected_model"),
+    invoke<{ id: string; label: string }[]>("list_models"),
+    invoke<boolean>("models_ready"),
+  ]);
+  document.getElementById("stt-model")!.textContent = models.find((m) => m.id === id)?.label ?? id;
+  status.dataset.state = ready ? "ok" : "error";
+  status.textContent = ready ? "Downloaded" : "Not downloaded";
+  button.hidden = ready;
+  button.disabled = false;
+  button.textContent = "Download";
+}
+
+async function downloadSttModel(): Promise<void> {
+  const status = document.getElementById("stt-status")!;
+  const button = document.getElementById("stt-download") as HTMLButtonElement;
+  button.disabled = true;
+  status.dataset.state = "busy";
+  status.textContent = "Downloading…";
+  const off = await listen<{ downloaded: number; total: number }>("model-progress", ({ payload: { downloaded, total } }) => {
+    if (total > 0) status.textContent = `Downloading… ${Math.round((downloaded / total) * 100)}%`;
+  });
+  try {
+    await invoke("download_model");
+    await ensureModel();
+    await loadSttModel();
+  } catch (err) {
+    status.dataset.state = "error";
+    status.textContent = describeError(err);
+    button.disabled = false;
+    button.textContent = "Retry";
+  } finally {
+    off();
+  }
 }
 
 /// Seed the AI config fields from the Rust-side store.
@@ -326,6 +370,16 @@ function init(): void {
   document.getElementById("settings-cancel")!.addEventListener("click", closeSettings);
   document.getElementById("settings-save")!.addEventListener("click", saveSettings);
   aiTestBtn.addEventListener("click", () => void runAiTest());
+  // Tauri's webview won't follow external links itself; route them through the opener.
+  for (const id of ["about-website", "about-support"]) {
+    const link = document.getElementById(id) as HTMLAnchorElement;
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      void openUrl(link.href);
+    });
+  }
+  document.getElementById("about-guide")!.addEventListener("click", showWalkthrough);
+  document.getElementById("stt-download")!.addEventListener("click", () => void downloadSttModel());
   modal.addEventListener("click", (e) => {
     if (e.target === modal) closeSettings();
   });

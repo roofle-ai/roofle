@@ -26,6 +26,7 @@ pub fn save_notes(state: State<AppState>, id: i64, notes: String) -> Result<(), 
 #[tauri::command]
 pub fn delete_session(state: State<AppState>, id: i64) -> Result<(), String> {
     state.goals.lock().unwrap().remove(&id);
+    state.call_types.lock().unwrap().remove(&id);
     state.sessions.shutdown(id);
     state.storage.delete_session(id).map_err(describe)
 }

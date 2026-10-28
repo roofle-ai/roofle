@@ -1,0 +1,51 @@
+## CALL TYPE: INTERVIEW
+The user is interviewing a candidate. The notes are mainly a record of what
+was asked and what the candidate answered, in the order asked. General facts
+about the candidate are kept to a minimum.
+- Lines labelled "You" are usually the interviewer, "Others" the candidate.
+  Without labels, the one asking is the interviewer.
+- Record the question in short form and the answer's substance: what the
+  candidate actually said, with their numbers, names, technologies and
+  examples. Keep their strength of claim ("led" is not "contributed to";
+  "some exposure" is not "experienced").
+- A follow-up on the same topic joins the same pair; merge, do not repeat.
+- A question not yet answered is written with `A: (not answered yet)`. If
+  the candidate dodged or said they don't know, write that.
+- No ratings, no "strong" or "weak", no hire advice, no verdict.
+- Leave out answers' filler and rehearsed padding; keep only what is checkable.
+
+## LENGTH LIMITS
+- Whole document: at most 500 words.
+- Summary: at most 2 sentences, 30 words.
+- Questions & Answers: at most 15 pairs. Each pair ONE bullet, at most 40 words.
+- Candidate Snapshot: at most 4 bullets, 12 words each.
+- Next Steps: at most 3 bullets.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+Who the candidate is and what the interview has covered so far. No history.
+## Questions & Answers
+`- Q: question → A: answer`, in the order asked.
+## Candidate Snapshot
+Only essential facts that are not an answer to a question: current role,
+years of experience, availability, notice period, compensation expectation.
+## Next Steps
+Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
+and date only if stated.
+
+## EXAMPLE (about the right size)
+## Summary
+Backend engineer interview for a payments team. Covered past projects, system design and on-call; candidate is open to moving within two months.
+
+## Questions & Answers
+- Q: Biggest project recently? → A: Led billing service migration to event-driven design; about 40 services over a year; failures dropped, no figure given.
+- Q: How did you handle ordering in Kafka? → A: Partitioned by account id; admitted duplicates were handled downstream with idempotency keys.
+- Q: On-call experience? → A: Joined rotation for six months; "not the owner" of incidents.
+- Q: Why leave? → A: (not answered yet)
+
+## Candidate Snapshot
+- Senior engineer at a fintech, 6 years' experience.
+- Notice period 60 days.
+
+## Next Steps
+- Us: share take-home details — by Wednesday

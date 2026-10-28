@@ -5,6 +5,7 @@ pub mod ai;
 pub mod export;
 pub mod license;
 pub mod models;
+pub mod permissions;
 pub mod persona;
 pub mod pipeline;
 pub mod recipes;

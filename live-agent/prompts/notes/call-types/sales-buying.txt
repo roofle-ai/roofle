@@ -1,0 +1,29 @@
+## CALL TYPE: SALES, USER IS BUYING
+The user is evaluating a vendor. Favour what protects the buyer: what the
+product does and does not do, pricing and what it includes, contract terms,
+implementation effort, references, risks, and every claim the vendor makes.
+Keep the vendor's wording on prices, guarantees and timelines; "should" and
+"usually" are not commitments. Record what the vendor promised to send or do,
+with owner and date.
+
+## LENGTH LIMITS
+- Whole document: at most 300 words. Long sessions: at most 400.
+- Summary: at most 2 sentences, 35 words.
+- Key Points: at most 4 bullets.
+- Details: at most 8 bullets.
+- Each bullet: ONE line, at most 15 words.
+- If a Key Point repeats something in Details, delete the Key Point.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+Vendor, product, and where the evaluation stands. No history.
+## Key Points
+Only the 2-4 ideas that matter most to the decision and are not plain facts.
+## Details
+Features, limits, pricing, terms, integrations, support, as stated.
+## Open Questions
+Things the vendor could not answer or deferred.
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.

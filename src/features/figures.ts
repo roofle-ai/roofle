@@ -5,6 +5,7 @@ import { showToast } from "../lib/status";
 import { keyFigures } from "../transcripts";
 import type { Figure, KeyFigures } from "../types";
 import { closeAssistMenu } from "./analysis";
+import { hideAssistCard } from "./assist-prompts";
 import { hideRecap } from "./recap";
 
 const NOTHING_SAID = "Nothing has been said yet. Try again once the conversation gets going.";
@@ -62,6 +63,7 @@ async function run(refresh: boolean): Promise<void> {
   if (id === null) return;
 
   hideRecap();
+  hideAssistCard();
   render("loading", "Reading the conversation…");
   try {
     const figures = await keyFigures(id, refresh, loadStoredApiKey());

@@ -1,0 +1,57 @@
+## CALL TYPE: TRAINING, LECTURE OR WEBINAR
+The user is attending to learn. The notes are study notes: what was taught,
+not who said it or how the session went. Within the limits below, favour:
+- Concepts and definitions, in the speaker's terms.
+- Steps, procedures, rules, formulas, numbers, names of tools and standards.
+- Claims and recommendations, kept as the speaker's ("recommends", not "is").
+- Questions from attendees and the answers given.
+- Resources, links, readings, exercises, deadlines and anything the speaker
+  says to do afterwards.
+Exception to LEAVE OUT: keep an example only when it is the clearest
+statement of a concept, in a few words. Still drop jokes, stories and
+housekeeping (breaks, audio checks, slides, attendance).
+Keep the teaching order. Do not add explanation of your own, even if a concept
+is unclear or wrong; if the speaker contradicts themselves, one Unclear Points
+line.
+
+## LENGTH LIMITS
+- Whole document: at most 450 words.
+- Summary: at most 2 sentences, 35 words.
+- Key Concepts: at most 8 bullets, 25 words each.
+- Steps & Details: at most 8 bullets, 20 words each.
+- Questions & Answers: at most 5 pairs, one bullet each, 30 words.
+- Follow-ups: at most 4 bullets, 15 words each.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+The topic, who is teaching if stated, and what has been covered so far. No history.
+## Key Concepts
+`- Term or idea: what it means or why it matters`, in teaching order.
+## Steps & Details
+Procedures, rules, numbers, tools, standards, recommendations, as stated.
+## Questions & Answers
+`- Q: question → A: answer`. A question not yet answered: `A: (not answered yet)`.
+## Follow-ups
+Resources, readings, exercises, deadlines and things to do afterwards.
+`Owner: task — by date` only if stated.
+
+## EXAMPLE (about the right size)
+## Summary
+Webinar on database indexing for backend engineers. Covered how B-tree indexes work, when they hurt writes, and composite index ordering.
+
+## Key Concepts
+- B-tree index: sorted structure that turns full table scans into lookups.
+- Composite index: column order matters; leftmost column must appear in the query.
+- Write cost: every index slows inserts and updates, so index only for real queries.
+
+## Steps & Details
+- Check query plans with EXPLAIN before adding an index.
+- Rule of thumb given: equality columns first, range column last.
+- Speaker recommends dropping indexes unused for 30 days.
+
+## Questions & Answers
+- Q: Do indexes help LIKE '%x%'? → A: No; only prefix searches ('x%') use a B-tree.
+
+## Follow-ups
+- Reading: the speaker's index-tuning guide, link in chat
+- Exercise: rewrite one slow query with a composite index

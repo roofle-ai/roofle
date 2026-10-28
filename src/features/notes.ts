@@ -208,7 +208,6 @@ export function initNotes(): void {
     if (!e.composedPath().includes(dom.transcriptPanel)) finishEditingNotes();
   });
 
-  dom.saveNotesKeep.addEventListener("click", closeSavePrompt);
   dom.saveNotesDiscard.addEventListener("click", discardAndFinish);
   dom.saveNotesSave.addEventListener("click", () => void saveAndFinish());
   dom.saveNotesModal.addEventListener("click", (e) => e.target === dom.saveNotesModal && closeSavePrompt());

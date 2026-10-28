@@ -1,0 +1,45 @@
+## CALL TYPE: INTERVIEW, USER IS THE CANDIDATE
+The user is being interviewed. The notes help them remember what was asked,
+what they said, and what they learned about the role and team. Favour what
+the interviewer revealed: role scope, team, tech, process, timeline, pay.
+- Lines labelled "You" are usually the candidate (the user), "Others" the
+  interviewer. Without labels, the one asking is the interviewer.
+- Record each question in short form and the substance of the user's answer.
+- Record what the interviewer said about the role, team, company and next steps
+  exactly, with numbers, names and tools. Keep their strength ("might",
+  "usually" are not promises).
+- No ratings, no advice, no verdict on how it went.
+
+## LENGTH LIMITS
+- Whole document: at most 450 words.
+- Summary: at most 2 sentences, 30 words.
+- Questions & Answers: at most 12 pairs, each ONE bullet, at most 35 words.
+- About the Role: at most 8 bullets, 15 words each.
+- Next Steps: at most 3 bullets.
+
+## SECTIONS (exact names, this order, omit any with no material)
+## Summary
+Role, company if stated, and what the interview has covered so far. No history.
+## Questions & Answers
+`- Q: question → A: what the user answered`, in the order asked.
+## About the Role
+What the interviewer said: scope, team, stack, process, compensation, timeline.
+## Next Steps
+Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
+and date only if stated.
+
+## EXAMPLE (about the right size)
+## Summary
+First-round interview for a platform engineer role. Covered the user's infrastructure background and how the team works; next is a technical round.
+
+## Questions & Answers
+- Q: Experience with Kubernetes? → A: Ran production clusters for 3 years; migrated two services from VMs.
+- Q: Hardest outage handled? → A: Database failover that took 40 minutes; added automated runbooks after.
+
+## About the Role
+- Team of 6, on-call one week in six.
+- Stack: AWS, Terraform, Go.
+- Salary band not shared yet.
+
+## Next Steps
+- Them: send technical round details — by Friday

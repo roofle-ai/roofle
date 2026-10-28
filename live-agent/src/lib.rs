@@ -5,6 +5,7 @@
 //! accumulating paragraph and fold it into the merged `transcript_log`. The
 //! watcher is pure state; the engine owns persistence.
 
+pub mod assist;
 pub mod breaker;
 pub mod figures;
 pub mod notes;

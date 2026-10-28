@@ -5,13 +5,11 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { showToast } from "./lib/status";
 
 const CHECK = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>`;
-const PRICE = import.meta.env.VITE_LICENSE_PRICE; // optional, e.g. "$20"
-const LIST_PRICE = import.meta.env.VITE_LICENSE_LIST_PRICE; // optional, e.g. "$40"
 const BENEFITS = [
-  "<b>Pay once, own it for life.</b> No subscription, ever.",
-  "<b>Every future update included</b>, new features too.",
+  "<b>Free during the beta.</b> This is a closed, invite-only release.",
+  "<b>Early access</b> to every new feature as we build it.",
   "<b>Your data stays yours.</b> Transcription runs on your Mac, and you bring your own AI key.",
-  "Use it on up to <b>2 of your devices</b>.",
+  "One license works on <b>one device</b>.",
 ];
 
 /** Benefits, buy button and key field. Shared by the popup and onboarding; `onActivated` runs after a valid key. */
@@ -19,13 +17,8 @@ export function mountLicensePanel(root: HTMLElement, onActivated: () => void): v
   root.innerHTML = `
     <form class="license-form">
       <ul class="license-benefits">${BENEFITS.map((b) => `<li>${CHECK}<span>${b}</span></li>`).join("")}</ul>
-      <div class="license-price" ${PRICE ? "" : "hidden"}>
-        <span class="license-price-now">${PRICE ?? ""}</span>
-        <span class="license-price-was" ${LIST_PRICE ? "" : "hidden"}>${LIST_PRICE ?? ""}</span>
-        <span class="license-price-note">one-time payment, lifetime access</span>
-      </div>
-      <button type="button" class="license-cta">Get my lifetime license, 50% off</button>
-      <div class="license-divider"><span>Already purchased?</span></div>
+      <button type="button" class="license-cta">Request a beta license</button>
+      <div class="license-divider"><span>Already have a license key?</span></div>
       <div class="license-redeem">
         <input class="analyse-input" name="key" placeholder="Paste your license key" aria-label="License key" autocomplete="off" spellcheck="false" required />
         <button type="submit" class="btn-primary">Activate</button>
@@ -52,8 +45,7 @@ export function mountLicensePanel(root: HTMLElement, onActivated: () => void): v
     }
   });
   form.querySelector(".license-cta")!.addEventListener("click", () => {
-    const url = import.meta.env.VITE_LICENSE_BUY_URL;
-    if (url) void openUrl(url);
+    void openUrl("https://roofle.app");
   });
 }
 
@@ -71,9 +63,9 @@ document.body.insertAdjacentHTML(
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
       <div class="license-hero">
-        <span class="license-badge">50% OFF · Launch offer</span>
+        <span class="license-badge">Closed beta · Free</span>
         <h2 id="license-title" class="license-headline">Never miss a moment of your calls.</h2>
-        <p class="license-sub">Live transcripts, smart notes and follow-up questions while you talk. Unlock Roofle with a one-time license.</p>
+        <p class="license-sub">Live transcripts, smart notes and follow-up questions while you talk. Enter the license key from your beta invite to unlock Roofle.</p>
       </div>
       <div id="license-mount" class="license-body"></div>
     </div>

@@ -4,8 +4,7 @@ use std::collections::HashMap;
 /// Baked (not read at runtime) so a user cannot switch the license gate off with an env var.
 const BAKED: &[&str] = &[
     "ROOFLE_LICENSE_GATE",
-    "ROOFLE_LICENSE_PUBKEY",
-    "ROOFLE_LICENSE_URL",
+    "ROOFLE_POLAR_ORG_ID",
 ];
 
 fn main() {
