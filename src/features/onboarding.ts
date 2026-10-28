@@ -135,7 +135,7 @@ async function refresh(): Promise<void> {
   const list = await steps();
   if (list.every((s) => s.done)) {
     hide(); // finished: never shown again
-    showWalkthroughOnce();
+    showWalkthroughOnce(); // the guide comes right after setup completes
     return;
   }
   render(list);
@@ -143,7 +143,7 @@ async function refresh(): Promise<void> {
 
 export function initOnboarding(): void {
   if (isDone()) {
-    showWalkthroughOnce(); // set up before this guide existed
+    showWalkthroughOnce(); // onboarding finished or dismissed earlier; no-op once seen
     return;
   }
   card.hidden = false;

@@ -75,6 +75,20 @@ pub fn run() {
             recipes::get_recipe,
             recipes::run_recipe
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Cmd+Q and Dock → Quit: stop the engine cleanly first (lifecycle::quit then exits with a code).
+            if let tauri::RunEvent::ExitRequested { api, code: None, .. } = &event {
+                api.prevent_exit();
+                lifecycle::quit(app);
+            }
+            // Opening Roofle again (Finder, Spotlight, Launchpad) shows the window, so a hidden menu-bar icon is never a dead end.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                window::show_popup(app);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }

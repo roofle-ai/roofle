@@ -1,9 +1,6 @@
-use tauri::{ActivationPolicy, AppHandle, Manager, Window, WindowEvent};
+use tauri::{AppHandle, Manager, Window, WindowEvent};
 
-/// An `Accessory` macOS app cannot take focus, so promote it while visible.
 pub fn show_popup(app: &AppHandle) {
-    #[cfg(target_os = "macos")]
-    let _ = app.set_activation_policy(ActivationPolicy::Regular);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();
@@ -11,14 +8,10 @@ pub fn show_popup(app: &AppHandle) {
     }
 }
 
-/// Closing hides the popup; Quit in the tray menu is the only way to exit.
+/// Closing hides the window (the Dock and menu-bar icons stay); Quit in the tray menu or the Dock exits.
 pub fn on_window_event(window: &Window, event: &WindowEvent) {
     if let WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
         let _ = window.hide();
-        #[cfg(target_os = "macos")]
-        let _ = window
-            .app_handle()
-            .set_activation_policy(ActivationPolicy::Accessory);
     }
 }

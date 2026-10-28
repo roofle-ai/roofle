@@ -71,6 +71,7 @@ const MARGIN = 16;
 const ARROW = 32;
 const GAP = 12;
 let index = 0;
+let waiters: (() => void)[] = [];
 let glowing: Element | null = null;
 let revealed: { node: HTMLElement; wasHidden: boolean } | null = null;
 
@@ -136,6 +137,7 @@ function draw(): void {
 function close(): void {
   root.hidden = true;
   unpoint();
+  for (const done of waiters.splice(0)) done();
   try {
     localStorage.setItem(SEEN_KEY, "1");
   } catch {
@@ -164,11 +166,21 @@ export function showWalkthrough(): void {
   draw();
 }
 
-export function showWalkthroughOnce(): void {
+function seen(): boolean {
   try {
-    if (localStorage.getItem(SEEN_KEY) === "1") return;
+    return localStorage.getItem(SEEN_KEY) === "1";
   } catch {
-    /* fall through and show */
+    return false;
   }
-  showWalkthrough();
+}
+
+export function showWalkthroughOnce(): void {
+  if (!seen() && root.hidden) showWalkthrough();
+}
+
+/** Resolves once the guide is out of the way: at once if it was seen, else after showing it and the user closing it. */
+export function walkthroughDone(): Promise<void> {
+  if (seen() && root.hidden) return Promise.resolve();
+  if (root.hidden) showWalkthrough();
+  return new Promise((resolve) => waiters.push(resolve));
 }

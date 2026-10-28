@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Menu-bar-only app (S14): hides the Dock icon; Roofle lives in the menu
-	     bar and shows its popup window on demand. -->
-	<key>LSUIElement</key>
-	<true/>
 	<!-- Microphone permission (S3/S9): required before cpal can open an input
 	     stream. -->
 	<key>NSMicrophoneUsageDescription</key>
