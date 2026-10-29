@@ -1,6 +1,25 @@
+<div align="center">
+
+<img src="assets/roofle-app-icon-1024.png" alt="Roofle" width="120" />
+
 # Roofle
 
-A macOS menu-bar app that listens to your meetings and conversations (your
+**The private AI meeting notetaker. No bot, no cloud audio, no subscription.**
+
+Live notes that write themselves, and the right question at the right moment, all from a menu-bar icon nobody else can see.
+
+[![Release](https://img.shields.io/github/v/release/roofle-ai/roofle?include_prereleases&style=flat-square)](https://github.com/roofle-ai/roofle/releases)
+[![Stars](https://img.shields.io/github/stars/roofle-ai/roofle?style=flat-square&logo=github)](https://github.com/roofle-ai/roofle/stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+![macOS](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Apple%20Silicon-black?style=flat-square&logo=apple)
+
+### ⭐ If Roofle is useful, [star this repo](https://github.com/roofle-ai/roofle). It takes two seconds and it's the only way we get noticed. ⭐
+
+</div>
+
+---
+
+A macOS menu-bar app that listens to your meetings (your
 microphone and the system audio), transcribes them **on-device**, and helps you
 while they happen:
 
@@ -9,25 +28,64 @@ while they happen:
   (summary, key points, decisions, action items).
 - **Suggested questions**: a gap or vague point worth asking about, with a
   **Source** button that jumps to the exact part of the transcript it came from.
-- **Recap** of the last 30 seconds, and key figures and dates on demand.
-- **Conversation review**: an offline self-assessment once a session ends.
+- **One Click follow-ups** generate one click email, slack message, action items.
 
-Speech recognition (Whisper via sherpa-onnx) and storage run locally. Notes,
-questions and reviews use an LLM through an API key you provide in Settings.
+Speech recognition and storage run locally. Notes, questions and reviews use an
+AI provider through an API key you add in Settings.
 
-## Install
+## ✨ Why Roofle
+
+Most meeting-note tools make you trade your privacy for convenience. Roofle doesn't.
+
+| | **Roofle** | **Granola** | **Otter** | **Fireflies** | **Fathom** |
+|---|---|---|---|---|---|
+| **Price** | **Free**, forever | Free tier, paid ≈ $14+/user/mo | Free (300 min/mo), Pro ≈ $17/mo | Free tier, Pro ≈ $10-18/mo | Free tier, paid ≈ $16-20/mo |
+| **Open source** | **Yes (MIT)** | No | No | No | No |
+| **Speech-to-text** | **On-device** | Cloud | Cloud | Cloud | Cloud |
+| **Audio leaves your device** | **Never** | Yes | Yes | Yes | Yes |
+| **Visible bot in the call** | **Never** | No | Bot by default | Bot by default | Bot by default |
+| **Live suggested questions, with jump-to-source** | **Yes** | Not core | Not core | Not core | Not core |
+| **Choose your AI provider / bring your own key** | **Yes**, incl. self-hosted | No | No | No | No |
+| **Account required** | **No** | Yes | Yes | Yes | Yes |
+| **Platforms** | macOS (Apple Silicon) | Mac, Windows, iPhone | Web, mobile, desktop | Web, mobile, desktop | Web, desktop |
+
+**Where the others win, honestly:** they have Windows, mobile and web apps, team workspaces, CRM integrations and shared libraries. Roofle is a Mac-only personal tool. Other platforms coming soon. If you need those, use them. If you want your conversations to stay yours, use Roofle.
+
+*Compared on public pricing and feature pages, October 2026. Prices and plans change often, so check each vendor's own page. Spot an error? [Open an issue](https://github.com/roofle-ai/roofle/issues) and we'll fix it.*
+
+### 🔒 Why privacy matters
+
+Meetings are where the sensitive stuff gets said: salaries, deals, layoffs, health, client details, half-formed ideas. A cloud recorder turns every one of those conversations into a copy that sits on someone else's servers, can be breached, subpoenaed, used for training, or kept long after you've forgotten it. Other people on the call never agreed to that.
+
+With Roofle, **the audio never leaves your Mac.** Only the transcript text goes to the AI provider *you* pick, with *your* key, and Roofle has no server in between. Want zero third parties? Point it at a model you run yourself.
+
+### 🎯 What makes Roofle different
+
+- **Private by design**: on-device speech recognition, no accounts, no analytics.
+- **Live, not after the fact**: notes rewrite themselves as the conversation unfolds.
+- **Helps you ask better questions**: it flags vague points and gaps, and jumps to the exact line they came from.
+- **Invisible to everyone else**: no bot, no banner, just a menu-bar icon.
+- **Free and open**: no seats, no minutes, no upsell.
+
+## 🚀 Install
 
 ```sh
 brew install --cask roofle-ai/roofle/roofle
 ```
 
-or download the DMG from the releases page. Requires an Apple Silicon Mac on
-macOS 13 or newer.
+(Homebrew adds the `roofle-ai/roofle` tap automatically.) Update later with
+`brew upgrade --cask roofle`.
+
+Or download the DMG from the [releases page](https://github.com/roofle-ai/roofle/releases),
+open it and drag Roofle to Applications. Roofle can also check for updates from
+Settings.
+
+Requires an Apple Silicon Mac on macOS 13 or newer.
 
 On first use macOS asks for **Microphone** and **Screen & System Audio
 Recording** access; both are needed to capture each side of a conversation.
 
-## Using Roofle
+## 🎙️ Using Roofle
 
 Roofle runs from the menu bar and launches hidden (no Dock icon). Nothing is
 recorded until you start it.
@@ -36,69 +94,20 @@ recorded until you start it.
 - **Right-click** for the menu: New conversation (⌘⇧S, asks for the goal first), Stop conversation (⌘⇧T), Quit.
 - Closing the window only hides it; Roofle keeps running until you choose Quit.
 
-## Repository layout
+## 🧑‍💻 Contributing
 
-```
-roofle/
-├── core/          # Rust lib: audio capture, ASR, paragraphing, SQLite storage
-├── live-agent/    # Rust lib: live LLM agents (notes, suggested questions, recap) and their prompts
-├── offline-agent/ # Rust lib: post-session review and title generation
-├── cli/           # headless binary that exercises core/ without the UI
-├── src-tauri/     # Tauri shell: engine, commands, tray, app icons, bundle config
-├── src/           # TypeScript frontend (Vite + Tailwind)
-├── scripts/       # fetch-assets.sh, reset-db.sh, make-cask.sh
-├── packaging/     # Homebrew cask template
-└── assets/        # models and test audio (downloaded, gitignored), icon sources
-```
+Want to build from source or hack on Roofle? See the [developer docs](docs/DEVELOPMENT.md).
 
-## Development
-
-Requirements: stable Rust, Node 20+, and the Xcode command line tools.
-
-```sh
-npm install
-scripts/fetch-assets.sh     # downloads the Whisper model and VAD (once)
-npm run tauri dev           # runs the menu-bar app; look for the tray icon
-```
-
-Useful commands:
-
-```sh
-cargo test --workspace      # Rust tests
-npx tsc --noEmit            # frontend type check
-cargo run -p roofle-cli -- --list     # list audio input devices
-scripts/reset-db.sh         # wipe the local database
-scripts/clean.sh            # DESTRUCTIVE: removes the installed app, its data, logs and permissions
-```
-
-Set `ROOFLE_LOG_AI=1` to mirror transcripts and agent steps to local log files
-while developing.
-
-## Data and storage
-
-Everything is stored locally in SQLite:
-
-- macOS: `~/Library/Application Support/com.roofle.app/roofle.db`
-
-The schema is migrated on startup (`PRAGMA user_version`, currently v4). Main
-tables: `sessions`, `audio_segments` (raw ASR utterances, linked to the log entry
-they were folded into via `log_seq`), `paragraphs`, `transcript_log` (the merged,
-ordered transcript the LLM agents read), `live_notes`, `questions` (each with the
-`transcript_log` entry it came from) and `session_analysis`. Storage code lives
-in `core/src/storage/` and is unit-tested against in-memory SQLite.
-
-## Privacy
-
-- **Audio never leaves your Mac.** Microphone and system audio are transcribed on-device, and the resulting transcripts and notes are stored in a local SQLite database.
-- **Transcript text goes to the AI provider you configure.** Live notes, suggested questions, recaps and reviews are generated by an LLM through the API key and base URL you set in Settings (OpenRouter by default). That provider receives the transcript text it needs; Roofle has no server of its own in between. Use a provider you trust, or one you run yourself.
-- **Other network use:** downloading the speech model on first run (from the sherpa-onnx releases on GitHub) and checking GitHub for app updates.
-- **No analytics or telemetry** are built into the app.
-
-## Releasing
-
-Building, signing and notarizing, where the Apple keys are kept, and how to
-ship the DMG and the Homebrew cask: see **[RELEASING.md](RELEASING.md)**.
-
-## License
+## 📄 License
 
 [MIT](LICENSE) © 2026 Priyanshu Shekhar. Third-party components keep their own licenses.
+
+---
+
+<div align="center">
+
+### ⭐ Still here? [Star the repo](https://github.com/roofle-ai/roofle). Please. ⭐
+
+Made with ❤️
+
+</div>

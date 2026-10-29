@@ -12,7 +12,7 @@ the first time; after that, jump to [Release checklist](#release-checklist).
 | Homebrew cask generator (`scripts/make-cask.sh`) | Done |
 | Apple signing and notarization | **Needs your Developer ID** (see below) |
 | `src-tauri/entitlements.plist` | Done, referenced from `tauri.conf.json` (see [Entitlements](#entitlements)) |
-| Homebrew tap repo (`homebrew-roofle`) | **Not created yet** |
+| Homebrew tap repo (`roofle-ai/homebrew-roofle`, must be public) | Create it once (step 6 below); update the cask after each release |
 | Release CI workflow (`.github/workflows/release.yml`) | Done: builds, signs, notarizes and drafts a release; needs the Apple secrets below |
 
 ---
@@ -69,8 +69,9 @@ makes `latest.json` live for the in-app updater
    the certificate → Export → `.p12` with a strong password → store in your
    password manager.
 5. **Create an app-specific password** for notarization (see table above).
-6. **Create the tap repo.** On GitHub create `homebrew-roofle` (the
-   `homebrew-` prefix is required) with an empty `Casks/` folder.
+6. **Create the tap repo.** On GitHub create `roofle-ai/homebrew-roofle` as a
+   **public** repo (the `homebrew-` prefix is required; a private repo fails
+   with "could not read Username"), with a README and a `Casks/` folder.
 
 ### Entitlements
 
@@ -135,21 +136,28 @@ Run these on the Mac that holds the certificate.
 
 Two channels, both serve the same DMG:
 
-**A. Direct download.** Create a GitHub Release for tag `v<version>`, attach
-`Roofle_<version>_aarch64.dmg`, and paste release notes. If the app is paid, host
-the DMG behind your own authenticated URL instead; a public release asset can be
-downloaded by anyone.
+**A. Direct download.** The Release workflow (see section 1) creates a draft
+GitHub Release `v<version>` with the DMG, updater files, `latest.json` and
+`SHA256SUMS`. Check it, edit the notes, and publish it (not as a pre-release).
 
 **B. Homebrew.**
 ```sh
+# 1. Download the DMG from the PUBLISHED release (not your local build):
+curl -fL -o /tmp/Roofle.dmg \
+  https://github.com/roofle-ai/roofle/releases/download/v<version>/Roofle_<version>_aarch64.dmg
+# 2. Generate the cask from that file:
 ROOFLE_URL_PREFIX=https://github.com/roofle-ai/roofle/releases/download \
 ROOFLE_HOMEPAGE=https://github.com/roofle-ai/roofle \
-  scripts/make-cask.sh
+  scripts/make-cask.sh /tmp/Roofle.dmg
 ```
 This reads the version, hashes the DMG and writes
 `packaging/homebrew/Casks/roofle.rb`. Copy it to `Casks/roofle.rb` in the
-`homebrew-roofle` repo, commit and push. Upload the DMG to the release **first**;
-the cask's checksum must match the file users download.
+`roofle-ai/homebrew-roofle` repo, commit and push. Publish the release **first**
+and hash the downloaded file: the cask's checksum must match the file users
+download, and a CI build differs from your local build.
+
+Test it: `brew audit --cask --strict roofle-ai/roofle/roofle`, then
+`brew install --cask roofle-ai/roofle/roofle`.
 
 Users install and update with:
 ```sh
