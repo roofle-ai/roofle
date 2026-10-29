@@ -399,13 +399,11 @@ function init(): void {
   document.getElementById("settings-save")!.addEventListener("click", saveSettings);
   aiTestBtn.addEventListener("click", () => void runAiTest());
   // Tauri's webview won't follow external links itself; route them through the opener.
-  for (const id of ["about-website", "about-support"]) {
-    const link = document.getElementById(id) as HTMLAnchorElement;
-    link.addEventListener("click", (e) => {
-      e.preventDefault();
-      void openUrl(link.href);
-    });
-  }
+  const website = document.getElementById("about-website") as HTMLAnchorElement;
+  website.addEventListener("click", (e) => {
+    e.preventDefault();
+    void openUrl(website.href);
+  });
   document.getElementById("about-guide")!.addEventListener("click", showWalkthrough);
   document.getElementById("stt-download")!.addEventListener("click", () => void downloadSttModel());
   modal.addEventListener("click", (e) => {
