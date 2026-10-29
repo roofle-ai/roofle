@@ -21,8 +21,14 @@ questions and reviews use an LLM through an API key you provide in Settings.
 brew install --cask roofle-ai/roofle/roofle
 ```
 
-or download the DMG from the releases page. Requires an Apple Silicon Mac on
-macOS 13 or newer.
+(Homebrew adds the `roofle-ai/roofle` tap automatically.) Update later with
+`brew upgrade --cask roofle`.
+
+Or download the DMG from the [releases page](https://github.com/roofle-ai/roofle/releases),
+open it and drag Roofle to Applications; check it against `SHA256SUMS` on the
+release if you like. Roofle can also check for updates from Settings.
+
+Requires an Apple Silicon Mac on macOS 13 or newer.
 
 On first use macOS asks for **Microphone** and **Screen & System Audio
 Recording** access; both are needed to capture each side of a conversation.
