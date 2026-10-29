@@ -47,7 +47,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNCNTREQjY4OEI0RkM2MjkKUldRcHhrK0xhTnRVTzU4SlBZalZXYXAzcDM2bUhmc0dMQ0ZsVitpaDZNN20xQ05rclRvQlRoMWwK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY4Njg5NkZGOEIxMTJGQ0UKUldUT0x4R0wvNVpvYU5nbVd5N21LRXVBN0crR2J0NU1MT3RES0VmOUs1aDNrWitJemp0MlNUaDEK",
       "endpoints": [
         "https://github.com/roofle-ai/roofle/releases/latest/download/latest.json"
       ]

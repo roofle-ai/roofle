@@ -46,13 +46,13 @@ const SLIDES: Slide[] = [
 document.body.insertAdjacentHTML(
   "beforeend",
   `<div id="walkthrough" class="analyse-overlay" role="dialog" aria-modal="true" aria-labelledby="walkthrough-title" hidden>
-    <div id="walkthrough-dialog" class="analyse-dialog license-dialog">
-      <div class="license-hero">
-        <span id="walkthrough-step" class="license-badge"></span>
-        <h2 id="walkthrough-title" class="license-headline"></h2>
-        <p id="walkthrough-body" class="license-sub"></p>
+    <div id="walkthrough-dialog" class="analyse-dialog walkthrough-dialog">
+      <div class="walkthrough-hero">
+        <span id="walkthrough-step" class="walkthrough-badge"></span>
+        <h2 id="walkthrough-title" class="walkthrough-headline"></h2>
+        <p id="walkthrough-body" class="walkthrough-sub"></p>
       </div>
-      <div class="license-body walkthrough-nav">
+      <div class="walkthrough-body walkthrough-nav">
         <button id="walkthrough-back" type="button" class="settings-link">Back</button>
         <button id="walkthrough-next" type="button" class="btn-primary"></button>
       </div>

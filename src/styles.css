@@ -3633,29 +3633,15 @@ details.qgroup[open] > summary.qgroup-title {
   justify-content: center;
 }
 
-.license-error { min-height: 1.25rem; margin: 0.5rem 0 0; font-size: 0.8125rem; color: var(--record); }
-
-/* License popup */
-.license-dialog {
+/* Walkthrough popup */
+.walkthrough-dialog {
   position: relative;
   max-width: 30rem;
   padding: 0;
   overflow: hidden;
 }
 
-.license-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  color: #fff;
-}
-
-.license-close:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-}
-
-.license-hero {
+.walkthrough-hero {
   padding: 1.75rem 1.75rem 1.5rem;
   color: #fff;
   background:
@@ -3663,7 +3649,7 @@ details.qgroup[open] > summary.qgroup-title {
     linear-gradient(135deg, var(--brand), var(--brand-strong));
 }
 
-.license-badge {
+.walkthrough-badge {
   display: inline-block;
   padding: 0.25rem 0.625rem;
   font-size: 0.75rem;
@@ -3674,20 +3660,20 @@ details.qgroup[open] > summary.qgroup-title {
   border-radius: 999px;
 }
 
-.license-headline {
+.walkthrough-headline {
   margin: 0.75rem 0 0.375rem;
   font-size: 1.5rem;
   line-height: 1.2;
   font-weight: 700;
 }
 
-.license-sub {
+.walkthrough-sub {
   margin: 0;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.88);
 }
 
-.license-body {
+.walkthrough-body {
   padding: 1.25rem 1.75rem 1.5rem;
 }
 
@@ -3763,111 +3749,6 @@ details.qgroup[open] > summary.qgroup-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.license-benefits {
-  display: grid;
-  gap: 0.625rem;
-  margin: 0 0 1.25rem;
-  padding: 0;
-  list-style: none;
-  font-size: 0.875rem;
-  color: var(--muted);
-}
-
-.license-benefits li {
-  display: flex;
-  gap: 0.625rem;
-  align-items: flex-start;
-}
-
-.license-benefits li > svg {
-  flex: none;
-  margin-top: 0.125rem;
-  padding: 2px;
-  box-sizing: content-box;
-  color: #fff;
-  background: #16a34a;
-  border-radius: 50%;
-}
-
-.license-benefits b {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.license-price {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.license-price[hidden],
-.license-price-was[hidden] {
-  display: none;
-}
-
-.license-price-now {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--ink);
-}
-
-.license-price-was {
-  color: var(--faint);
-  text-decoration: line-through;
-}
-
-.license-price-note {
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-.license-cta {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #f59e0b, #ea580c);
-  border: 0;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
-  transition: transform 150ms var(--ease), box-shadow 150ms ease;
-}
-
-.license-cta:hover {
-  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.5);
-  transform: translateY(-1px);
-}
-
-.license-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0 0.75rem;
-  font-size: 0.75rem;
-  color: var(--faint);
-}
-
-.license-divider::before,
-.license-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
-.license-redeem {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.license-redeem .analyse-input {
-  flex: 1;
-  min-width: 0;
 }
 
 /* Persona picker (onboarding + settings) */
