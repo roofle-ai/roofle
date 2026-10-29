@@ -3,11 +3,11 @@
 mod lifecycle;
 mod setup;
 pub mod tray;
-mod window;
+pub(crate) mod window;
 
 use tauri_plugin_window_state::StateFlags;
 
-use crate::commands::{ai, export, license, models, permissions, persona, pipeline, recipes, recording, sessions};
+use crate::commands::{ai, export, models, permissions, persona, pipeline, recipes, recording, sessions};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +19,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(window_state)
         .setup(setup::setup)
         .on_window_event(window::on_window_event)
@@ -26,8 +28,6 @@ pub fn run() {
             persona::get_persona,
             persona::save_persona,
             persona::describe_persona,
-            license::license_status,
-            license::activate_license,
             permissions::permissions_status,
             permissions::request_permission,
             recording::start_recording,

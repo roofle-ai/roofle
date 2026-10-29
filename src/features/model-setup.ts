@@ -27,7 +27,7 @@ function hideProgress(): void {
 
 async function download(): Promise<void> {
   downloading = true;
-  dom.modelDownloadBtn.textContent = "Cancel";
+  dom.modelDownloadBtn.hidden = true;
   dom.modelSetupText.textContent = INTRO;
   setStatus("busy", "Preparing model…");
   try {
@@ -39,6 +39,7 @@ async function download(): Promise<void> {
     hideProgress();
     dom.modelSetupText.textContent = `${describeError(err)}. Check your connection and retry.`;
     dom.modelDownloadBtn.textContent = "Retry";
+    dom.modelDownloadBtn.hidden = false;
     setStatus("idle", "Idle");
   } finally {
     downloading = false;
@@ -47,10 +48,9 @@ async function download(): Promise<void> {
 
 export function initModelSetup(): void {
   dom.modelDownloadBtn.addEventListener("click", () => {
-    if (downloading) void invoke("cancel_model_download");
-    else void download();
+    if (!downloading) void download();
   });
-  // Start the one-time download on first launch; the banner shows progress, Cancel/Retry stay available.
+  // Start the one-time download on first launch; the banner shows progress, Retry appears only on failure.
   void ensureModel().then((ready) => {
     if (!ready) void download();
   });

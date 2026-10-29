@@ -31,8 +31,7 @@ pub fn build(app: &tauri::App) -> tauri::Result<TrayIcon> {
             // The goal prompt lives in the UI, so show the popup and let it start the call.
             "start" => {
                 window::show_popup(app);
-                let licensed = crate::license::is_licensed(&app.state::<AppState>().storage);
-                let _ = app.emit(if licensed { events::START_REQUESTED } else { events::LICENSE_REQUIRED }, ());
+                let _ = app.emit(events::START_REQUESTED, ());
             }
             "stop" => stop(app),
             "quit" => lifecycle::quit(app),

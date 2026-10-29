@@ -47,13 +47,13 @@
             <div class="settings-card">
             <div class="settings-field">
               <label for="ai-base-url" class="settings-field-label">Base URL</label>
-              <input id="ai-base-url" type="text" class="settings-input" placeholder="https://api.openai.com/v1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <input id="ai-base-url" type="text" class="settings-input" placeholder="https://openrouter.ai/api/v1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
               <p class="settings-field-hint">OpenAI, OpenRouter, Groq, Ollama or any compatible endpoint.</p>
             </div>
 
             <div class="settings-field">
               <label for="ai-model" class="settings-field-label">Model</label>
-              <input id="ai-model" type="text" class="settings-input" placeholder="gpt-4o" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <input id="ai-model" type="text" class="settings-input" placeholder="gpt-4o-mini" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
             </div>
 
             <div class="settings-field">
@@ -202,6 +202,7 @@
           <div class="settings-group">
             <div class="settings-card">
               <div class="settings-row"><span class="settings-field-label">Version</span><p id="about-version" class="settings-value"></p></div>
+              <div class="settings-row"><span class="settings-field-label">Updates</span><p class="settings-value"><span id="update-status"></span> <button id="update-btn" type="button" class="btn-ghost btn-outline">Check for updates</button></p></div>
               <div class="settings-row"><span class="settings-field-label">Speech model</span><p id="about-model" class="settings-value"></p></div>
               <div class="settings-row"><span class="settings-field-label">Guide</span><p class="settings-value"><button id="about-guide" type="button" class="settings-link">How Roofle works</button></p></div>
               <div class="settings-row"><span class="settings-field-label">Website</span><p class="settings-value"><a id="about-website" class="settings-link" href="https://roofle.app">roofle.app</a></p></div>

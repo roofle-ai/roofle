@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serde::Serialize;
 
-use super::config::AiConfig;
+use super::config::{AiConfig, DEFAULT_BASE_URL};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
 /// Pipeline stages are small, single-purpose calls; fail fast and skip the chunk.
@@ -90,7 +90,8 @@ impl AiClient {
         api_key: &str,
         body: serde_json::Value,
     ) -> Result<(String, Usage), String> {
-        let url = format!("{}/chat/completions", config.base_url.trim_end_matches('/'));
+        let base = Some(config.base_url.trim()).filter(|b| !b.is_empty()).unwrap_or(DEFAULT_BASE_URL);
+        let url = format!("{}/chat/completions", base.trim_end_matches('/'));
         let started = std::time::Instant::now();
 
         let mut request = http.post(&url);

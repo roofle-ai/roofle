@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 const CONFIG_FILE: &str = "ai-config.json";
-const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
+/// Used when the user leaves Base URL blank (the UI shows it as a placeholder).
+pub const DEFAULT_BASE_URL: &str = "https://openrouter.ai/api/v1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -47,7 +48,7 @@ impl Default for AiConfig {
     fn default() -> Self {
         Self {
             kind: ProviderKind::OpenAiCompat,
-            base_url: DEFAULT_BASE_URL.to_string(),
+            base_url: String::new(),
             model: String::new(),
             understand_model: String::new(),
             write_model: String::new(),

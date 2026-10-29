@@ -1,10 +1,9 @@
-// First-run checklist: license, speech model, permissions, AI key. Every row reads live state,
+// First-run checklist: speech model, permissions, AI key. Every row reads live state,
 // so it also catches a permission granted in System Settings. Hidden for good once done or dismissed.
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { loadAiConfig } from "../ai";
-import { showLicenseModal } from "../license";
 import { openSettings } from "../settings";
 import { showWalkthroughOnce } from "./walkthrough";
 
@@ -43,22 +42,12 @@ function markDone(): void {
 }
 
 async function steps(): Promise<Step[]> {
-  const [lic, modelReady, perms, ai] = await Promise.all([
-    invoke<{ required: boolean; licensed: boolean }>("license_status"),
+  const [modelReady, perms, ai] = await Promise.all([
     invoke<boolean>("models_ready"),
     invoke<{ mic: string; screen: boolean }>("permissions_status"),
     loadAiConfig(),
   ]);
   const list: Step[] = [];
-  if (lic.required) {
-    list.push({
-      id: "license",
-      title: "Activate your beta license",
-      hint: "Enter the key from your invite.",
-      done: lic.licensed,
-      action: { label: "Enter key", run: showLicenseModal },
-    });
-  }
   list.push({
     id: "model",
     title: "Speech model",

@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Emitter};
 
-use super::catalog::{ModelProgress, EVENT_MODEL_PROGRESS};
+use super::catalog::{ModelProgress, EVENT_MODEL_PROGRESS, VAD_FILE};
 
 const CHUNK_SIZE: usize = 64 * 1024;
 /// A stalled connection fails (and can be retried) instead of hanging forever.
@@ -52,6 +52,9 @@ fn fetch(app: &AppHandle, url: &str, part: &Path, id: &str) -> Result<(), String
     let mut file = std::fs::File::create(part).map_err(|e| format!("create {}: {e}", part.display()))?;
     let mut buf = [0u8; CHUNK_SIZE];
     let mut downloaded: u64 = 0;
+    let mut last_pct: u64 = 101;
+    // The tiny VAD file would restart the bar at 0% after the model finishes.
+    let report = id != VAD_FILE;
     loop {
         if CANCEL.load(Ordering::Relaxed) {
             return Err("download cancelled".to_string());
@@ -68,7 +71,9 @@ fn fetch(app: &AppHandle, url: &str, part: &Path, id: &str) -> Result<(), String
         }
         file.write_all(&buf[..n]).map_err(|e| format!("write: {e}"))?;
         downloaded += n as u64;
-        if total > 0 {
+        let pct = if total > 0 { downloaded * 100 / total } else { 0 };
+        if report && total > 0 && pct != last_pct {
+            last_pct = pct;
             let progress = ModelProgress {
                 id: id.to_string(),
                 downloaded,

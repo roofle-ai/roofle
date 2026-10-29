@@ -16,7 +16,6 @@ pub async fn start_recording(
     session_id: Option<i64>,
     api_key: String,
 ) -> Result<(), String> {
-    crate::license::require(&state.storage)?;
     if !source.is_implemented() {
         return Err(format!("source {source:?} is not implemented yet"));
     }

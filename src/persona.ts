@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import { ensureModel } from "./features/model-setup";
 import data from "./data/personas.json";
 import { refreshIcons } from "./lib/icons";
-import { mountLicensePanel, needsLicense } from "./license";
 
 export interface Persona {
   roleId: string | null;
@@ -72,7 +71,7 @@ export function mountPersonaPicker(
   render();
 }
 
-type Step = "role" | "meetings" | "summary" | "unlock" | "model";
+type Step = "role" | "meetings" | "summary" | "model";
 
 const COPY: Record<Step, { title: string; sub: string }> = {
   role: {
@@ -87,23 +86,18 @@ const COPY: Record<Step, { title: string; sub: string }> = {
     title: "Your persona",
     sub: "This is how Roofle will describe you to its AI. Edit it to say it your own way.",
   },
-  unlock: {
-    title: "Unlock Roofle",
-    sub: "Pay once and own Roofle for life, with 50% off right now. You can also do this later, when you start your first conversation.",
-  },
   model: {
     title: "Download the speech model",
-    sub: "Roofle transcribes on your Mac, so your audio never leaves it. This one-time download is needed before your first conversation, with or without a license.",
+    sub: "Roofle transcribes on your Mac, so your audio never leaves it. This one-time download is needed before your first conversation.",
   },
 };
 
-/** First run: role, meetings, optional unlock, then the required model download. Starts at the first unfinished part. */
+/** First run: role, meetings, then the required model download. Starts at the first unfinished part. */
 export async function initPersona(): Promise<void> {
   const personaDone = (await loadPersona()) !== null;
   const modelReady = await invoke<boolean>("models_ready");
   const steps: Step[] = [];
   if (!personaDone) steps.push("role", "meetings", "summary");
-  if (!personaDone && (await needsLicense())) steps.push("unlock");
   if (!modelReady) steps.push("model");
   if (steps.length === 0) return;
 
@@ -185,8 +179,7 @@ export async function initPersona(): Promise<void> {
     $("onb-sub").textContent = COPY[step].sub;
     error.textContent = "";
     const picker = $("persona-picker");
-    picker.classList.toggle("onb-card", step === "unlock" || step === "model");
-    next.hidden = step === "unlock"; // the license form has its own Activate button
+    picker.classList.toggle("onb-card", step === "model");
     left.hidden = step === "model"; // the model download cannot be skipped
     if (step === "summary") {
       left.textContent = "Back";
@@ -207,9 +200,6 @@ export async function initPersona(): Promise<void> {
       next.textContent = at + 1 < steps.length ? "Continue" : "Get started";
       next.disabled = step === "role" && !choice.roleId;
       mountPersonaPicker(picker, choice, (p) => ((choice = { ...p, summary: undefined }), (next.disabled = !p.roleId)), step === "role" ? "role" : "meetings");
-    } else if (step === "unlock") {
-      left.textContent = "I'll do it later";
-      mountLicensePanel(picker, advance);
     } else {
       next.textContent = "Download model";
       next.disabled = false;

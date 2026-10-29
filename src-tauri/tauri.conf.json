@@ -42,6 +42,15 @@
     "macOS": {
       "infoPlist": "Info.plist",
       "entitlements": "entitlements.plist"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNCNTREQjY4OEI0RkM2MjkKUldRcHhrK0xhTnRVTzU4SlBZalZXYXAzcDM2bUhmc0dMQ0ZsVitpaDZNN20xQ05rclRvQlRoMWwK",
+      "endpoints": [
+        "https://github.com/roofle-ai/roofle/releases/latest/download/latest.json"
+      ]
     }
   }
 }

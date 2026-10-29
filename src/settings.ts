@@ -4,6 +4,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { listen } from "@tauri-apps/api/event";
+import { check, type Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadAiConfig, loadStoredApiKey, saveAiConfig, testAiConnection } from "./ai";
 import { initAppearance } from "./app/theme";
@@ -180,7 +182,33 @@ async function loadAbout(): Promise<void> {
     invoke<boolean>("models_ready"),
   ]);
   set("about-version", version);
+  document.getElementById("update-btn")!.onclick = () => void onUpdateClick();
   set("about-model", `${model} (${ready ? "downloaded" : "not downloaded"})`);
+}
+
+let pendingUpdate: Update | null = null;
+
+/// First click checks the release feed; once an update is found the same button installs it and restarts.
+async function onUpdateClick(): Promise<void> {
+  const status = document.getElementById("update-status")!;
+  const button = document.getElementById("update-btn") as HTMLButtonElement;
+  button.disabled = true;
+  try {
+    if (!pendingUpdate) {
+      status.textContent = "Checking…";
+      pendingUpdate = await check();
+      status.textContent = pendingUpdate ? `Version ${pendingUpdate.version} is available.` : "You're up to date.";
+      if (pendingUpdate) button.textContent = "Install and restart";
+    } else {
+      status.textContent = "Downloading…";
+      await pendingUpdate.downloadAndInstall();
+      await relaunch();
+    }
+  } catch (err) {
+    status.textContent = `Update failed: ${describeError(err)}`;
+  } finally {
+    button.disabled = false;
+  }
 }
 
 /// Show which on-device speech model transcribes calls, with a download button when it is missing.

@@ -2,7 +2,6 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
 import { loadStoredApiKey } from "../ai";
-import { ensureLicensed, showLicenseModal } from "../license";
 import { session, type SessionState } from "../app/state";
 import { confirmDialog } from "../lib/confirm";
 import { dom } from "../lib/dom";
@@ -95,7 +94,6 @@ async function applyCallSetup({ kind, callType, goal }: CallSetup): Promise<void
 
 async function start(): Promise<void> {
   await walkthroughDone(); // first time only: show "How Roofle works" before the call setup
-  if (!(await ensureLicensed())) return;
   if (!(await ensureModel())) return;
   const setup = await askCallSetup();
   if (setup === null) return;
@@ -123,8 +121,7 @@ async function start(): Promise<void> {
     await applyCallSetup(setup);
     setSessionState("recording");
   } catch (err) {
-    if (String(err) === "license_required") showLicenseModal(); // backend refused: license lapsed mid-session
-    else setStatus("error", describeError(err));
+    setStatus("error", describeError(err));
   }
 }
 

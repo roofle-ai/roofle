@@ -29,10 +29,14 @@ pub fn models_ready(state: State<AppState>) -> bool {
     state.models.ready(&id)
 }
 
+/// Launch and onboarding can both ask for the download; the second waits, then finds it on disk.
+static DOWNLOAD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Download the selected model and VAD (progress arrives as `model-progress`).
 #[tauri::command]
 pub async fn download_model(app: AppHandle) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let _guard = DOWNLOAD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let state = app.state::<AppState>();
         let id = state.selected_model.lock().unwrap().clone();
         state.models.ensure(&app, &id)?;
