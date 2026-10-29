@@ -13,7 +13,7 @@ the first time; after that, jump to [Release checklist](#release-checklist).
 | Apple signing and notarization | **Needs your Developer ID** (see below) |
 | `src-tauri/entitlements.plist` | Done, referenced from `tauri.conf.json` (see [Entitlements](#entitlements)) |
 | Homebrew tap repo (`homebrew-roofle`) | **Not created yet** |
-| Release CI workflow | **Not added yet**; releases are manual for now |
+| Release CI workflow (`.github/workflows/release.yml`) | Done: builds, signs, notarizes and drafts a release; needs the Apple secrets below |
 
 ---
 
@@ -30,16 +30,27 @@ scripts, or commit history. `.gitignore` blocks `*.p12`, `*.cer`, `*.p8` and
 | **App-specific password** | Lets `notarytool` log in as your Apple ID | Password manager. Create at appleid.apple.com → Sign-In and Security → App-Specific Passwords. Never use your real Apple ID password. |
 | **Team ID**, **signing identity name** | Identify who signed | Not secret. Safe in docs and config. |
 | **App Store Connect API key (`.p8`)** (optional, better for CI) | Alternative to the Apple ID login for notarization | Password manager, plus CI secret storage |
-| **Tauri updater signing key** (only if you later add auto-update) | Signs update bundles | Password manager and CI secrets. Losing it means existing installs can never update. |
+| **Tauri updater signing key** (`npx tauri signer generate`; public key goes in `tauri.conf.json`) | Signs update bundles | Password manager and CI secrets. Losing it means existing installs can never update. |
 
 **On your Mac:** keep secrets in the keychain or a password manager and pass them
 to the build as environment variables for that one command. Don't `export` them
 in a dotfile that gets synced anywhere.
 
-**In CI (GitHub Actions):** store each as a repository **secret**, never in the
+**In CI (GitHub Actions):** store each as a secret in a GitHub **Environment**
+named `release` (Settings → Environments; add required reviewers), never in the
 workflow file:
 `APPLE_CERTIFICATE` (base64 of the `.p12`), `APPLE_CERTIFICATE_PASSWORD`,
-`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
+`APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`,
+`TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and
+optionally `VITE_FEEDBACK_URL`.
+
+**Shipping from CI:** bump the version (checklist below), merge to `main`, then
+Actions → Release → Run workflow. It builds, signs and notarizes, and creates a
+**draft** release `v<version>` with the DMG, the updater bundle and signature,
+`latest.json` and `SHA256SUMS`. Install the DMG on a clean Mac and test the
+update from the previous version, then publish the draft. Publishing is what
+makes `latest.json` live for the in-app updater
+(`releases/latest/download/latest.json` ignores drafts and pre-releases).
 
 ## 2. One-time setup
 
@@ -131,8 +142,8 @@ downloaded by anyone.
 
 **B. Homebrew.**
 ```sh
-ROOFLE_URL_PREFIX=https://github.com/<owner>/roofle/releases/download \
-ROOFLE_HOMEPAGE=https://github.com/<owner>/roofle \
+ROOFLE_URL_PREFIX=https://github.com/roofle-ai/roofle/releases/download \
+ROOFLE_HOMEPAGE=https://github.com/roofle-ai/roofle \
   scripts/make-cask.sh
 ```
 This reads the version, hashes the DMG and writes
@@ -142,7 +153,7 @@ the cask's checksum must match the file users download.
 
 Users install and update with:
 ```sh
-brew install --cask <owner>/roofle/roofle
+brew install --cask roofle-ai/roofle/roofle
 brew upgrade --cask roofle
 ```
 

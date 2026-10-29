@@ -26,7 +26,6 @@ assets/models/
 skills-lock.json
 
 plans/*
-.vscode
 design.md
 
 
@@ -45,3 +44,11 @@ call_*
 call.txt
 read_aloud.sh
 clips/*
+# Test audio, copied from the model download by scripts/fetch-assets.sh
+assets/wavs/
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Exported transcripts (local output)
+assets/exports/
