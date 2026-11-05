@@ -5,7 +5,7 @@ software and models listed below, each of which keeps its own license. This file
 covers direct dependencies and downloaded models; the full transitive lists are
 in `Cargo.lock` and `package-lock.json`.
 
-Last generated from `Cargo.lock` and `package-lock.json` at version `1.0.0-beta`.
+Last generated from `Cargo.lock` and `package-lock.json` at version `1.0.0`.
 
 ## Speech models (downloaded on first run, not bundled in the app)
 
