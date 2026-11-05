@@ -8,7 +8,7 @@ the first time; after that, jump to [Release checklist](#release-checklist).
 | Piece | State |
 |---|---|
 | Build the DMG (`npm run tauri build`) | Works |
-| Version in one place per file (all `1.0.0-beta`) | Done |
+| Version in one place per file (all `1.0.0`) | Done |
 | Homebrew cask generator (`scripts/make-cask.sh`) | Done |
 | Apple signing and notarization | **Needs your Developer ID** (see below) |
 | `src-tauri/entitlements.plist` | Done, referenced from `tauri.conf.json` (see [Entitlements](#entitlements)) |
