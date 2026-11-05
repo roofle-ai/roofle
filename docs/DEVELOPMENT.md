@@ -10,8 +10,7 @@ roofle/
 ├── cli/           # headless binary that exercises core/ without the UI
 ├── src-tauri/     # Tauri shell: engine, commands, tray, app icons, bundle config
 ├── src/           # TypeScript frontend (Vite + Tailwind)
-├── scripts/       # fetch-assets.sh, reset-db.sh, make-cask.sh
-├── packaging/     # Homebrew cask template
+├── scripts/       # fetch-assets.sh, reset-db.sh
 └── assets/        # models and test audio (downloaded, gitignored), icon sources
 ```
 
