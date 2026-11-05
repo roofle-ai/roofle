@@ -1,11 +1,6 @@
 <div align="center">
 
-<img src="assets/roofle-app-icon-1024.png" alt="Roofle" width="40" />
-
-[![Release](https://img.shields.io/github/v/release/roofle-ai/roofle?include_prereleases&style=flat-square)](https://github.com/roofle-ai/roofle/releases)
-[![Stars](https://img.shields.io/github/stars/roofle-ai/roofle?style=flat-square&logo=github)](https://github.com/roofle-ai/roofle/stargazers)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
-![macOS](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Apple%20Silicon-black?style=flat-square&logo=apple)
+<img src="assets/roofle-app-icon-1024.png" alt="Roofle" width="72" />
 
 # Roofle
 
@@ -14,15 +9,43 @@
 No bot joins your call. No audio or notes leave your machine. No subscription.
 Roofle writes live notes and surfaces the right follow-up question while you're still talking.
 
+[Demo](#-demo) · [Install](#-install) · [Features](#-overview) · [Why Roofle](#-why-roofle) · [Developer docs](docs/DEVELOPMENT.md) · [Report a bug](https://github.com/roofle-ai/roofle/issues)
 
+[![Release](https://img.shields.io/github/v/release/roofle-ai/roofle?include_prereleases&style=for-the-badge)](https://github.com/roofle-ai/roofle/releases)
+[![Stars](https://img.shields.io/github/stars/roofle-ai/roofle?style=for-the-badge&logo=github)](https://github.com/roofle-ai/roofle/stargazers)
+[![Issues](https://img.shields.io/github/issues/roofle-ai/roofle?style=for-the-badge)](https://github.com/roofle-ai/roofle/issues)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
+![macOS](https://img.shields.io/badge/macOS-13%2B%20%C2%B7%20Apple%20Silicon-black?style=for-the-badge&logo=apple)
 
 ### ⭐ If Roofle is useful, [star this repo](https://github.com/roofle-ai/roofle). It takes two seconds and it's the only way we get noticed. ⭐
-
-https://github.com/user-attachments/assets/f5ef088f-fd9c-49a2-87c1-26a17801e0d4
 
 </div>
 
 ---
+
+## 🎬 Demo
+
+https://github.com/user-attachments/assets/f5ef088f-fd9c-49a2-87c1-26a17801e0d4
+
+## 🚀 Install
+
+```sh
+brew install --cask roofle-ai/roofle/roofle
+```
+
+(Homebrew adds the `roofle-ai/roofle` tap automatically.) Update later with
+`brew upgrade --cask roofle`.
+
+Or download the DMG from the [releases page](https://github.com/roofle-ai/roofle/releases),
+open it and drag Roofle to Applications. Roofle can also check for updates from
+Settings.
+
+Requires an Apple Silicon Mac on macOS 13 or newer.
+
+On first use macOS asks for **Microphone** and **Screen & System Audio
+Recording** access; both are needed to capture each side of a conversation.
+
+## 📋 Overview
 
 A macOS menu-bar app that listens to your meetings (your
 microphone and the system audio), transcribes them **on-device**, and helps you
@@ -37,6 +60,14 @@ while they happen:
 
 Speech recognition and storage run locally. Notes, questions and reviews use an
 AI provider through an API key you add in Settings.
+
+## 🎯 What makes Roofle different
+
+- **Private by design**: on-device speech recognition, no accounts, no analytics.
+- **Live, not after the fact**: notes rewrite themselves as the conversation unfolds.
+- **Helps you ask better questions**: it flags vague points and gaps, and jumps to the exact line they came from.
+- **Invisible to everyone else**: no bot, no banner, just a menu-bar icon.
+- **Free and open**: no seats, no minutes, no upsell.
 
 ## ✨ Why Roofle
 
@@ -58,37 +89,11 @@ Most meeting-note tools make you trade your privacy for convenience. Roofle does
 
 *Compared on public pricing and feature pages, October 2026. Prices and plans change often, so check each vendor's own page. Spot an error? [Open an issue](https://github.com/roofle-ai/roofle/issues) and we'll fix it.*
 
-### 🔒 Why privacy matters
+## 🔒 Why privacy matters
 
 Meetings are where the sensitive stuff gets said: salaries, deals, layoffs, health, client details, half-formed ideas. A cloud recorder turns every one of those conversations into a copy that sits on someone else's servers, can be breached, subpoenaed, used for training, or kept long after you've forgotten it. Other people on the call never agreed to that.
 
 With Roofle, **the audio never leaves your Mac.** Only the transcript text goes to the AI provider *you* pick, with *your* key, and Roofle has no server in between. Want zero third parties? Point it at a model you run yourself.
-
-### 🎯 What makes Roofle different
-
-- **Private by design**: on-device speech recognition, no accounts, no analytics.
-- **Live, not after the fact**: notes rewrite themselves as the conversation unfolds.
-- **Helps you ask better questions**: it flags vague points and gaps, and jumps to the exact line they came from.
-- **Invisible to everyone else**: no bot, no banner, just a menu-bar icon.
-- **Free and open**: no seats, no minutes, no upsell.
-
-## 🚀 Install
-
-```sh
-brew install --cask roofle-ai/roofle/roofle
-```
-
-(Homebrew adds the `roofle-ai/roofle` tap automatically.) Update later with
-`brew upgrade --cask roofle`.
-
-Or download the DMG from the [releases page](https://github.com/roofle-ai/roofle/releases),
-open it and drag Roofle to Applications. Roofle can also check for updates from
-Settings.
-
-Requires an Apple Silicon Mac on macOS 13 or newer.
-
-On first use macOS asks for **Microphone** and **Screen & System Audio
-Recording** access; both are needed to capture each side of a conversation.
 
 ## 🎙️ Using Roofle
 
