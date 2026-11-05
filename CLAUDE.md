@@ -11,7 +11,7 @@ Roofle: a macOS (Apple Silicon, 13+) menu-bar app that transcribes meetings on-d
 - `cli/` – headless binary exercising `core/` without the UI
 - `src-tauri/` – Tauri shell: `engine/` (session pipeline), `agents/` and `ai/` (LLM clients), `commands/` (IPC), `app/` (tray, window, lifecycle), `models/` (model downloads)
 - `src/` – frontend (`features/`, `ui/`, `app/`, `lib/`); talks to Rust only through Tauri commands/events
-- `scripts/`, `packaging/` – asset fetch, DB reset, Homebrew cask
+- `scripts/` – asset fetch, DB reset (the Homebrew cask lives in the separate `homebrew-roofle` tap repo)
 
 ## Commands
 
