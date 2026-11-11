@@ -264,36 +264,39 @@ select { background: var(--surface-2); }
   text-transform: uppercase;
   color: var(--faint);
 }
-.questions-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.questions-list { display: flex; flex-direction: column; gap: 1.1rem; }
 
+/* No box: a hairline rule on the left, like a comment thread. */
 .qcard {
   position: relative;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
-  border-radius: var(--radius-md);
+  padding: 0.1rem 1.25rem 0.1rem 0.9rem;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--ink) 18%, transparent);
   background: transparent;
+  transition: border-color 150ms ease;
 }
-.qcard.answered { opacity: 0.55; }
-.qcard.is-viewing { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.qcard:hover { border-left-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.qcard.answered { opacity: 0.5; }
+.qcard.is-viewing { border-left-color: var(--ink); }
 .qcard.is-new { animation: qenter 220ms ease-out; }
 .qtext {
   margin: 0;
-  padding: 0 1rem 0 0;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--ink);
   font: inherit;
   font-family: var(--font-serif);
   font-size: 1rem;
-  line-height: 1.55;
+  line-height: 1.6;
   text-align: left;
 }
 button.qtext { cursor: pointer; }
 /* Dismiss only when pointing at the box. */
 .qfeedback-btn {
   position: absolute;
-  top: 0.35rem;
-  right: 0.5rem;
+  top: 0.1rem;
+  right: 0;
   padding: 0;
   border: 0;
   background: transparent;
