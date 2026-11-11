@@ -1,0 +1,154 @@
+/* ============================================================
+   Notepad skin, part 2: dialogs, settings, onboarding.
+   Loaded after notepad.css. Same rules: flat paper, hairlines
+   only where a control needs an edge, indigo used sparingly.
+   Sections: 1 overlay + panel · 2 type · 3 fields · 4 buttons ·
+   5 settings · 6 first-run (persona) · 7 checklist + banner · 8 tour
+   ============================================================ */
+
+/* ---------- 1. Overlay + panel ---------- */
+.analyse-overlay,
+.settings-overlay {
+  background: color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(2px);
+}
+.analyse-dialog,
+.settings-dialog {
+  border: 0;
+  border-radius: 14px;
+  background: var(--paper-solid);
+  box-shadow: var(--float), 0 24px 64px color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.analyse-dialog { max-width: 28rem; padding: 1.75rem 1.75rem 1.5rem; }
+
+/* ---------- 2. Type ---------- */
+.analyse-title,
+.settings-title,
+.settings-head .settings-title { font-family: var(--font-sans); font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.analyse-label,
+.settings-field-label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+.analyse-desc,
+.settings-field-hint,
+.settings-subtitle,
+.pane-desc { font-size: 0.8rem; line-height: 1.5; color: var(--faint); }
+.analyse-opt { color: var(--faint); font-weight: 400; }
+.pane-title,
+.group-title { font-family: var(--font-sans); font-weight: 600; color: var(--ink); }
+.analyse-close,
+.settings-close { color: var(--faint); background: transparent; border: 0; }
+.analyse-close:hover,
+.settings-close:hover { color: var(--ink); background: transparent; }
+
+/* ---------- 3. Fields: a quiet fill, no outline ---------- */
+.analyse-select,
+.analyse-input,
+.analyse-textarea,
+.settings-input,
+.onb-summary {
+  padding: 0.6rem 0.8rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.analyse-select:focus,
+.analyse-input:focus,
+.analyse-textarea:focus,
+.settings-input:focus,
+.onb-summary:focus { outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 0; box-shadow: none; }
+::placeholder { color: var(--faint); }
+.analyse-count { color: var(--faint); }
+
+/* ---------- 4. Buttons: one solid primary, everything else quiet ---------- */
+.btn-primary {
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper-solid);
+  font-weight: 600;
+  transition: opacity 150ms ease;
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.85; text-decoration: none; }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-ghost { border-radius: 999px; color: var(--muted); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--ink); text-decoration: none; }
+.btn-outline { border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); color: var(--ink); }
+.btn-danger { background: var(--record); color: #fff; }
+.analyse-actions,
+.settings-actions { gap: 0.5rem; }
+
+/* ---------- 5. Settings ---------- */
+.settings-dialog { max-width: 52rem; height: min(36rem, 100%); }
+.settings-head { padding: 1.25rem 1.5rem 0.75rem; background: transparent; border: 0; }
+.settings-head-icon { display: none; }
+.settings-nav { flex: 0 0 12rem; padding: 0.5rem 0.75rem; background: transparent; border: 0; }
+.settings-nav-item { border: 0; border-radius: 8px; font-size: 0.875rem; }
+.settings-nav-item:hover { background: var(--surface-2); color: var(--ink); }
+.settings-nav-item.active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--brand-strong); box-shadow: none; }
+.settings-nav-item.active::before { display: none; }
+.settings-content { padding: 0.5rem 2rem 1.5rem; }
+.settings-actions { padding: 0.85rem 1.5rem 1.1rem; border: 0; background: transparent; }
+.settings-card,
+.settings-group { background: transparent; border: 0; padding-left: 0; padding-right: 0; }
+.settings-row { border-color: transparent; }
+.usage-table th,
+.usage-table td { border-color: color-mix(in srgb, var(--ink) 8%, transparent); }
+
+/* ---------- 6. First run (persona) ---------- */
+.onb { background: var(--paper-solid); }
+.onb-panel { max-width: 40rem; }
+.onb-brand { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 500; }
+.onb-progress i { background: color-mix(in srgb, var(--ink) 12%, transparent); }
+.onb-progress i.on { background: var(--brand); }
+.onb-title { font-family: var(--font-sans); font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; }
+.onb-card { padding: 1.25rem; border: 0; border-radius: 12px; background: var(--surface-2); }
+.onb-note { background: var(--surface-2); border-left-color: var(--faint); }
+.persona-card,
+.persona-chip {
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+.persona-card:hover,
+.persona-chip:hover { border-color: color-mix(in srgb, var(--brand) 50%, transparent); }
+.persona-card[aria-pressed="true"],
+.persona-chip[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 9%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+}
+.persona-icon { background: transparent; color: var(--muted); }
+.persona-card[aria-pressed="true"] .persona-icon { background: transparent; color: var(--brand); }
+
+/* ---------- 7. Setup checklist + model banner ---------- */
+.onboarding,
+.model-banner { margin: 0.5rem var(--gutter) 0.25rem; border: 0; border-radius: 10px; background: var(--surface-2); box-shadow: none; }
+.onboarding-tick { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+.is-done .onboarding-tick { border-color: var(--brand); background: var(--brand); color: var(--paper-solid); }
+.onboarding-btn,
+.model-banner-btn {
+  padding: 0.3rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper-solid);
+  font-weight: 600;
+}
+.onboarding-skip { color: var(--faint); }
+
+/* ---------- 8. Tour ---------- */
+.walkthrough-hero { background: transparent; color: var(--ink); padding: 0.25rem 0 0.5rem; }
+.walkthrough-badge { background: var(--surface-2); color: var(--muted); font-weight: 600; }
+.walkthrough-headline { font-family: var(--font-sans); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+.walkthrough-sub { color: var(--muted); font-size: 0.9rem; line-height: 1.55; }
+.walkthrough-body { padding: 0.75rem 0 0; }
+
+/* Native controls (slider, checkbox) follow the brand colour. */
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"] { accent-color: var(--brand); }
