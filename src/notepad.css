@@ -309,3 +309,30 @@ button.qtext { cursor: pointer; }
 }
 .qcard:hover .qfeedback-btn,
 .qfeedback-btn:focus-visible { opacity: 1; }
+
+/* ---------- 11. Wrap-up actions: a plain row under the title ---------- */
+.wrapup-pill {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  padding: 0 var(--pad-r) 0.75rem var(--pad-l);
+  animation: none;
+}
+.wrapup-chip {
+  flex-direction: row;
+  height: auto;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.wrapup-chip span { max-width: none; margin: 0; opacity: 1; }
+.wrapup-chip:hover:not(:disabled) { background: transparent; box-shadow: none; color: var(--ink); }

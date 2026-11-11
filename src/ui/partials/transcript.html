@@ -83,6 +83,13 @@
         <time id="notes-meta" class="notes-meta"></time>
         <span id="notes-tokens" class="notes-tokens" title="LLM tokens used by this session"></span>
       </div>
+      <!-- Wrap-up: quick follow-ups, a row of one-click actions under the title for a finished session that has a transcript. -->
+      <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
+        <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
+        <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
+        <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
+        <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
+      </div>
       <textarea
         id="notes-input"
         class="notes-input"
@@ -173,13 +180,6 @@
     </footer>
   </aside>
 
-  <!-- Wrap-up: quick follow-ups, a slim icon rail (labels on hover) for a finished session that has a transcript. -->
-  <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
-    <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
-    <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
-  </div>
   <aside id="wrapup-result" class="recap-card wrapup-result" role="status" aria-live="polite" hidden>
     <header class="recap-head">
       <span class="recap-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
