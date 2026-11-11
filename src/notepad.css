@@ -581,3 +581,28 @@ button.qstale-chip:hover { color: var(--ink); }
 .topic-menu-toggle[aria-checked="true"] > .topic-switch { background: var(--brand); }
 .topic-menu-toggle[aria-checked="true"] > .topic-switch::after { transform: translateX(12px); }
 .topic-menu-toggle:disabled { opacity: 0.5; }
+
+/* ---------- 20. Brand accents in the dropdowns (Assist, ⋯, conversations) ---------- */
+.assist-menu,
+.topic-menu,
+.history-menu { box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 24%, transparent), 0 8px 28px var(--drop); }
+
+/* Group headings and icons carry a hint of the accent. */
+.assist-group-title,
+.topic-menu-title { color: color-mix(in srgb, var(--brand) 70%, var(--faint)); }
+.assist-group button [data-lucide],
+.topic-menu-item [data-lucide] { color: color-mix(in srgb, var(--brand) 70%, var(--muted)); }
+
+/* Hover and selection are indigo-tinted instead of grey. */
+.assist-group button:hover:not(:disabled),
+.topic-menu-item:hover:not(:disabled),
+.history-item:hover { background: color-mix(in srgb, var(--brand) 11%, transparent); }
+.topic-menu-item[aria-checked="true"]:not(.topic-menu-toggle),
+.topic-menu-item .topic-check { color: var(--brand-strong); }
+.topic-menu-danger,
+.topic-menu-danger [data-lucide] { color: var(--record); }
+.topic-menu-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--record) 10%, transparent); }
+
+/* Conversations menu: the open conversation is marked in the accent colour. */
+.history-item.is-active .history-title { color: var(--brand-strong); }
+.history-item.is-active::before { background: var(--brand); }
