@@ -102,14 +102,32 @@ export function groupByTopic(
     bucket.classList.toggle("has-active", !open && mine.some((s) => s.id === session.viewedId));
     if (open) {
       const items = create("div", "topic-bucket-items");
-      items.append(...(mine.length ? mine.map(renderItem) : [create("p", "topic-bucket-empty", "No conversations yet")]));
+      items.append(...(mine.length ? groupByDate(mine, renderItem) : [create("p", "topic-bucket-empty", "No conversations yet")]));
       bucket.append(items);
     }
     return [bucket];
   });
   const known = new Set(topics.map((t) => t.id));
   const unfiled = sessions.filter((s) => s.topic_id === null || !known.has(s.topic_id));
-  return [...unfiled.map(renderItem), ...buckets];
+  return [...groupByDate(unfiled, renderItem), ...buckets];
+}
+
+const DAY = 86_400_000;
+const AGES: [number, string][] = [[0, "Today"], [1, "Yesterday"], [7, "Last week"], [30, "Last month"], [365, "Last year"], [Infinity, "Older"]];
+
+/** Rows under date headings (calendar days, local time); headings only appear for groups that have rows. */
+function groupByDate(sessions: SessionSummary[], renderItem: (s: SessionSummary) => HTMLElement): HTMLElement[] {
+  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = midnight(new Date());
+  const out: HTMLElement[] = [];
+  let last = "";
+  for (const s of sessions) {
+    const age = Math.max(0, Math.round((today - midnight(new Date(s.started_at))) / DAY));
+    const label = AGES.find(([max]) => age <= max)![1];
+    if (label !== last) out.push(create("div", "history-group-label", (last = label)));
+    out.push(renderItem(s));
+  }
+  return out;
 }
 
 /** Delete a topic after confirming; its conversations are kept, unfiled. */

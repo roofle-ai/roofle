@@ -23,7 +23,7 @@ import { syncWrapUp } from "./wrap-up";
 export async function loadHistory(): Promise<void> {
   const sessions = await listSessions();
   rememberTopics(sessions);
-  dom.historyList.querySelectorAll(".history-item, .topic-bucket").forEach((el) => el.remove());
+  dom.historyList.querySelectorAll(".history-item, .topic-bucket, .history-group-label").forEach((el) => el.remove());
   dom.historyRailBadge.hidden = sessions.length === 0;
   dom.historyRailBadge.textContent = sessions.length > 99 ? "99+" : String(sessions.length);
   dom.historyEmpty.hidden = sessions.length !== 0;
