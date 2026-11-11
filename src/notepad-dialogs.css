@@ -130,8 +130,36 @@
 .persona-card[aria-pressed="true"] .persona-icon { background: transparent; color: var(--brand); }
 
 /* ---------- 7. Setup checklist + model banner ---------- */
-.onboarding,
 .model-banner { margin: 0.5rem var(--gutter) 0.25rem; border: 0; border-radius: 10px; background: var(--surface-2); box-shadow: none; }
+
+/* Setup checklist: a small popup in the corner. Permission rows are one-click: they open
+   the exact System Settings pane. */
+.onboarding {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 2.75rem; /* clear of the feedback link */
+  z-index: 60;
+  width: min(22rem, calc(100vw - 2.5rem));
+  margin: 0;
+  padding: 0.9rem 0.9rem 0.6rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--paper-solid);
+  box-shadow: var(--float), 0 16px 44px var(--drop);
+  font-size: 0.85rem;
+}
+.onboarding[hidden] { display: none; }
+.onboarding-head { margin: 0 0.25rem 0.5rem; }
+.onboarding-head strong { font-size: 0.9rem; font-weight: 600; }
+.onboarding-list { gap: 0.1rem; }
+.onboarding-step { width: 100%; padding: 0.5rem 0.45rem; border-radius: 10px; align-items: flex-start; gap: 0.65rem; }
+.onboarding-tick { margin-top: 0.1rem; }
+.onboarding-text b { font-weight: 600; font-size: 0.85rem; }
+.onboarding-text span { font-size: 0.78rem; line-height: 1.4; }
+.onboarding-row { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.onboarding-row:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.onboarding-go { align-self: center; flex: none; max-width: 7.5rem; color: var(--brand-strong); font-size: 0.75rem; font-weight: 600; line-height: 1.25; text-align: right; }
+.onboarding-row:hover .onboarding-go { text-decoration: underline; text-underline-offset: 0.2em; }
 .onboarding-tick { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
 .is-done .onboarding-tick { border-color: var(--brand); background: var(--brand); color: var(--paper-solid); }
 .onboarding-btn,

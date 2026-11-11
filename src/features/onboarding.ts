@@ -62,7 +62,7 @@ async function steps(): Promise<Step[]> {
     action:
       perms.mic === "undetermined"
         ? { label: "Allow", run: () => void invoke("request_permission", { kind: "mic" }) }
-        : { label: "Open Settings", run: () => void openUrl(`${PANE}Microphone`) },
+        : { label: "Open settings", run: () => void openUrl(`${PANE}Microphone`) },
   });
   list.push({
     id: "screen",
@@ -70,7 +70,7 @@ async function steps(): Promise<Step[]> {
     hint: "So Roofle can hear the other side of the call. Restart Roofle after enabling.",
     done: perms.screen,
     action: {
-      label: "Allow",
+      label: "Open settings",
       run: () => {
         void invoke("request_permission", { kind: "screen" });
         void openUrl(`${PANE}ScreenCapture`);
@@ -87,24 +87,23 @@ async function steps(): Promise<Step[]> {
   return list;
 }
 
+/** A step as a list item; an unfinished one with an action is a single clickable row. */
+function stepRow(s: Step): string {
+  const body = `<span class="onboarding-tick">${s.done ? CHECK : ""}</span>
+    <span class="onboarding-text"><b>${s.title}</b><span>${s.hint}</span></span>`;
+  if (s.done || !s.action) return `<li><div class="onboarding-step${s.done ? " is-done" : ""}">${body}</div></li>`;
+  return `<li><button type="button" class="onboarding-step onboarding-row" data-step="${s.id}">${body}
+    <span class="onboarding-go">${s.action.label} <span aria-hidden="true">›</span></span></button></li>`;
+}
+
 function render(list: Step[]): void {
   const left = list.filter((s) => !s.done).length;
   const html = `
     <div class="onboarding-head">
-      <strong>Get set up: ${left} step${left > 1 ? "s" : ""} left</strong>
+      <strong>Finish setting up · ${left} left</strong>
       <button type="button" class="onboarding-skip" data-skip>Dismiss</button>
     </div>
-    <ul class="onboarding-list">
-      ${list
-        .map(
-          (s) => `<li class="onboarding-step${s.done ? " is-done" : ""}">
-            <span class="onboarding-tick">${s.done ? CHECK : ""}</span>
-            <span class="onboarding-text"><b>${s.title}</b><span>${s.hint}</span></span>
-            ${!s.done && s.action ? `<button type="button" class="model-banner-btn onboarding-btn" data-step="${s.id}">${s.action.label}</button>` : ""}
-          </li>`,
-        )
-        .join("")}
-    </ul>`;
+    <ul class="onboarding-list">${list.map(stepRow).join("")}</ul>`;
   if (html === lastRender) return; // keep the buttons stable while polling
   lastRender = html;
   card.innerHTML = html;
