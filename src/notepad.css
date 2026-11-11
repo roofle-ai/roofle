@@ -169,10 +169,11 @@ select { background: var(--surface-2); }
 
 /* ---------- 8. The page: toolbar, big title, then the note ---------- */
 /* One reading column, centred; head, title and note all inset to it. */
-/* Reading column: --col wide, centred. */
+/* Reading column (--col) and the questions note (--side) form one centred block. */
 .transcript {
-  --col: 46rem;
-  --pad-l: max(var(--gutter), calc((100% - var(--col)) / 2));
+  --side: 18.5rem; /* the questions note: 17rem wide + 1.5rem gap */
+  --col: min(46rem, calc(100% - 2 * var(--gutter) - var(--side)));
+  --pad-l: max(var(--gutter), calc((100% - var(--col) - var(--side)) / 2));
   --pad-r: max(var(--gutter), calc(100% - var(--pad-l) - var(--col)));
 }
 .transcript-head,
@@ -240,12 +241,19 @@ select { background: var(--surface-2); }
 .assist-group button [data-lucide] { background: transparent; color: var(--muted); padding: 0; }
 .assist-item-desc { color: var(--faint); }
 
-/* ---------- 10. Follow-up questions: labelled, outlined boxes under the notes ---------- */
+/* ---------- 10. Follow-up questions: labelled, outlined boxes in the right margin ---------- */
 .questions-card {
-  flex: 0 0 auto;
-  margin: 0 var(--pad-r) 1rem var(--pad-l);
-  max-height: 40%;
+  position: absolute;
+  top: 9rem;
+  left: calc(var(--pad-l) + var(--col) + 1.5rem);
+  width: 17rem;
+  max-height: calc(100% - 10.5rem);
   overflow-y: auto;
+}
+/* Small windows: a slimmer note, still on the right. */
+@media (max-width: 760px) {
+  .transcript { --side: 12rem; }
+  .questions-card { width: 10.5rem; }
 }
 .questions-card[hidden] { display: none; }
 .questions-label {
