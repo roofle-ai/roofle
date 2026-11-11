@@ -1,0 +1,64 @@
+/* ============================================================
+   Notepad skin, part 4: result cards that open after a one-click
+   action (Slack post, Recap email, Action items, Recap, Key
+   figures, Assist answers). One solid sheet with a hairline ring,
+   plain header, filled text area, outlined pill actions.
+   ============================================================ */
+
+/* ---------- Sheet ---------- */
+.recap-card {
+  padding: 1.1rem 1.25rem 1rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--paper-solid);
+  box-shadow: var(--float), 0 20px 56px var(--drop);
+}
+.wrapup-result { width: min(32rem, calc(100% - 2 * var(--gutter))); }
+
+/* ---------- Header ---------- */
+.recap-head { align-items: flex-start; gap: 0.5rem; }
+.recap-icon { display: none; }
+.recap-title { font-family: var(--font-sans); font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.recap-meta { margin-top: 0.15rem; font-size: 0.8rem; color: var(--muted); }
+.recap-close { color: var(--muted); background: transparent; }
+.recap-close:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.recap-body,
+.recap-card .figures-label { color: var(--ink); }
+
+/* ---------- Content ---------- */
+.wrapup-draft {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.wrapup-draft:focus { outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 0; }
+
+.wrapup-items { gap: 0; margin-top: 0.75rem; }
+.wrapup-item { padding: 0.6rem 0; gap: 0.4rem; font-size: 0.9rem; }
+.wrapup-item + .wrapup-item { border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent); }
+.wrapup-tag { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand-strong); }
+.wrapup-tag.is-missing { background: var(--surface-2); color: var(--faint); }
+.wrapup-empty { color: var(--muted); }
+
+.recap-skeleton span { background: var(--surface-2); }
+
+/* ---------- Actions: outlined pills; the main one is solid ---------- */
+.recap-actions { gap: 0.5rem; margin-top: 1rem; padding-top: 0; border: 0; }
+.recap-action {
+  padding: 0.4rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.recap-action:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink); }
+.recap-action svg { width: 14px; height: 14px; }
+.recap-action.is-primary { border-color: transparent; background: var(--ink); color: var(--paper-solid); font-weight: 600; }
+.recap-action.is-primary:hover:not(:disabled) { background: var(--ink); color: var(--paper-solid); opacity: 0.85; }
