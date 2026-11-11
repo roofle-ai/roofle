@@ -348,3 +348,25 @@ button.qtext { cursor: pointer; }
 }
 .wrapup-chip:hover:not(:disabled) [data-lucide],
 .wrapup-chip:hover:not(:disabled) svg { color: var(--brand); }
+
+/* ---------- 12. Brand accents: small, for wayfinding only ---------- */
+::selection { background: color-mix(in srgb, var(--brand) 28%, transparent); }
+.notes-input { caret-color: var(--brand); }
+
+/* Where you are, what you can do. */
+.notes-tab.active { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand-strong); }
+.cmdbar .new-chat [data-lucide],
+.assist-btn [data-lucide]:first-child,
+.crumb-btn:hover { color: var(--brand); }
+.more-btn:hover,
+.icon-btn:hover { color: var(--brand-strong); }
+
+/* Questions: a brand-tinted rule and label, strongest when active. */
+.questions-label { color: color-mix(in srgb, var(--brand) 70%, var(--faint)); }
+.qcard { border-left-color: color-mix(in srgb, var(--brand) 35%, transparent); }
+.qcard:hover { border-left-color: color-mix(in srgb, var(--brand) 75%, transparent); }
+.qcard.is-viewing { border-left-color: var(--brand); }
+
+/* Wrap-up pills: icons carry a hint of the accent even at rest. */
+.wrapup-chip [data-lucide],
+.wrapup-chip svg { color: color-mix(in srgb, var(--brand) 60%, var(--faint)); }
