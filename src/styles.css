@@ -54,7 +54,6 @@
   --ring: var(--brand);
   --gutter: clamp(1.25rem, 3vw, 2.5rem);
   --history-w: 240px;
-  --questions-w: 340px;
 
   /* ---- Scaled design tokens (consistency) ---- */
   --space-1: 0.25rem;
@@ -1220,12 +1219,6 @@ body {
   white-space: nowrap;
 }
 
-/* ---------- Right: follow-up questions ---------- */
-.questions {
-  flex: 0 0 var(--questions-w, 340px);
-  background: var(--surface);
-}
-
 .panel-title {
   display: flex;
   align-items: center;
@@ -2348,16 +2341,6 @@ body {
   background: var(--bg);
 }
 
-/* Right: a soft violet wash that fades toward the brand tint. */
-.panel.questions {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--brand) 11%, var(--surface)),
-    color-mix(in srgb, var(--brand) 5%, var(--surface))
-  );
-  border-left: 1px solid color-mix(in srgb, var(--brand) 14%, var(--line));
-}
-
 /* ============================================================
    Panels as rounded cards on a tinted canvas. The resizer gutter
    is the only divider (no per-panel borders → no doubled lines).
@@ -2409,71 +2392,6 @@ body {
 /* Collapsed left rail keeps the same 8px gutter the resizer gives the others. */
 .workspace.history-collapsed #history-panel {
   margin-right: 8px;
-}
-
-/* ---------- Collapsed right rail ---------- */
-.questions-rail {
-  display: none;
-}
-
-/* Hide the follow-up panel while the notes are being edited (the "Editing" pill is on). */
-.workspace:has(.notes-editing.on) #questions-panel,
-.workspace:has(.notes-editing.on) .resizer[data-resizer="questions"] {
-  display: none;
-}
-
-.workspace.questions-collapsed #questions-panel {
-  flex: 0 0 56px;
-  margin-left: 8px;
-  padding: 0 0.5rem 0.7rem;
-  align-items: center;
-}
-
-.questions-collapsed #questions-panel .panel-title,
-.questions-collapsed #questions-panel .questions-empty,
-.questions-collapsed #questions-panel .questions-list {
-  display: none;
-}
-
-.questions-collapsed #questions-panel .panel-head {
-  justify-content: center;
-  min-height: 0;
-  padding: 0.7rem 0 0.3rem;
-  border-bottom: none;
-  background: transparent;
-}
-
-.questions-collapsed .questions-rail {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-top: 0.3rem;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--insight) 14%, var(--bg));
-  color: var(--insight);
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.questions-rail [data-lucide] {
-  width: 18px;
-  height: 18px;
-}
-
-.questions-rail:hover {
-  background: color-mix(in srgb, var(--insight) 24%, var(--bg));
-}
-
-.questions-rail:active {
-  transform: scale(0.94);
-}
-
-.questions-rail:focus-visible {
-  outline: 2px solid var(--brand-soft);
-  outline-offset: 2px;
 }
 
 /* Collapsed left rail: a history icon whose badge counts saved conversations. */
@@ -2530,12 +2448,6 @@ body {
   line-height: 16px;
   text-align: center;
   box-shadow: 0 0 0 2px var(--surface);
-}
-
-/* While live, the badge turns recording-red and pulses to draw the eye. */
-.questions-rail.is-live .rail-badge {
-  background: var(--record);
-  animation: blink 1.4s ease-in-out infinite;
 }
 
 /* ---------- Settings: sidebar + content (app-style dialog) ---------- */
@@ -2928,10 +2840,6 @@ select.settings-input {
 .followup-toggle:has(input:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.questions-collapsed #questions-panel .followup-toggle {
-  display: none;
 }
 
 /* Recap card: a compact floating answer under the header, top-right. */

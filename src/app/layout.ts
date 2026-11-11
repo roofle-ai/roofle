@@ -2,58 +2,30 @@ import { dom } from "../lib/dom";
 import { storeGet, storeSet } from "../lib/storage";
 
 const NARROW = window.matchMedia("(max-width: 960px)");
+const KEY = "roofle-history-collapsed";
+const btn = () => document.getElementById("toggle-history");
 
-/** Header buttons collapse / restore a side panel; the choice persists across launches. */
-function initPanelToggles(): void {
-  const label = { history: "conversations", questions: "questions" };
-  for (const side of ["history", "questions"] as const) {
-    const btn = document.getElementById(`toggle-${side}`);
-    if (!btn) continue;
-    const key = `roofle-${side}-collapsed`;
-    const apply = (collapsed: boolean) => {
-      dom.workspace.classList.toggle(`${side}-collapsed`, collapsed);
-      btn.setAttribute("aria-pressed", String(!collapsed));
-      btn.setAttribute(
-        "aria-label",
-        `${collapsed ? "Show" : "Collapse"} ${label[side]} panel`,
-      );
-    };
-    const toggle = () => {
-      const collapsed = !dom.workspace.classList.contains(`${side}-collapsed`);
-      apply(collapsed);
-      storeSet(key, collapsed ? "1" : "0");
-    };
-    apply(storeGet(key) === "1");
-    btn.addEventListener("click", toggle);
-    (side === "questions" ? dom.questionsRail : dom.historyRail).addEventListener("click", toggle);
-  }
+function apply(collapsed: boolean): void {
+  dom.workspace.classList.toggle("history-collapsed", collapsed);
+  btn()?.setAttribute("aria-pressed", String(!collapsed));
+  btn()?.setAttribute("aria-label", `${collapsed ? "Show" : "Collapse"} conversations panel`);
 }
 
-/**
- * When the window is squeezed, collapse both side panels so the transcript
- * stays visible (#10). Restores each panel's saved preference once the window
- * is wide again. Manual toggles still work while narrow until the next resize.
- */
-function initNarrowCollapse(): void {
-  const sync = () => {
-    for (const side of ["history", "questions"] as const) {
-      const btn = document.getElementById(`toggle-${side}`);
-      if (!btn) continue;
-      const preferCollapsed = storeGet(`roofle-${side}-collapsed`) === "1";
-      const collapsed = NARROW.matches || preferCollapsed;
-      dom.workspace.classList.toggle(`${side}-collapsed`, collapsed);
-      btn.setAttribute("aria-pressed", String(!collapsed));
-      btn.setAttribute(
-        "aria-label",
-        `${collapsed ? "Show" : "Collapse"} ${side === "history" ? "conversations" : "questions"} panel`,
-      );
-    }
-  };
-  NARROW.addEventListener("change", sync);
-  sync();
+/** Header button and rail collapse / restore the history panel; the choice persists across launches. */
+function toggle(): void {
+  const collapsed = !dom.workspace.classList.contains("history-collapsed");
+  apply(collapsed);
+  storeSet(KEY, collapsed ? "1" : "0");
+}
+
+/** A squeezed window collapses the panel so the notes stay visible; the saved choice returns once wide again. */
+function syncNarrow(): void {
+  apply(NARROW.matches || storeGet(KEY) === "1");
 }
 
 export function initLayout(): void {
-  initPanelToggles();
-  initNarrowCollapse();
+  btn()?.addEventListener("click", toggle);
+  dom.historyRail.addEventListener("click", toggle);
+  NARROW.addEventListener("change", syncNarrow);
+  syncNarrow();
 }

@@ -48,6 +48,7 @@ export function ingestChallenges(incoming: QuestionView[]): void {
   questions = incoming.map((q) => ({ ...q, resolved: q.status !== "open" }));
   renderQuestions();
   updateLiveBadge();
+  syncQuestionsCard();
 }
 
 /** Rebuild the grouped list. Lists are short, so a full render keeps it simple and consistent. */
@@ -143,8 +144,7 @@ export function resetQuestions(): void {
   dom.questionsEmptyHint.textContent = LISTENING_HINT;
   dom.qLive.className = "live-badge";
   dom.qLive.textContent = "";
-  dom.qRailBadge.hidden = true;
-  dom.questionsRail.classList.remove("is-live");
+  syncQuestionsCard();
 }
 
 let followupsEnabled = true;
@@ -168,10 +168,11 @@ const viewingActiveSession = () =>
 /** Enabled only while the session being recorded is the one on screen. */
 export function updateFollowupToggle(): void {
   dom.followupToggle.disabled = !viewingActiveSession();
+  syncQuestionsCard();
 }
 
 export function setQuestionsHint(): void {
-    updateFollowupToggle();
+  updateFollowupToggle();
   if (viewingActiveSession() && !followupsEnabled) {
     dom.questionsEmptyHint.textContent = "Suggestions are turned off for this session.";
     return;
@@ -184,11 +185,6 @@ export function setQuestionsHint(): void {
 
 function updateLiveBadge(): void {
   const count = questions.length;
-  // Collapsed-rail badge: unresolved questions (all of them while live).
-  const pending = analysisMode ? questions.filter((q) => !q.resolved).length : count;
-  dom.qRailBadge.hidden = pending === 0;
-  dom.qRailBadge.textContent = pending > 9 ? "9+" : String(pending);
-  dom.questionsRail.classList.toggle("is-live", !analysisMode && count > 0);
   if (analysisMode) {
     const unresolved = questions.filter((q) => !q.resolved).length;
     dom.qLive.className = "live-badge show analysis";
@@ -204,7 +200,11 @@ export function setAnalysisMode(on: boolean): void {
   updateLiveBadge();
 }
 
-/** The questions panel belongs to the notes view; hide it behind the analysis dashboard. */
-export function syncQuestionsPanel(): void {
-  dom.questionsPanel.hidden = !dom.analysisDashboard.hidden;
+/**
+ * The card belongs to the notes view: hidden behind the analysis dashboard, and
+ * when there is nothing to show (no questions and no live session to switch off).
+ */
+export function syncQuestionsCard(): void {
+  const empty = questions.length === 0 && !viewingActiveSession();
+  dom.questionsCard.hidden = !dom.analysisDashboard.hidden || empty;
 }

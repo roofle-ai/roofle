@@ -22,9 +22,10 @@ const SLIDES: Slide[] = [
     body: "The transcript covers your mic and the other side of the call. <b>Notes</b> update every few minutes, so you can stay in the conversation instead of typing.",
   },
   {
-    target: "#questions-panel",
+    target: "#questions-card",
+    reveal: "#questions-card",
     title: "Questions worth asking",
-    body: "While you talk, Roofle spots gaps, assumptions and open points, and suggests <b>follow-up questions</b> in the right panel, guided by your goal. Questions answered later move to <b>Answered</b>, and stale ones fade away. Click a question's source to jump to that moment, press <b>×</b> to dismiss one, or switch suggestions off.",
+    body: "While you talk, Roofle spots gaps, assumptions and open points, and suggests <b>follow-up questions</b> in a card under your notes, guided by your goal. Questions answered later move to <b>Answered</b>, and stale ones fade away. Click a question's source to jump to that moment, press <b>×</b> to dismiss one, or switch suggestions off.",
   },
   {
     target: "#assist-btn",

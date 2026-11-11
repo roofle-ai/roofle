@@ -9,14 +9,14 @@ import history from "./partials/history.html?raw";
 import questions from "./partials/questions.html?raw";
 import transcript from "./partials/transcript.html?raw";
 
-/// Inject the header + three-pane workspace into `#app`.
+/// Inject the header + history + notes workspace into `#app`.
 export function mountApp(): void {
   const root = document.getElementById("app");
   if (!root) return;
 
   root.innerHTML = app
     .replace("<!--@header-->", header.replace("<!--@roofle-icon-->", roofleIcon))
-    .replace("<!--@workspace-->", history + transcript + questions);
+    .replace("<!--@workspace-->", history + transcript.replace("<!--@questions-->", questions));
 }
 
 mountApp();

@@ -113,3 +113,60 @@ body { font-family: var(--font-serif); font-size: 1.0625rem; }
 
 /* Keyboard focus must stay visible even without borders. */
 :focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 2px; }
+
+/* ---------- 5. Follow-up questions: an inline card under the notes ---------- */
+.questions-card {
+  flex: 0 0 auto;
+  margin: 0 var(--gutter) 0.75rem;
+  max-height: 40%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+}
+.questions-card[hidden] { display: none; }
+
+/* Notes editing wants the whole page. */
+.transcript:has(.notes-editing.on) .questions-card { display: none; }
+
+.questions-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.questions-card-head [data-lucide] { width: 15px; height: 15px; flex: none; }
+.questions-card-title { flex: 1 1 auto; }
+.questions-card-chevron { transition: transform 150ms var(--ease); }
+.questions-card.is-collapsed .questions-card-chevron { transform: rotate(-90deg); }
+
+.questions-card-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0.8rem 0.7rem;
+}
+.questions-card.is-collapsed .questions-card-body { display: none; }
+
+.questions-card .followup-toggle { padding: 0 0 0.5rem; }
+.questions-card .questions-list { padding: 0; overflow: visible; }
+.questions-empty { margin: 0; padding: 0; font-size: 0.8rem; line-height: 1.5; color: var(--faint); text-align: left; }
+.questions-empty[hidden] { display: none; }
+
+/* Question entries: plain list items, no cards. */
+.qcard {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0.25rem 0;
+}
+.qcard:hover { border: 0; }
+.qcard.is-viewing { background: color-mix(in srgb, var(--brand) 8%, transparent); }
