@@ -496,3 +496,8 @@ button.qanswer:hover { text-decoration-color: var(--ink); }
 }
 button.qstale-chip { cursor: pointer; }
 button.qstale-chip:hover { color: var(--ink); }
+
+/* ---------- 16. Token count sits right after the date and time ---------- */
+.notes-meta-row { justify-content: flex-start; gap: 0.4rem; }
+.notes-tokens { font-size: 0.78rem; letter-spacing: 0.02em; }
+.notes-tokens:not(:empty)::before { content: "·"; margin-right: 0.4rem; }
