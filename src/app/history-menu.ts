@@ -18,7 +18,7 @@ export function initHistoryMenu(): void {
   dom.historyMenu.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
     if (t.closest(STAYS_OPEN)) return;
-    if (t.closest(".history-item, #settings-btn")) setOpen(false);
+    if (t.closest(".history-item")) setOpen(false);
   });
 
   document.addEventListener("click", (e) => {

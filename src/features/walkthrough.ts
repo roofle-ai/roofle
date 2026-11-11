@@ -39,7 +39,6 @@ const SLIDES: Slide[] = [
   },
   {
     target: "#settings-btn",
-    reveal: "#history-menu",
     title: "Make it yours",
     body: "In <b>Settings</b>, add your <b>AI key</b>, tell Roofle about your role in <b>Profile</b> so notes and questions fit you, tune how often notes update under <b>Live Session</b>, and check your AI <b>Usage</b>. You can reopen this guide from <b>About</b>.",
   },

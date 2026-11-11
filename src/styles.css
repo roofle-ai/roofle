@@ -2808,21 +2808,7 @@ select.settings-input {
   .wrapup-pill {
     animation: none;
   }
-}
-
-
-/* Theme + settings live at the bottom of the left panel; stacked in the rail. */
-.history-footer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: auto;
-  padding: 0.6rem 0 0;
-  border-top: 1px solid var(--line);
-}
-
-/* Walkthrough popup */
+}/* Walkthrough popup */
 .walkthrough-dialog {
   position: relative;
   max-width: 30rem;
@@ -3225,7 +3211,6 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .settings-secret { margin-top: 0.4rem; }
 .settings-secret .settings-input { margin-top: 0; }
 .settings-secret-btn { top: 50%; padding: 0.15rem 0.5rem; font-size: 0.6875rem; }
-.icon-btn-label { width: auto; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0 0.6rem; font: inherit; font-size: 0.8125rem; font-weight: 500; }
 /* Topics — ⋯ menu in the notes header */
 .topic-control { position: relative; flex: 0 0 auto; }
 .more-btn {

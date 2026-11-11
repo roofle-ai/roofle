@@ -144,7 +144,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 }
 .history-menu[hidden] { display: none; }
 .history-menu .history-list { padding: 0; }
-.history-menu .history-footer { margin-top: 0; padding-top: 0.4rem; border: 0; }
 
 
 /* ---------- 7. Sweep: whatever styles.css still draws ----------
@@ -370,3 +369,16 @@ button.qtext { cursor: pointer; }
 /* Wrap-up pills: icons carry a hint of the accent even at rest. */
 .wrapup-chip [data-lucide],
 .wrapup-chip svg { color: color-mix(in srgb, var(--brand) 60%, var(--faint)); }
+
+/* ---------- 13. Settings icon in the header; feedback as a quiet footer link ---------- */
+.app-foot { flex: 0 0 auto; display: flex; justify-content: flex-end; padding: 0.4rem var(--gutter) 0.7rem; }
+.feedback-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.feedback-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
