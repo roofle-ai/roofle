@@ -234,10 +234,10 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 /* ---------- 10. Follow-up questions: labelled, outlined boxes in the right margin ---------- */
 .questions-card {
   position: absolute;
-  top: 9rem;
+  top: var(--q-top, 9rem); /* set by features/questions.ts to line up with the notes text */
   left: calc(var(--pad-l) + var(--col) + 1.5rem);
   width: 17rem;
-  max-height: calc(100% - 10.5rem);
+  max-height: calc(100% - var(--q-top, 9rem) - 1rem);
   overflow-y: auto;
 }
 /* Small windows: a slimmer note, still on the right. */

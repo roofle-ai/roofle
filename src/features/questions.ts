@@ -132,3 +132,22 @@ export const canToggleFollowups = (): boolean =>
 export function syncQuestionsCard(): void {
   dom.questionsCard.hidden = !dom.analysisDashboard.hidden || dom.questionsList.childElementCount === 0;
 }
+
+/**
+ * Keep the card level with the first line of the notes (or of the transcription), however far
+ * down the title, date and action row above it end up.
+ */
+export function initQuestionsAlignment(): void {
+  const TEXT_INSET_PX = 8; // the editor's top padding
+  const align = (): void => {
+    const body = dom.notesPane.hidden ? dom.transcriptionPane : dom.notesInput;
+    const top = body.getBoundingClientRect().top - dom.transcriptPanel.getBoundingClientRect().top;
+    dom.questionsCard.style.setProperty("--q-top", `${Math.round(top + TEXT_INSET_PX)}px`);
+  };
+  const watch = new ResizeObserver(align);
+  // The panes themselves, plus everything stacked above them that can push them down.
+  [dom.notesInput, dom.transcriptionPane, dom.transcriptPanel, dom.chatTitle, dom.wrapupPill, dom.notesTabBar].forEach((el) =>
+    watch.observe(el),
+  );
+  align();
+}
