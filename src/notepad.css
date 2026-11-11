@@ -611,15 +611,3 @@ button.qstale-chip:hover { color: var(--ink); }
 .crumb { gap: 0.6rem; }
 .crumb h1 { line-height: 1.1; }
 .crumb-logo { width: 30px; height: 30px; border-radius: 8px; }
-
-/* ---------- 22. Window border: a line along the edge of the Roofle window itself ---------- */
-:root { --window-edge-w: 2px; --window-edge: color-mix(in srgb, var(--brand) 42%, var(--paper-solid)); }
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none; /* never blocks a click */
-  border: var(--window-edge-w) solid var(--window-edge);
-  border-radius: 0 0 10px 10px; /* the title bar owns the top; macOS rounds the bottom corners */
-}
