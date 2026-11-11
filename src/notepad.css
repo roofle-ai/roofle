@@ -9,7 +9,7 @@
 /* Floating surfaces (dropdowns): hairline ring + soft drop. */
 /* --paper-solid is the page colour; --paper adds the window-opacity setting. */
 :root {
-  --paper-solid: #fdfcf8;
+  --paper-solid: #f6f4ee;
   --line: transparent;
   --radius-md: 4px;
   --radius-lg: 0;
@@ -197,7 +197,9 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 .assist-btn:hover { color: var(--ink); }
 
 /* New conversation lives in the header now, beside the other actions. */
-.cmdbar .new-chat { width: auto; padding: 0.35rem 0.7rem; color: var(--ink); }
+.cmdbar .new-chat { width: auto; padding: 0.4rem 0.9rem; border-radius: 999px; background: var(--ink); color: var(--paper-solid); font-weight: 600; }
+.cmdbar .new-chat:hover:not(:disabled) { background: var(--ink); color: var(--paper-solid); opacity: 0.85; }
+.cmdbar .new-chat:disabled { opacity: 0.35; }
 
 /* ---------- 9. Toolbar row: tabs · Assist · more ........ record ---------- */
 .transcript-head { gap: 0.25rem; align-items: center; }
