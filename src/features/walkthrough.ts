@@ -13,7 +13,6 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     target: "#new-session-btn",
-    reveal: "#history-menu",
     title: "Start a conversation",
     body: "Click <b>New conversation</b>, use the menu-bar icon, or press <b>⌘R</b>. Roofle also notices Zoom and Teams calls. Pick the type of call and, if you like, a goal. That shapes the notes and the questions.",
   },

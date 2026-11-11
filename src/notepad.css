@@ -283,3 +283,6 @@ select { background: var(--surface-2); }
 .questions-card .live-badge.live::before { display: none; }
 .questions-card .qgroup-title { margin-left: 0; }
 .questions-card .qcard-head [data-lucide] { color: var(--faint); }
+
+/* New conversation lives in the header now, beside the other actions. */
+.cmdbar .new-chat { width: auto; padding: 0.35rem 0.7rem; color: var(--ink); }
