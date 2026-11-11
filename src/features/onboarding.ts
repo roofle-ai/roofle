@@ -103,11 +103,11 @@ function stepRow(s: Step): string {
     <span class="onboarding-go">${s.action.label}</span></button></li>`;
 }
 
-function render(list: Step[]): void {
+function render(list: Step[], title: string): void {
   const done = list.filter((s) => s.done).length;
   const html = `
     <div class="onboarding-head">
-      <strong>Finish setting up</strong>
+      <strong>${title}</strong>
       <span class="onboarding-count">${done} of ${list.length}</span>
       <button type="button" class="onboarding-skip" data-skip aria-label="Dismiss" title="Dismiss">×</button>
     </div>
@@ -117,30 +117,45 @@ function render(list: Step[]): void {
   lastRender = html;
   card.innerHTML = html;
   refreshIcons();
-  card.querySelector("[data-skip]")!.addEventListener("click", hide);
+  card.querySelector("[data-skip]")!.addEventListener("click", dismiss);
   for (const btn of card.querySelectorAll<HTMLButtonElement>("[data-step]")) {
     btn.addEventListener("click", () => list.find((s) => s.id === btn.dataset.step)?.action?.run());
   }
 }
 
+/** Once setup is finished or dismissed, the popup only returns for a missing permission, and shows just those rows. */
+const PERMISSION_STEPS = new Set(["mic", "screen"]);
+let setupFinished = false;
+
 function hide(): void {
-  markDone();
   clearInterval(timer);
   card.hidden = true;
 }
 
+/** Dismissing during first setup is remembered; afterwards it only lasts until the next launch. */
+function dismiss(): void {
+  if (!setupFinished) markDone();
+  hide();
+}
+
 async function refresh(): Promise<void> {
-  const list = await steps();
-  if (list.every((s) => s.done)) {
-    hide(); // finished: never shown again
-    return;
+  try {
+    const all = await steps();
+    const list = setupFinished ? all.filter((s) => PERMISSION_STEPS.has(s.id)) : all;
+    if (list.every((s) => s.done)) {
+      if (!setupFinished) markDone(); // everything done: first-run setup is over
+      hide();
+      return;
+    }
+    card.hidden = false;
+    render(list, setupFinished ? "Permissions needed" : "Finish setting up");
+  } catch (err) {
+    console.error("setup checklist failed", err); // never leave an empty popup behind
   }
-  render(list);
 }
 
 export function initOnboarding(): void {
-  if (isDone()) return; // finished or dismissed earlier
-  card.hidden = false;
+  setupFinished = isDone();
   void refresh();
   timer = window.setInterval(() => void refresh(), POLL_MS);
 }
