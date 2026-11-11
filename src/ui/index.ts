@@ -1,6 +1,6 @@
 // Assembles the app shell from modular HTML partials. Runs as a side effect at
 // import time so main.ts's top-level DOM queries find the injected nodes.
-import roofleIcon from "../assets/roofle-meeting.svg?raw";
+import logo from "../../assets/roofle-meeting-icon.svg"; // the app icon, as a URL
 import app from "./partials/app.html?raw";
 import header from "./partials/header.html?raw";
 import history from "./partials/history.html?raw";
@@ -13,7 +13,7 @@ export function mountApp(): void {
   if (!root) return;
 
   root.innerHTML = app
-    .replace("<!--@header-->", header.replace("<!--@roofle-icon-->", roofleIcon).replace("<!--@history-menu-->", history))
+    .replace("<!--@header-->", header.replace("__ROOFLE_LOGO__", logo).replace("<!--@history-menu-->", history))
     .replace("<!--@workspace-->", transcript.replace("<!--@questions-->", questions));
 }
 

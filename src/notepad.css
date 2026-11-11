@@ -607,16 +607,7 @@ button.qstale-chip:hover { color: var(--ink); }
 .history-item.is-active .history-title { color: var(--brand-strong); }
 .history-item.is-active::before { background: var(--brand); }
 
-/* ---------- 21. Logo mark in a soft tile beside the wordmark ---------- */
+/* ---------- 21. The app logo beside the wordmark ---------- */
 .crumb { gap: 0.6rem; }
 .crumb h1 { line-height: 1.1; }
-.crumb-logo {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--brand) 13%, transparent);
-  color: var(--brand-strong);
-}
-.crumb-logo svg { width: 19px; height: 19px; }
+.crumb-logo { width: 30px; height: 30px; border-radius: 8px; }
