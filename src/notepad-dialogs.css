@@ -98,22 +98,7 @@
 .analyse-actions,
 .settings-actions { gap: 0.5rem; }
 
-/* ---------- 5. Settings ---------- */
-.settings-dialog { max-width: 52rem; height: min(36rem, 100%); }
-.settings-head { padding: 1.25rem 1.5rem 0.75rem; background: transparent; border: 0; }
-.settings-head-icon { display: none; }
-.settings-nav { flex: 0 0 12rem; padding: 0.5rem 0.75rem; background: transparent; border: 0; }
-.settings-nav-item { border: 0; border-radius: 8px; font-size: 0.875rem; }
-.settings-nav-item:hover { background: var(--surface-2); color: var(--ink); }
-.settings-nav-item.active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--brand-strong); box-shadow: none; }
-.settings-nav-item.active::before { display: none; }
-.settings-content { padding: 0.5rem 2rem 1.5rem; }
-.settings-actions { padding: 0.85rem 1.5rem 1.1rem; border: 0; background: transparent; }
-.settings-card,
-.settings-group { background: transparent; border: 0; padding-left: 0; padding-right: 0; }
-.settings-row { border-color: transparent; }
-.usage-table th,
-.usage-table td { border-color: color-mix(in srgb, var(--ink) 8%, transparent); }
+/* ---------- 5. Settings: see notepad-settings.css ---------- */
 
 /* ---------- 6. First run (persona) ---------- */
 .onb { background: var(--paper-solid); }
