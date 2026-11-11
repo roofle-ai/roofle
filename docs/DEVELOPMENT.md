@@ -9,7 +9,7 @@ roofle/
 ├── offline-agent/ # Rust lib: post-session review and title generation
 ├── cli/           # headless binary that exercises core/ without the UI
 ├── src-tauri/     # Tauri shell: engine, commands, tray, app icons, bundle config
-├── src/           # TypeScript frontend (Vite + Tailwind)
+├── src/           # TypeScript frontend (Vite)
 ├── scripts/       # fetch-assets.sh, reset-db.sh
 └── assets/        # models and test audio (downloaded, gitignored), icon sources
 ```

@@ -1,7 +1,5 @@
 // Assembles the app shell from modular HTML partials. Runs as a side effect at
 // import time so main.ts's top-level DOM queries find the injected nodes.
-import "../tailwind.css";
-
 import app from "./partials/app.html?raw";
 import header from "./partials/header.html?raw";
 import history from "./partials/history.html?raw";

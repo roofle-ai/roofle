@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Roofle: a macOS (Apple Silicon, 13+) menu-bar app that transcribes meetings on-device (mic + system audio, Whisper via sherpa-onnx) and runs LLM agents for live notes, suggested questions, recaps and post-session review. Tauri 2 shell, Rust workspace, TypeScript/Vite/Tailwind frontend.
+Roofle: a macOS (Apple Silicon, 13+) menu-bar app that transcribes meetings on-device (mic + system audio, Whisper via sherpa-onnx) and runs LLM agents for live notes, suggested questions, recaps and post-session review. Tauri 2 shell, Rust workspace, TypeScript/Vite frontend.
 
 ## Layout
 
