@@ -611,3 +611,14 @@ button.qstale-chip:hover { color: var(--ink); }
 .crumb { gap: 0.6rem; }
 .crumb h1 { line-height: 1.1; }
 .crumb-logo { width: 30px; height: 30px; border-radius: 8px; }
+
+/* ---------- 22. Window frame: the app sits in a rounded sheet inside a thick border ---------- */
+:root { --frame-w: 10px; --frame: #e7e3da; }
+:root[data-theme="dark"] { --frame: #0e0e0e; }
+body { padding: var(--frame-w); background: var(--frame); }
+.app {
+  height: calc(100dvh - 2 * var(--frame-w));
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent);
+}
