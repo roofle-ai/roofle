@@ -14,6 +14,7 @@ import { initModelSetup } from "./features/model-setup";
 import { initOnboarding } from "./features/onboarding";
 import { initNotes } from "./features/notes";
 import { initNotesTabs } from "./features/notes-tabs";
+import { mountNotesEditor } from "./features/notes-editor";
 import { initWelcome } from "./features/welcome";
 import { initTopics } from "./features/topics";
 import { initTransport } from "./features/transport";
@@ -36,6 +37,7 @@ async function init(): Promise<void> {
     else showToast("The feedback form isn't set up yet.");
   });
   initTransport(openSettings);
+  mountNotesEditor();
   initNotes();
   initWelcome();
   initNotesTabs();

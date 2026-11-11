@@ -175,7 +175,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 .transcript-head,
 .page-title,
 .notes-meta-row,
-.notes-input,
 .transcription-list { padding-left: var(--pad-l); padding-right: var(--pad-r); }
 .transcript-head { justify-content: flex-start; min-height: 0; padding-top: 1.5rem; padding-bottom: 0; }
 .page-title {
@@ -347,7 +346,6 @@ button.qtext { cursor: pointer; }
 
 /* ---------- 12. Brand accents: small, for wayfinding only ---------- */
 ::selection { background: color-mix(in srgb, var(--brand) 28%, transparent); }
-.notes-input { caret-color: var(--brand); }
 
 /* Where you are, what you can do. */
 .notes-tab.active { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand-strong); }
@@ -382,7 +380,7 @@ button.qtext { cursor: pointer; }
 
 /* ---------- 14. Welcome text on a fresh, empty notepad ---------- */
 .notes-pane { position: relative; }
-.notes-pane.has-welcome .notes-input::placeholder { color: transparent; }
+.notes-pane.has-welcome .tiptap p.is-editor-empty:first-child::before { color: transparent; }
 .notes-welcome {
   position: absolute;
   top: 3.5rem;
@@ -403,3 +401,43 @@ button.qtext { cursor: pointer; }
 .notes-welcome-steps b { color: var(--ink); font-weight: 600; }
 .notes-welcome-steps em { font-style: normal; color: var(--ink); }
 .notes-welcome-foot { font-size: 0.9rem; color: var(--faint); }
+
+/* ---------- 15. Notes editor: rendered markdown you can type in ---------- */
+.notes-input { padding: 0; overflow-y: auto; font-size: 1.1rem; line-height: 1.85; }
+.notes-input .tiptap {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem var(--pad-r) 4.5rem var(--pad-l);
+  outline: none;
+  caret-color: var(--brand);
+  font-family: var(--font-serif);
+  color: var(--ink);
+}
+.notes-input .tiptap > :first-child { margin-top: 0; }
+.notes-input .tiptap p { margin: 0 0 0.9em; }
+.notes-input .tiptap h1,
+.notes-input .tiptap h2,
+.notes-input .tiptap h3 { margin: 1.4em 0 0.4em; font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+.notes-input .tiptap h1 { font-size: 1.5em; }
+.notes-input .tiptap h2 { font-size: 1.25em; }
+.notes-input .tiptap h3 { font-size: 1.05em; }
+.notes-input .tiptap ul,
+.notes-input .tiptap ol { margin: 0 0 0.9em; padding-left: 1.4em; }
+.notes-input .tiptap li { margin: 0.15em 0; }
+.notes-input .tiptap li > p { margin: 0; }
+.notes-input .tiptap strong { font-weight: 600; }
+.notes-input .tiptap a { color: var(--brand-strong); text-decoration: underline; text-underline-offset: 0.2em; cursor: text; }
+/* The rule is a background, since borders are hidden page-wide. */
+.notes-input .tiptap blockquote { margin: 0 0 0.9em; padding-left: 1rem; background: linear-gradient(color-mix(in srgb, var(--ink) 22%, transparent), color-mix(in srgb, var(--ink) 22%, transparent)) left / 2px 100% no-repeat; color: var(--muted); }
+.notes-input .tiptap code { padding: 0.1em 0.35em; border-radius: 4px; background: var(--surface-2); font-size: 0.9em; }
+.notes-input .tiptap pre { margin: 0 0 0.9em; padding: 0.75rem 1rem; border-radius: 8px; background: var(--surface-2); overflow-x: auto; }
+.notes-input .tiptap pre code { padding: 0; background: none; }
+.notes-input .tiptap hr { margin: 1.5em 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); }
+.notes-input .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--faint);
+  font-style: italic;
+  pointer-events: none;
+}

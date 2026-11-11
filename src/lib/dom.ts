@@ -15,7 +15,7 @@ export const dom = {
   statusDot: query<HTMLSpanElement>("#status-dot"),
   statusText: query<HTMLSpanElement>("#status-text"),
   statusDismiss: query<HTMLButtonElement>("#status-dismiss"),
-  notesInput: query<HTMLTextAreaElement>("#notes-input"),
+  notesInput: query<HTMLDivElement>("#notes-input"),
   notesTabs: Array.from(document.querySelectorAll<HTMLButtonElement>(".notes-tab")),
   notesPane: query<HTMLDivElement>("#notes-pane"),
   notesWelcome: query<HTMLDivElement>("#notes-welcome"),

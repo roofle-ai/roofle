@@ -11,6 +11,7 @@ import { updateAnalyseVisibility } from "./analysis";
 import { walkthroughDone } from "./walkthrough";
 import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
 import { refreshNotesTitle, saveNotesNow } from "./notes";
+import { setNotesPlaceholder } from "./notes-editor";
 import { syncWelcome } from "./welcome";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
@@ -58,8 +59,7 @@ export function setSessionState(state: SessionState): void {
   dom.stopBtn.hidden = state === "idle";
 
   // Shown only while the editor is empty, so it disappears once notes arrive.
-  dom.notesInput.placeholder =
-    state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder();
+  setNotesPlaceholder(state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder());
 
   syncWelcome();
   if (state === "recording") startTimer();

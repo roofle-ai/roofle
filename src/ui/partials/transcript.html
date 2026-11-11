@@ -90,13 +90,8 @@
         <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
         <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
       </div>
-      <textarea
-        id="notes-input"
-        class="notes-input"
-        spellcheck="true"
-        aria-label="Conversation notes"
-        placeholder="Start recording or type your notes here…"
-      ></textarea>
+      <!-- The notepad editor mounts here (features/notes-editor.ts). -->
+      <div id="notes-input" class="notes-input"></div>
       <!-- Shown on a fresh, empty notepad (features/welcome.ts). Clicks fall through to the textarea. -->
       <div id="notes-welcome" class="notes-welcome" hidden>
         <p class="notes-welcome-lead">Welcome to Roofle. Listen, note, coach.</p>

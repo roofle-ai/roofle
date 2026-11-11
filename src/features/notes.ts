@@ -3,20 +3,17 @@ import { session } from "../app/state";
 import { dom } from "../lib/dom";
 import { setStatus, showToast } from "../lib/status";
 import { saveNotes } from "../transcripts";
+import { blurNotes, getNotes, onNotesChange, scrollNotesToEnd, setNotes } from "./notes-editor";
 import { syncWelcome } from "./welcome";
 
 const AUTOSAVE_DELAY_MS = 800;
 let saveTimer: number | undefined;
 
-export function scrollNotesToEnd(): void {
-  dom.notesInput.scrollTop = dom.notesInput.scrollHeight;
-}
-
 /** Replace the notepad's text with a session's saved notes; nothing is pending afterwards. */
 export function setNotesText(text: string): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  dom.notesInput.value = text;
+  setNotes(text);
   syncWelcome();
 }
 
@@ -59,7 +56,7 @@ export function refreshNotesTitle(date?: Date): void {
 export function clearNotes(): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  dom.notesInput.value = "";
+  setNotes("");
   syncWelcome();
   session.titleFromTranscript = undefined;
   renderNotesMeta(new Date());
@@ -78,7 +75,7 @@ export function scheduleNotesSave(): void {
 export async function saveNotesNow(): Promise<boolean> {
   if (session.viewedId === null) return false;
   try {
-    await saveNotes(session.viewedId, dom.notesInput.value);
+    await saveNotes(session.viewedId, getNotes());
     return true;
   } catch (err) {
     setStatus("error", String(err));
@@ -90,17 +87,21 @@ export async function saveNotesNow(): Promise<boolean> {
 export function applyGeneratedNotes(text: string): void {
   const notes = text.trim();
   if (!notes) return;
-  dom.notesInput.value = notes;
+  // A finished session's notes are already saved by the backend; a live one autosaves.
+  if (session.state === "idle") {
+    setNotesText(notes);
+  } else {
+    setNotes(notes);
+    scheduleNotesSave();
+  }
   scrollNotesToEnd();
-  // Programmatic writes don't fire `input`; a finished session's notes are already saved by the backend.
-  if (session.state === "idle") setNotesText(notes);
-  else scheduleNotesSave();
+  syncWelcome();
 }
 
 export function initNotes(): void {
-  dom.notesInput.addEventListener("input", scheduleNotesSave);
+  onNotesChange(scheduleNotesSave);
   dom.notesInput.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") dom.notesInput.blur();
+    if (e.key === "Escape") blurNotes();
   });
   // ⌘S saves right away, for the muscle memory.
   window.addEventListener("keydown", (e) => {
