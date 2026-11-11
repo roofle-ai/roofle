@@ -16,11 +16,13 @@
   --shadow-1: none;
   --shadow-2: none;
   --shadow-3: none;
-  --float: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent), 0 8px 28px color-mix(in srgb, var(--ink) 16%, transparent);
+  --drop: rgba(0, 0, 0, 0.16); /* shadows are always black, never a light glow */
+  --float: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent), 0 8px 28px var(--drop);
 }
 /* :root[...] out-ranks styles.css's ":root:not([data-theme=light])" dark block. */
 :root[data-theme="dark"] {
   --paper-solid: #1c1c1c;
+  --drop: rgba(0, 0, 0, 0.5);
   --ink: #ececec;
   --muted: #a3a3a3;
   --faint: #6f6f6f;

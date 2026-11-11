@@ -17,7 +17,7 @@
   border: 0;
   border-radius: 14px;
   background: var(--paper-solid);
-  box-shadow: var(--float), 0 24px 64px color-mix(in srgb, var(--ink) 22%, transparent);
+  box-shadow: var(--float), 0 24px 64px var(--drop);
 }
 .analyse-dialog { max-width: 28rem; padding: 1.75rem 1.75rem 1.5rem; }
 
