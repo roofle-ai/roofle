@@ -615,4 +615,4 @@ button.qstale-chip:hover { color: var(--ink); }
 
 /* ---------- 23. "Options" button: the three dots with a label, like Assist ---------- */
 .more-btn { display: inline-flex; align-items: center; gap: 0.4rem; width: auto; height: auto; padding: 0.35rem 0.6rem; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; }
-.more-btn svg { flex: none; width: 15px; height: 15px; }
+.more-btn svg { flex: none; width: 15px; height: 15px; color: color-mix(in srgb, var(--brand) 75%, var(--muted)); }
