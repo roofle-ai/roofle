@@ -271,7 +271,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
   transition: border-color 150ms ease;
 }
 .qcard:hover { border-left-color: color-mix(in srgb, var(--ink) 45%, transparent); }
-.qcard.answered { opacity: 0.5; }
+.qcard.answered .qtext { color: var(--muted); }
 .qcard.is-viewing { border-left-color: var(--ink); }
 .qcard.is-new { animation: qenter 220ms ease-out; }
 .qtext {
@@ -441,3 +441,32 @@ button.qtext { cursor: pointer; }
   font-style: italic;
   pointer-events: none;
 }
+
+/* Answered: a small tag, then what was said. Stale: label + chips. */
+.qanswer { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.qtag { padding: 0.05rem 0.55rem; border-radius: 999px; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand-strong); font: 600 0.68rem var(--font-sans); letter-spacing: 0.02em; }
+.qanswer-text { margin: 0; padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 0.875rem; line-height: 1.5; text-align: left; }
+button.qanswer-text { cursor: pointer; }
+button.qanswer-text:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
+.qstale { margin-top: 0.25rem; }
+.qstale-label { margin: 0 0 0.4rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.qstale-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.qstale-chip {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--faint);
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.qstale-chip { cursor: pointer; }
+button.qstale-chip:hover { color: var(--ink); }

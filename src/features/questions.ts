@@ -19,13 +19,9 @@ document.addEventListener(SOURCE_EVENT, (e) => {
   });
 });
 
-/** Open questions first (newest first), then the ones the conversation already answered. Stale ones are dropped. */
-function visibleQuestions(): QuestionView[] {
-  const byNewest = (a: QuestionView, b: QuestionView) => b.id - a.id;
-  const open = questions.filter((q) => q.status === "open").sort(byNewest);
-  const answered = questions.filter((q) => q.status === "answered").sort(byNewest);
-  return [...open, ...answered];
-}
+const byNewest = (a: QuestionView, b: QuestionView) => b.id - a.id;
+const withStatus = (status: QuestionView["status"]) =>
+  questions.filter((q) => q.status === status).sort(byNewest);
 
 /** Reconcile the backend's full question list into the card, by id. */
 export function ingestChallenges(incoming: QuestionView[]): void {
@@ -34,35 +30,69 @@ export function ingestChallenges(incoming: QuestionView[]): void {
   renderQuestions();
 }
 
+/** Open questions, then answered ones (with their answer), then the stale ones as small chips. */
 function renderQuestions(): void {
   const scrollTop = dom.questionsCard.scrollTop;
-  const shown = visibleQuestions();
-  dom.questionsList.replaceChildren(...shown.map(renderQuestion));
+  const cards = [...withStatus("open"), ...withStatus("answered")];
+  const stale = withStatus("stale");
+  dom.questionsList.replaceChildren(...cards.map(renderQuestion), ...(stale.length ? [renderStale(stale)] : []));
   dom.questionsCard.scrollTop = scrollTop;
-  shown.forEach((q) => seen.add(q.id));
+  [...cards, ...stale].forEach((q) => seen.add(q.id));
   syncQuestionsCard();
 }
 
-/** One plain text box. Clicking the text jumps to where in the transcription it came from. */
+/** A question's text; clicking it jumps to where in the transcription it came up. */
+function renderText(q: QuestionView, className: string): HTMLElement {
+  const { source } = q;
+  if (!source) return create("p", className, q.text);
+  const text = create("button", className, q.text);
+  text.type = "button";
+  text.title = "Show where this came up";
+  text.addEventListener("click", () => revealTranscriptSource(source, q.id));
+  return text;
+}
+
 function renderQuestion(q: QuestionView): HTMLElement {
   const card = create("article", `qcard ${q.status}`);
   card.dataset.qid = String(q.id);
   if (!seen.has(q.id)) card.classList.add("is-new");
   if (q.id === viewingSourceOf) card.classList.add("is-viewing");
-
-  const { source } = q;
-  if (source) {
-    const text = create("button", "qtext", q.text);
-    text.type = "button";
-    text.title = "Show where this came up";
-    text.addEventListener("click", () => revealTranscriptSource(source, q.id));
-    card.append(text);
-  } else {
-    card.append(create("p", "qtext", q.text));
-  }
-  if (q.status === "answered" && q.reason) card.title = q.reason;
+  card.append(renderText(q, "qtext"));
   if (q.status === "open") card.append(renderHide(q));
+  if (q.status === "answered") card.append(renderAnswer(q));
   return card;
+}
+
+/** "Answered" tag plus what the conversation said; the answer jumps to where it was said. */
+function renderAnswer(q: QuestionView): HTMLElement {
+  const row = create("div", "qanswer");
+  row.append(create("span", "qtag", "Answered"));
+  if (!q.reason) return row;
+  const { answer_source: where } = q;
+  if (!where) {
+    row.append(create("span", "qanswer-text", q.reason));
+    return row;
+  }
+  const text = create("button", "qanswer-text", q.reason);
+  text.type = "button";
+  text.title = "Show where this was answered";
+  text.addEventListener("click", () => revealTranscriptSource(where, q.id));
+  row.append(text);
+  return row;
+}
+
+/** Questions that stopped mattering: a small label and one muted chip each (full text on hover). */
+function renderStale(items: QuestionView[]): HTMLElement {
+  const box = create("section", "qstale");
+  box.append(create("p", "qstale-label", "No longer relevant"));
+  const chips = create("div", "qstale-chips");
+  for (const q of items) {
+    const chip = renderText(q, "qstale-chip");
+    chip.title = q.reason ? `${q.text}\n${q.reason}` : q.text;
+    chips.append(chip);
+  }
+  box.append(chips);
+  return box;
 }
 
 /** Small "×": hides the question from the list (not a CTA). */
