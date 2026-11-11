@@ -151,7 +151,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
    Borders and static shadows are hidden everywhere (colour, not width, so
    layout does not shift). Exempt: states that rely on them to be seen
    (selected, drop target, tour spotlight) and the floating surfaces. */
-*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card) {
+*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card):not(.qcard) {
   border-color: transparent;
   box-shadow: none;
 }
@@ -169,15 +169,12 @@ select { background: var(--surface-2); }
 
 /* ---------- 8. The page: toolbar, big title, then the note ---------- */
 /* One reading column, centred; head, title and note all inset to it. */
-/* Reading column: --col wide, centred. On wide windows the questions margin note
-   (--side) is part of the centred block, so text and note stay together. */
+/* Reading column: --col wide, centred. */
 .transcript {
   --col: 46rem;
-  --side: 0rem;
-  --pad-l: max(var(--gutter), calc((100% - var(--col) - var(--side)) / 2));
+  --pad-l: max(var(--gutter), calc((100% - var(--col)) / 2));
   --pad-r: max(var(--gutter), calc(100% - var(--pad-l) - var(--col)));
 }
-@media (min-width: 1280px) { .transcript { --side: 18.5rem; } }
 .transcript-head,
 .page-title,
 .notes-meta-row,
@@ -243,25 +240,34 @@ select { background: var(--surface-2); }
 .assist-group button [data-lucide] { background: transparent; color: var(--muted); padding: 0; }
 .assist-item-desc { color: var(--faint); }
 
-/* ---------- 10. Follow-up questions: plain text boxes ---------- */
-/* Under the notes by default; in the right margin once there is room. */
+/* ---------- 10. Follow-up questions: labelled, outlined boxes under the notes ---------- */
 .questions-card {
   flex: 0 0 auto;
-  margin: 0 var(--pad-r) 0.75rem var(--pad-l);
+  margin: 0 var(--pad-r) 1rem var(--pad-l);
   max-height: 40%;
   overflow-y: auto;
 }
 .questions-card[hidden] { display: none; }
-.questions-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.questions-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.questions-list { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .qcard {
   position: relative;
-  padding: 0.7rem 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: var(--radius-md);
-  background: var(--surface-2);
+  background: transparent;
 }
 .qcard.answered { opacity: 0.55; }
-.qcard.is-viewing { background: color-mix(in srgb, var(--ink) 12%, var(--paper)); }
+.qcard.is-viewing { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.qcard.is-new { animation: qenter 220ms ease-out; }
 .qtext {
   margin: 0;
   padding: 0 1rem 0 0;
@@ -275,9 +281,11 @@ select { background: var(--surface-2); }
   text-align: left;
 }
 button.qtext { cursor: pointer; }
-.qcard.is-new { animation: qenter 220ms ease-out; }
 /* Dismiss only when pointing at the box. */
 .qfeedback-btn {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -285,22 +293,8 @@ button.qtext { cursor: pointer; }
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
-  position: absolute;
-  top: 0.35rem;
-  right: 0.45rem;
   opacity: 0;
   transition: opacity 120ms ease;
 }
 .qcard:hover .qfeedback-btn,
 .qfeedback-btn:focus-visible { opacity: 1; }
-
-@media (min-width: 1280px) {
-  .questions-card {
-    position: absolute;
-    top: 9rem;
-    left: calc(var(--pad-l) + var(--col) + 1.5rem);
-    width: 17rem;
-    margin: 0;
-    max-height: calc(100% - 10.5rem);
-  }
-}
