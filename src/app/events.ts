@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { adoptActiveSession, loadHistory } from "../features/history";
 import { applyGeneratedNotes, refreshTokens } from "../features/notes";
 import { refreshTranscription } from "../features/notes-tabs";
-import { ingestChallenges, setAnalysisMode } from "../features/questions";
+import { ingestChallenges } from "../features/questions";
 import { setSessionState } from "../features/transport";
 import { onWrapUp } from "../features/wrap-up";
 import { dom } from "../lib/dom";
@@ -56,7 +56,6 @@ async function onRecordingState(recording: boolean): Promise<void> {
     setSessionState("recording");
   } else {
     setSessionState("idle");
-    setAnalysisMode(true);
   }
   await loadHistory();
 }

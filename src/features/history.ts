@@ -14,7 +14,7 @@ import {
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
 import { refreshNotesTitle, setNotesText } from "./notes";
-import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
+import { ingestChallenges, resetQuestions } from "./questions";
 import { matchesSearch } from "./history-search";
 import { canDragToTopic, groupByTopic, rememberTopics, setDragId, topicName } from "./topics";
 import { resetView } from "./view";
@@ -163,13 +163,11 @@ export async function openSession(id: number): Promise<void> {
     syncWrapUp();
 
     resetQuestions();
-    setAnalysisMode(true);
     try {
       ingestChallenges(await listSessionQuestions(id));
     } catch {
       // Live updates will populate the panel if the stored list can't load.
     }
-    updateFollowupToggle();
     await loadHistory();
   } catch (err) {
     setStatus("error", String(err));

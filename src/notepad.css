@@ -117,60 +117,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 /* Keyboard focus must stay visible even without borders. */
 :focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 2px; }
 
-/* ---------- 5. Follow-up questions: an inline card under the notes ---------- */
-.questions-card {
-  flex: 0 0 auto;
-  margin: 0 var(--pad-r) 0.75rem var(--pad-l);
-  max-height: 40%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--surface-2);
-  border-radius: var(--radius-md);
-}
-.questions-card[hidden] { display: none; }
-
-.questions-card-head {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.8rem;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-.questions-card-head [data-lucide] { width: 15px; height: 15px; flex: none; }
-.questions-card-title { flex: 1 1 auto; }
-.questions-card-chevron { transition: transform 150ms var(--ease); }
-.questions-card.is-collapsed .questions-card-chevron { transform: rotate(-90deg); }
-
-.questions-card-body {
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 0.8rem 0.7rem;
-}
-.questions-card.is-collapsed .questions-card-body { display: none; }
-
-.questions-card .followup-toggle { padding: 0 0 0.5rem; }
-.questions-card .questions-list { padding: 0; overflow: visible; }
-.questions-empty { margin: 0; padding: 0; font-size: 0.8rem; line-height: 1.5; color: var(--faint); text-align: left; }
-.questions-empty[hidden] { display: none; }
-
-/* Question entries: plain list items, no cards. */
-.qcard {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0.25rem 0;
-}
-.qcard:hover { border: 0; }
-.qcard.is-viewing { background: color-mix(in srgb, var(--brand) 8%, transparent); }
-
 /* ---------- 6. Header (menu + wordmark) and conversations dropdown ---------- */
 .cmdbar { min-height: 0; padding: 1rem var(--gutter); align-items: center; }
 .crumb { position: relative; display: flex; align-items: center; gap: 0.6rem; }
@@ -297,34 +243,57 @@ select { background: var(--surface-2); }
 .assist-group button [data-lucide] { background: transparent; color: var(--muted); padding: 0; }
 .assist-item-desc { color: var(--faint); }
 
-/* ---------- 10. Follow-up questions: quiet list ---------- */
-.questions-card-head { white-space: nowrap; font-weight: 500; text-transform: none; }
-.questions-card .live-badge.show,
-.questions-card .live-badge.live,
-.questions-card .live-badge.analysis { margin-left: auto; padding: 0; background: transparent; color: var(--faint); font-weight: 400; }
-.questions-card .live-badge.live::before { display: none; }
-.questions-card-chevron { margin-left: 0.25rem; }
-.questions-card .followup-toggle { font-size: 0.8rem; color: var(--faint); }
-.questions-card .qgroup-title { margin-left: 0; color: var(--faint); }
-.questions-card .qgroup-count { background: transparent; padding: 0; }
+/* ---------- 10. Follow-up questions: plain text boxes ---------- */
+/* Under the notes by default; in the right margin once there is room. */
+.questions-card {
+  flex: 0 0 auto;
+  margin: 0 var(--pad-r) 0.75rem var(--pad-l);
+  max-height: 40%;
+  overflow-y: auto;
+}
+.questions-card[hidden] { display: none; }
+.questions-list { display: flex; flex-direction: column; gap: 0.6rem; }
 
-.qcard { gap: 0.25rem; padding: 0.5rem 0; }
-.qtext { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.55; color: var(--ink); }
-.qcard-head { align-items: flex-start; }
-.qcard-head [data-lucide] { color: var(--faint); margin-top: 0.3rem; }
-/* Dismiss only when pointing at the question. */
-.qfeedback-btn { opacity: 0; transition: opacity 120ms ease; }
+.qcard {
+  position: relative;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.qcard.answered { opacity: 0.55; }
+.qcard.is-viewing { background: color-mix(in srgb, var(--ink) 12%, var(--paper)); }
+.qtext {
+  margin: 0;
+  padding: 0 1rem 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.55;
+  text-align: left;
+}
+button.qtext { cursor: pointer; }
+.qcard.is-new { animation: qenter 220ms ease-out; }
+/* Dismiss only when pointing at the box. */
+.qfeedback-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
 .qcard:hover .qfeedback-btn,
 .qfeedback-btn:focus-visible { opacity: 1; }
-/* "Source 01:05" reads as a quiet link, not a chip. */
-.qsource { padding: 0; margin-left: 1.5rem; background: transparent; border: 0; color: var(--faint); font-size: 0.75rem; }
-.qsource:hover,
-.qcard.is-viewing .qsource { background: transparent; color: var(--ink); text-decoration: underline; }
-.qanswer { margin: 0 0 0 1.5rem; padding: 0; background: transparent; border: 0; }
-.qanswer-label { color: var(--faint); }
-.qanswer-text { color: var(--muted); font-size: 0.9rem; }
 
-/* Wide windows: questions sit in the right margin, like a comment. */
 @media (min-width: 1280px) {
   .questions-card {
     position: absolute;
@@ -333,12 +302,5 @@ select { background: var(--surface-2); }
     width: 17rem;
     margin: 0;
     max-height: calc(100% - 10.5rem);
-    background: transparent;
   }
-  .questions-card-head { padding-left: 0; padding-right: 0; }
-  .questions-card-body { padding: 0; }
 }
-
-/* Collapsed groups ("Answered", "No longer relevant") show a chevron. */
-details.qgroup > summary.qgroup-title::after { content: "›"; margin-left: auto; font-size: 1rem; transition: transform 120ms ease; }
-details.qgroup[open] > summary.qgroup-title::after { transform: rotate(90deg); }

@@ -12,6 +12,7 @@ import { runExport } from "./export";
 import { loadHistory, removeSession } from "./history";
 import { isSearching, matchesSearch } from "./history-search";
 import { refreshNotesTitle } from "./notes";
+import { canToggleFollowups, isFollowupsEnabled, setFollowupsEnabled } from "./questions";
 
 let topics: Topic[] = [];
 const topicOf = new Map<number, number | null>();
@@ -253,11 +254,17 @@ function renderMenu(): void {
       closeMenu();
       if (session.viewedId !== null) void removeSession(session.viewedId);
     });
+    const suggest = item(`Question suggestions: ${isFollowupsEnabled() ? "On" : "Off"}`, "message-square-quote", () => {
+      setFollowupsEnabled(!isFollowupsEnabled());
+      renderMenu();
+    });
+    suggest.disabled = !canToggleFollowups();
     del.classList.add("topic-menu-danger");
     del.disabled = busy;
     dom.topicMenu.replaceChildren(
       rename,
       topic,
+      suggest,
       create("div", "topic-menu-sep"),
       item("Export transcript", "download", () => void runExport("transcript")),
       item("Export notes", "download", () => void runExport("notes")),

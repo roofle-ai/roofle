@@ -25,7 +25,7 @@ const SLIDES: Slide[] = [
     target: "#questions-card",
     reveal: "#questions-card",
     title: "Questions worth asking",
-    body: "While you talk, Roofle spots gaps, assumptions and open points, and suggests <b>follow-up questions</b> in a card under your notes, guided by your goal. Questions answered later move to <b>Answered</b>, and stale ones fade away. Click a question's source to jump to that moment, press <b>×</b> to dismiss one, or switch suggestions off.",
+    body: "While you talk, Roofle spots gaps, assumptions and open points, and suggests <b>follow-up questions</b> in a card under your notes, guided by your goal. Questions answered later turn faint. Click a question to jump to that moment, press <b>×</b> to dismiss one, or switch suggestions off from the <b>⋯</b> menu.",
   },
   {
     target: "#assist-btn",

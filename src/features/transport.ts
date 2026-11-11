@@ -14,7 +14,7 @@ import { refreshNotesTitle, saveNotesNow } from "./notes";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
-import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
+import { resetQuestions, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
 import { resetView } from "./view";
 
@@ -64,7 +64,6 @@ export function setSessionState(state: SessionState): void {
   else stopTimer();
   setStatus(state, STATUS_TEXT[state]);
 
-  setQuestionsHint();
   updateAnalyseVisibility();
   syncWrapUp();
   syncTransportPlacement();
@@ -103,7 +102,6 @@ async function start(): Promise<void> {
       resetTimer();
     }
     resetQuestions();
-    setAnalysisMode(false);
     const settings = loadLiveSessionSettings();
     await invoke("set_char_limit", { limit: settings.charLimit });
     await invoke("set_max_open_questions", { limit: settings.maxOpenQuestions });
@@ -129,7 +127,6 @@ export async function stop(): Promise<void> {
   } finally {
     setSessionState("idle");
     await saveNotesNow();
-    setAnalysisMode(true);
     await loadHistory();
   }
 }
@@ -182,7 +179,6 @@ export function initTransport(openSettings: () => void): void {
   dom.stopBtn.addEventListener("click", () => void stop());
   dom.newSessionBtn?.addEventListener("click", () => void newSession());
   dom.settingsBtn?.addEventListener("click", openSettings);
-  initFollowupToggle();
   initShortcuts();
   // Tray "New conversation": same flow as the record button, goal prompt included.
   void listen("start-requested", () => {

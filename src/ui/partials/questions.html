@@ -1,23 +1,4 @@
-<!-- Follow-up questions: an inline, collapsible card under the notes (see features/questions-card.ts). -->
+<!-- Follow-up questions: plain text boxes beside / under the notes. On/off lives in the "more" menu. -->
 <section class="questions-card" id="questions-card" aria-label="Follow-up questions" hidden>
-  <button id="questions-card-toggle" type="button" class="questions-card-head" aria-expanded="true" aria-controls="questions-card-body">
-    <i data-lucide="message-square-quote" aria-hidden="true"></i>
-    <span class="questions-card-title">Follow-up questions</span>
-    <span id="q-live" class="live-badge" role="status" aria-live="polite" aria-atomic="true"></span>
-    <i data-lucide="chevron-down" class="questions-card-chevron" aria-hidden="true"></i>
-  </button>
-
-  <div id="questions-card-body" class="questions-card-body">
-    <label class="followup-toggle" title="Let Roofle suggest questions while you record. Available for the session being recorded.">
-      <span class="followup-text">Suggest questions</span>
-      <input id="followup-toggle" type="checkbox" role="switch" checked disabled />
-      <span class="followup-track" aria-hidden="true"></span>
-    </label>
-
-    <p id="questions-empty" class="questions-empty">
-      <span id="questions-empty-hint">Roofle listens for gaps, assumptions and open points, then suggests questions worth asking.</span>
-    </p>
-
-    <div id="questions-list" class="questions-list" aria-label="Suggested follow-up questions"></div>
-  </div>
+  <div id="questions-list" class="questions-list"></div>
 </section>
