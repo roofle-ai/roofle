@@ -29,7 +29,7 @@
   border: 0;
   border-right: 1px solid var(--hair);
 }
-.settings-side .settings-title { margin: 0 0 0.25rem; padding: 0.5rem 0.85rem; font-size: 0.9rem; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.settings-side .settings-title { margin: 0 0 0.5rem; padding: 0.5rem 0.85rem; font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .settings-nav { flex: none; display: flex; flex-direction: column; gap: 0.15rem; padding: 0; background: transparent; border: 0; }
 .settings-nav-item {
   gap: 0;
@@ -37,14 +37,14 @@
   border: 1px solid transparent;
   border-radius: 12px;
   background: transparent;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
   font-size: 0.9rem;
-  font-weight: 400;
+  font-weight: 500;
   box-shadow: none;
 }
 .settings-nav-item [data-lucide] { display: none; }
 .settings-nav-item:hover { background: transparent; color: var(--ink); }
-.settings-nav-item.active { border-color: var(--hair); background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); font-weight: 400; }
+.settings-nav-item.active { border-color: var(--hair); background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink); font-weight: 600; }
 .settings-nav-item.active::before { display: none; }
 
 /* ---------- Main column ---------- */
@@ -70,11 +70,11 @@
 .settings-content .pane-head .pane-desc { margin: 0; font-size: 0.8125rem; line-height: 1.5; }
 
 .settings-group { margin: 0 0 1.25rem; padding: 0; border: 0; background: transparent; }
-.group-title { margin: 0 0 0.6rem; font-size: 0.8rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.group-title { margin: 0 0 0.6rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
 .settings-card { padding: 0; border: 0; background: transparent; box-shadow: none; }
 
 /* Labels are quiet; values are the large, bright text. */
-.settings-field-label { display: block; margin: 0 0 0.15rem; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
+.settings-field-label { display: block; margin: 0 0 0.15rem; font-size: 0.85rem; font-weight: 600; color: var(--ink); }
 .analyse-label { font-weight: 500; }
 
 /* Stacked field: label, underline input, hint. */
@@ -104,7 +104,7 @@ textarea.settings-input:focus { border-color: var(--brand); }
 .settings-row + .settings-row { border-top: 1px solid var(--hair); }
 .settings-row:first-child { padding-top: 0.25rem; }
 .settings-row-text { flex: 1 1 auto; min-width: 0; }
-.settings-row-text .settings-field-label { margin: 0; font-size: 0.9rem; color: var(--ink); }
+.settings-row-text .settings-field-label { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--ink); }
 .settings-row-text .settings-field-hint { margin: 0.15rem 0 0; }
 .settings-unit { flex: none; display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--muted); }
 .settings-unit .settings-input { width: 4.5rem; text-align: right; }
@@ -152,7 +152,7 @@ textarea.settings-input:focus { border-color: var(--brand); }
 .settings-link:hover { color: var(--ink); }
 
 /* Profile */
-.persona-q { margin: 1rem 0 0.5rem; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
+.persona-q { margin: 1rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--ink); }
 .persona-cards + .persona-q,
 .persona-chips + .persona-q { margin-top: 1.25rem; }
 .persona-summary-group { margin-top: 1.25rem; }
