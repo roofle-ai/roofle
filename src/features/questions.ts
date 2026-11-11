@@ -57,28 +57,22 @@ function renderQuestion(q: QuestionView): HTMLElement {
   card.dataset.qid = String(q.id);
   if (!seen.has(q.id)) card.classList.add("is-new");
   if (q.id === viewingSourceOf) card.classList.add("is-viewing");
+  if (q.status === "answered") card.append(create("span", "qtag", "Answered"));
   card.append(renderText(q, "qtext"));
   if (q.status === "open") card.append(renderHide(q));
-  if (q.status === "answered") card.append(renderAnswer(q));
+  if (q.status === "answered" && q.reason) card.append(renderAnswer(q, q.reason));
   return card;
 }
 
-/** "Answered" tag plus what the conversation said; the answer jumps to where it was said. */
-function renderAnswer(q: QuestionView): HTMLElement {
-  const row = create("div", "qanswer");
-  row.append(create("span", "qtag", "Answered"));
-  if (!q.reason) return row;
-  const { answer_source: where } = q;
-  if (!where) {
-    row.append(create("span", "qanswer-text", q.reason));
-    return row;
-  }
-  const text = create("button", "qanswer-text", q.reason);
+/** What the conversation said; clicking it jumps to where it was said. */
+function renderAnswer(q: QuestionView, reason: string): HTMLElement {
+  const where = q.answer_source;
+  if (!where) return create("p", "qanswer", reason);
+  const text = create("button", "qanswer", reason);
   text.type = "button";
   text.title = "Show where this was answered";
   text.addEventListener("click", () => revealTranscriptSource(where, q.id));
-  row.append(text);
-  return row;
+  return text;
 }
 
 /** Questions that stopped mattering: a small label and one muted chip each (full text on hover). */
