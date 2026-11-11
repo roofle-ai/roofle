@@ -11,7 +11,7 @@ import { createTopic, deleteTopic, listTopics, renameSession, setSessionTopic, t
 import { runExport } from "./export";
 import { loadHistory, removeSession } from "./history";
 import { isSearching, matchesSearch } from "./history-search";
-import { isEditingNotes, refreshNotesTitle, startEditingNotes } from "./notes";
+import { refreshNotesTitle } from "./notes";
 
 let topics: Topic[] = [];
 const topicOf = new Map<number, number | null>();
@@ -224,11 +224,6 @@ function renderMenu(): void {
     topic.insertAdjacentHTML("beforeend", `<i data-lucide="chevron-right" aria-hidden="true"></i>`);
     const busy = session.state !== "idle";
     topic.disabled = busy;
-    const editNotes = item("Edit notes", "pencil", () => {
-      closeMenu();
-      startEditingNotes();
-    });
-    editNotes.disabled = busy || session.notesTab !== "notes" || isEditingNotes();
     const rename = item("Rename conversation", "pencil", () => {
       const input = nameInput(
         async (title) => {
@@ -261,7 +256,6 @@ function renderMenu(): void {
     del.classList.add("topic-menu-danger");
     del.disabled = busy;
     dom.topicMenu.replaceChildren(
-      editNotes,
       rename,
       topic,
       create("div", "topic-menu-sep"),

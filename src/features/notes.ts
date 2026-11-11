@@ -1,6 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import DOMPurify from "dompurify";
-import { marked } from "marked";
 import { session } from "../app/state";
 import { dom } from "../lib/dom";
 import { setStatus, showToast } from "../lib/status";
@@ -8,48 +6,16 @@ import { saveNotes } from "../transcripts";
 
 const AUTOSAVE_DELAY_MS = 800;
 let saveTimer: number | undefined;
-/** True when the edited notes differ from what was last persisted. */
-let dirty = false;
-/** Notes as last loaded or saved — what discarding edits restores. */
-let savedText = "";
-
-/** True while the rendered markdown view is showing instead of the editor. */
-let previewing = false;
 
 export function scrollNotesToEnd(): void {
-  const el = previewing ? dom.notesPreview : dom.notesInput;
-  el.scrollTop = el.scrollHeight;
+  dom.notesInput.scrollTop = dom.notesInput.scrollHeight;
 }
 
-function renderPreview(): void {
-  const md = dom.notesInput.value;
-  const html = md.trim()
-    ? DOMPurify.sanitize(marked.parse(md, { async: false, breaks: true }))
-    : `<p class="notes-preview-empty">Nothing to preview yet.</p>`;
-  dom.notesPreview.innerHTML = html;
-  // Links in notes must not navigate the app webview.
-  dom.notesPreview.querySelectorAll("a").forEach((a) => {
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-  });
-}
-
-/** Switch between the markdown editor and its rendered preview. */
-export function setNotesPreview(on: boolean): void {
-  previewing = on;
-  if (on) renderPreview();
-  dom.notesInput.hidden = on;
-  if (on) dom.notesEditing.classList.remove("on");
-  dom.notesPreview.hidden = !on;
-}
-
-/** Called after notes are loaded from a saved session: show them rendered. */
-export function showLoadedNotes(): void {
-  savedText = dom.notesInput.value;
+/** Replace the notepad's text with a session's saved notes; nothing is pending afterwards. */
+export function setNotesText(text: string): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  dirty = false;
-  setNotesPreview(dom.notesInput.value.trim() !== "");
+  dom.notesInput.value = text;
 }
 
 /** Live transcript words if any, else "Notes / <date> / <time>". */
@@ -91,21 +57,14 @@ export function refreshNotesTitle(date?: Date): void {
 export function clearNotes(): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  dirty = false;
   dom.notesInput.value = "";
-  savedText = "";
-  setNotesPreview(false);
   session.titleFromTranscript = undefined;
   renderNotesMeta(new Date());
 }
 
+/** Every edit is saved shortly after the user pauses typing. */
 export function scheduleNotesSave(): void {
   window.clearTimeout(saveTimer);
-  // A finished session saves explicitly (save prompt / ⌘S) once the user edits.
-  if (session.state === "idle") {
-    dirty = true;
-    return;
-  }
   saveTimer = window.setTimeout(() => {
     saveTimer = undefined;
     void saveNotesNow();
@@ -116,10 +75,7 @@ export function scheduleNotesSave(): void {
 export async function saveNotesNow(): Promise<boolean> {
   if (session.viewedId === null) return false;
   try {
-    const text = dom.notesInput.value;
-    await saveNotes(session.viewedId, text);
-    savedText = text;
-    dirty = false;
+    await saveNotes(session.viewedId, dom.notesInput.value);
     return true;
   } catch (err) {
     setStatus("error", String(err));
@@ -127,96 +83,27 @@ export async function saveNotesNow(): Promise<boolean> {
   }
 }
 
-/** Whether a finished session's notes are open in the editor (as opposed to the rendered view). */
-export function isEditingNotes(): boolean {
-  return session.state === "idle" && session.viewedId !== null && !previewing;
-}
-
-/** Open a finished session's notes in the editor, caret at the end. */
-export function startEditingNotes(): void {
-  setNotesPreview(false);
-  dom.notesEditing.classList.add("on");
-  dom.notesInput.focus();
-  const end = dom.notesInput.value.length;
-  dom.notesInput.setSelectionRange(end, end);
-  scrollNotesToEnd();
-}
-
-/** Back to the rendered notes. */
-function stopEditingNotes(): void {
-  dom.notesEditing.classList.remove("on");
-  setNotesPreview(dom.notesInput.value.trim() !== "");
-}
-
-/** Leave the editor: straight out when nothing changed, otherwise ask what to do with the edits. */
-function finishEditingNotes(): void {
-  if (dirty) dom.saveNotesModal.hidden = false;
-  else stopEditingNotes();
-}
-
-function closeSavePrompt(): void {
-  dom.saveNotesModal.hidden = true;
-}
-
-/** Persist the edits and leave the editor. */
-async function saveAndFinish(): Promise<void> {
-  closeSavePrompt();
-  if (!(await saveNotesNow())) return;
-  showToast("Notes saved");
-  stopEditingNotes();
-}
-
-/** Throw away unsaved edits and leave the editor. */
-function discardAndFinish(): void {
-  closeSavePrompt();
-  window.clearTimeout(saveTimer);
-  saveTimer = undefined;
-  dom.notesInput.value = savedText;
-  dirty = false;
-  stopEditingNotes();
-}
-
-/** Replace the editor with the agent's full notes document and autosave it. */
+/** Replace the notepad with the agent's full notes document. */
 export function applyGeneratedNotes(text: string): void {
   const notes = text.trim();
   if (!notes) return;
   dom.notesInput.value = notes;
-  if (previewing) renderPreview();
   scrollNotesToEnd();
-  // Programmatic writes don't fire `input`.
-  if (session.state === "idle") showLoadedNotes(); // already saved by the backend
+  // Programmatic writes don't fire `input`; a finished session's notes are already saved by the backend.
+  if (session.state === "idle") setNotesText(notes);
   else scheduleNotesSave();
 }
 
 export function initNotes(): void {
   dom.notesInput.addEventListener("input", scheduleNotesSave);
-  dom.notesInput.addEventListener("focus", () => dom.notesEditing.classList.add("on"));
-  dom.notesInput.addEventListener("blur", () => {
-    // A finished session stays in edit mode until the user finishes; a live one only while focused.
-    if (!isEditingNotes()) dom.notesEditing.classList.remove("on");
-  });
   dom.notesInput.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    if (isEditingNotes()) finishEditingNotes();
-    else dom.notesInput.blur();
+    if (e.key === "Escape") dom.notesInput.blur();
   });
-
-  // Pressing anywhere outside the notes panel finishes the edit. `pointerdown` (not `click`)
-  // so the save prompt's own buttons, which hide it on click, can't re-trigger this.
-  document.addEventListener("pointerdown", (e) => {
-    if (!isEditingNotes() || !dom.saveNotesModal.hidden) return;
-    if (!e.composedPath().includes(dom.transcriptPanel)) finishEditingNotes();
-  });
-
-  dom.saveNotesDiscard.addEventListener("click", discardAndFinish);
-  dom.saveNotesSave.addEventListener("click", () => void saveAndFinish());
-  dom.saveNotesModal.addEventListener("click", (e) => e.target === dom.saveNotesModal && closeSavePrompt());
-
+  // ⌘S saves right away, for the muscle memory.
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !dom.saveNotesModal.hidden) return closeSavePrompt();
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "s") return;
     e.preventDefault();
-    if (isEditingNotes() && dirty) void saveAndFinish();
+    void saveNotesNow().then((ok) => ok && showToast("Notes saved"));
   });
   renderNotesMeta(new Date());
 }

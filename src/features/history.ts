@@ -13,7 +13,7 @@ import {
   type SessionSummary,
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
-import { refreshNotesTitle, showLoadedNotes } from "./notes";
+import { refreshNotesTitle, setNotesText } from "./notes";
 import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
 import { matchesSearch } from "./history-search";
 import { canDragToTopic, groupByTopic, rememberTopics, setDragId, topicName } from "./topics";
@@ -159,8 +159,7 @@ export async function openSession(id: number): Promise<void> {
       (detail.transcript?.trim() ? previewWords(detail.transcript) : undefined);
     refreshNotesTitle(new Date(detail.session.started_at));
     session.hasTranscript = detail.segments.length > 0;
-    dom.notesInput.value = detail.notes ?? "";
-    showLoadedNotes();
+    setNotesText(detail.notes ?? "");
     syncWrapUp();
 
     resetQuestions();

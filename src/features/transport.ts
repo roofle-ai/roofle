@@ -10,7 +10,7 @@ import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
 import { walkthroughDone } from "./walkthrough";
 import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
-import { refreshNotesTitle, saveNotesNow, setNotesPreview } from "./notes";
+import { refreshNotesTitle, saveNotesNow } from "./notes";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
@@ -56,8 +56,6 @@ export function setSessionState(state: SessionState): void {
   dom.recordIconPause.toggleAttribute("hidden", state !== "recording");
   dom.stopBtn.hidden = state === "idle";
 
-  // Live text is appended to the editor, so it must be showing while a session is active.
-  if (state !== "idle") setNotesPreview(false);
   // Shown only while the editor is empty, so it disappears once notes arrive.
   dom.notesInput.placeholder =
     state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder();

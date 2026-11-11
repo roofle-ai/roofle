@@ -130,9 +130,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 }
 .questions-card[hidden] { display: none; }
 
-/* Notes editing wants the whole page. */
-.transcript:has(.notes-editing.on) .questions-card { display: none; }
-
 .questions-card-head {
   display: flex;
   align-items: center;
@@ -226,15 +223,20 @@ select { background: var(--surface-2); }
 
 /* ---------- 8. The page: toolbar, big title, then the note ---------- */
 /* One reading column, centred; head, title and note all inset to it. */
-.transcript { --notes-pad-x: max(var(--gutter), calc((100% - 780px) / 2)); }
-.transcript-head { justify-content: flex-start; min-height: 0; padding: 1.5rem var(--notes-pad-x) 0; }
-.notes-editing:not(.on) { display: none; }
-.notes-editing { margin: 0; }
-
+/* Left-aligned from the gutter, so the page uses the whole width. --pad-r keeps
+   lines under 72rem on huge windows and reserves room for the margin note. */
+.transcript { --pad-l: var(--gutter); --pad-r: max(var(--gutter), calc(100% - 72rem)); }
+.transcript-head,
+.page-title,
+.notes-meta-row,
+.notes-input,
+.transcription-list { padding-left: var(--pad-l); padding-right: var(--pad-r); }
+.transcript-head { justify-content: flex-start; min-height: 0; padding-top: 1.5rem; padding-bottom: 0; }
 .page-title {
   flex: 0 0 auto;
   margin: 0;
-  padding: 0.5rem var(--notes-pad-x) 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 1rem;
   font-family: var(--font-sans);
   font-size: clamp(1.9rem, 4vw, 2.75rem);
   font-weight: 500;
@@ -246,8 +248,7 @@ select { background: var(--surface-2); }
 
 
 /* Body text: calm and loose. */
-.notes-input,
-.notes-preview { font-size: 1.1rem; line-height: 1.85; }
+.notes-input { font-size: 1.1rem; line-height: 1.85; }
 
 /* Assist: a ghost toolbar item like the rest, not a tinted pill. */
 .assist-btn,
@@ -271,7 +272,7 @@ select { background: var(--surface-2); }
 
 /* Assist menu: one clean list under the toolbar, no tinted boxes. */
 .assist-menu {
-  left: var(--notes-pad-x);
+  left: var(--pad-l);
   right: auto;
   top: 3.5rem;
   width: min(26rem, calc(100% - 2 * var(--gutter)));
@@ -318,11 +319,12 @@ select { background: var(--surface-2); }
 .qanswer-text { color: var(--muted); font-size: 0.9rem; }
 
 /* Wide windows: questions sit in the right margin, like a comment. */
-@media (min-width: 1440px) {
+@media (min-width: 1280px) {
+  .transcript:has(.questions-card:not([hidden])) { --pad-r: max(calc(var(--gutter) + 19rem), calc(100% - 72rem)); }
   .questions-card {
     position: absolute;
     top: 9rem;
-    right: calc(var(--notes-pad-x) - 18.5rem);
+    right: var(--gutter);
     width: 17rem;
     margin: 0;
     max-height: calc(100% - 10.5rem);
