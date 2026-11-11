@@ -132,36 +132,62 @@
 /* ---------- 7. Setup checklist + model banner ---------- */
 .model-banner { margin: 0.5rem var(--gutter) 0.25rem; border: 0; border-radius: 10px; background: var(--surface-2); box-shadow: none; }
 
-/* Setup checklist: a small popup in the corner. Permission rows are one-click: they open
-   the exact System Settings pane. */
+/* Setup checklist: a small popup in the corner. Unfinished rows are one-click: permission
+   rows open the exact System Settings pane. */
 .onboarding {
   position: fixed;
   right: 1.25rem;
   bottom: 2.75rem; /* clear of the feedback link */
   z-index: 60;
-  width: min(22rem, calc(100vw - 2.5rem));
+  width: min(23rem, calc(100vw - 2.5rem));
   margin: 0;
-  padding: 0.9rem 0.9rem 0.6rem;
+  padding: 1rem 1rem 0.6rem;
   border: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--paper-solid);
-  box-shadow: var(--float), 0 16px 44px var(--drop);
+  box-shadow: var(--float), 0 18px 48px var(--drop);
   font-size: 0.85rem;
 }
 .onboarding[hidden] { display: none; }
-.onboarding-head { margin: 0 0.25rem 0.5rem; }
-.onboarding-head strong { font-size: 0.9rem; font-weight: 600; }
-.onboarding-list { gap: 0.1rem; }
-.onboarding-step { width: 100%; padding: 0.5rem 0.45rem; border-radius: 10px; align-items: flex-start; gap: 0.65rem; }
-.onboarding-tick { margin-top: 0.1rem; }
-.onboarding-text b { font-weight: 600; font-size: 0.85rem; }
-.onboarding-text span { font-size: 0.78rem; line-height: 1.4; }
+.onboarding-head { display: flex; align-items: center; gap: 0.5rem; margin: 0 0.25rem 0.6rem; }
+.onboarding-head strong { flex: 1; font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
+.onboarding-count { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.onboarding-skip { width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--faint); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.onboarding-skip:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.onboarding-bar { height: 3px; margin: 0 0.25rem 0.5rem; border-radius: 2px; background: color-mix(in srgb, var(--ink) 10%, transparent); overflow: hidden; }
+.onboarding-bar i { display: block; height: 100%; border-radius: 2px; background: var(--brand); transition: width 300ms ease; }
+.onboarding-list { gap: 0; }
+.onboarding-step { width: 100%; padding: 0.6rem 0.4rem; border-radius: 10px; align-items: center; gap: 0.75rem; }
+.onboarding-step.is-done { padding-top: 0.45rem; padding-bottom: 0.45rem; }
+.onboarding-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--muted);
+}
+.onboarding-ico svg,
+.onboarding-ico [data-lucide] { width: 15px; height: 15px; }
+.is-done .onboarding-ico { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand-strong); }
+.onboarding-text b { font-size: 0.85rem; font-weight: 600; }
+.is-done .onboarding-text b { color: var(--muted); font-weight: 500; }
+.onboarding-text span { font-size: 0.78rem; line-height: 1.4; color: var(--muted); }
 .onboarding-row { border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.onboarding-row:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
-.onboarding-go { align-self: center; flex: none; max-width: 7.5rem; color: var(--brand-strong); font-size: 0.75rem; font-weight: 600; line-height: 1.25; text-align: right; }
-.onboarding-row:hover .onboarding-go { text-decoration: underline; text-underline-offset: 0.2em; }
-.onboarding-tick { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
-.is-done .onboarding-tick { border-color: var(--brand); background: var(--brand); color: var(--paper-solid); }
+.onboarding-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.onboarding-go {
+  flex: none;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.onboarding-row:hover .onboarding-go { background: var(--ink); border-color: var(--ink); color: var(--paper-solid); }
 .onboarding-btn,
 .model-banner-btn {
   padding: 0.3rem 0.9rem;

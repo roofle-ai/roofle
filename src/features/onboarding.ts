@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { loadAiConfig } from "../ai";
+import { refreshIcons } from "../lib/icons";
 import { openSettings } from "../settings";
 import { showWalkthroughOnce } from "./walkthrough";
 
@@ -13,6 +14,8 @@ const PANE = "x-apple.systempreferences:com.apple.preference.security?Privacy_";
 
 interface Step {
   id: string;
+  /** Lucide icon name shown until the step is done. */
+  icon: string;
   title: string;
   hint: string;
   done: boolean;
@@ -50,12 +53,14 @@ async function steps(): Promise<Step[]> {
   const list: Step[] = [];
   list.push({
     id: "model",
+    icon: "download",
     title: "Speech model",
     hint: modelReady ? "Ready." : "Downloading automatically. This takes a few minutes, once.",
     done: modelReady,
   });
   list.push({
     id: "mic",
+    icon: "mic",
     title: "Microphone access",
     hint: "So Roofle can hear you.",
     done: perms.mic === "granted",
@@ -66,8 +71,9 @@ async function steps(): Promise<Step[]> {
   });
   list.push({
     id: "screen",
-    title: "Screen & system audio recording",
-    hint: "So Roofle can hear the other side of the call. Restart Roofle after enabling.",
+    icon: "monitor",
+    title: "Screen & system audio",
+    hint: "To hear the other side of the call. Restart Roofle after enabling.",
     done: perms.screen,
     action: {
       label: "Open settings",
@@ -79,34 +85,39 @@ async function steps(): Promise<Step[]> {
   });
   list.push({
     id: "ai",
+    icon: "key-round",
     title: "AI key",
     hint: "Powers live notes, questions and recaps. Bring your own key.",
     done: ai.has_api_key,
-    action: { label: "Open Settings", run: openSettings },
+    action: { label: "Add key", run: openSettings },
   });
   return list;
 }
 
 /** A step as a list item; an unfinished one with an action is a single clickable row. */
 function stepRow(s: Step): string {
-  const body = `<span class="onboarding-tick">${s.done ? CHECK : ""}</span>
-    <span class="onboarding-text"><b>${s.title}</b><span>${s.hint}</span></span>`;
+  const icon = s.done ? CHECK : `<i data-lucide="${s.icon}" aria-hidden="true"></i>`;
+  const body = `<span class="onboarding-ico">${icon}</span>
+    <span class="onboarding-text"><b>${s.title}</b>${s.done ? "" : `<span>${s.hint}</span>`}</span>`;
   if (s.done || !s.action) return `<li><div class="onboarding-step${s.done ? " is-done" : ""}">${body}</div></li>`;
   return `<li><button type="button" class="onboarding-step onboarding-row" data-step="${s.id}">${body}
-    <span class="onboarding-go">${s.action.label} <span aria-hidden="true">›</span></span></button></li>`;
+    <span class="onboarding-go">${s.action.label}</span></button></li>`;
 }
 
 function render(list: Step[]): void {
-  const left = list.filter((s) => !s.done).length;
+  const done = list.filter((s) => s.done).length;
   const html = `
     <div class="onboarding-head">
-      <strong>Finish setting up · ${left} left</strong>
-      <button type="button" class="onboarding-skip" data-skip>Dismiss</button>
+      <strong>Finish setting up</strong>
+      <span class="onboarding-count">${done} of ${list.length}</span>
+      <button type="button" class="onboarding-skip" data-skip aria-label="Dismiss" title="Dismiss">×</button>
     </div>
+    <div class="onboarding-bar" aria-hidden="true"><i style="width:${(done / list.length) * 100}%"></i></div>
     <ul class="onboarding-list">${list.map(stepRow).join("")}</ul>`;
   if (html === lastRender) return; // keep the buttons stable while polling
   lastRender = html;
   card.innerHTML = html;
+  refreshIcons();
   card.querySelector("[data-skip]")!.addEventListener("click", hide);
   for (const btn of card.querySelectorAll<HTMLButtonElement>("[data-step]")) {
     btn.addEventListener("click", () => list.find((s) => s.id === btn.dataset.step)?.action?.run());
