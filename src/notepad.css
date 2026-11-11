@@ -66,7 +66,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 .record-btn,
 .stop-btn,
 .new-chat,
-.row-transport button,
 .session-pill,
 .assist-menu button {
   background: transparent;
@@ -86,7 +85,6 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 .record-btn:hover:not(:disabled),
 .stop-btn:hover:not(:disabled),
 .new-chat:hover,
-.row-transport button:hover,
 .session-pill:hover,
 .assist-menu button:hover:not(:disabled) {
   background: transparent;
@@ -99,18 +97,15 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 }
 .icon-btn:hover,
 .record-btn:hover:not(:disabled),
-.stop-btn:hover:not(:disabled),
-.row-transport button:hover { text-decoration: none; }
+.stop-btn:hover:not(:disabled) { text-decoration: none; }
 
 .btn:active:not(:disabled) { background: transparent; }
 
 /* ---------- 4. States that carry meaning stay coloured (text only) ---------- */
 .session-pill.recording,
 .session-pill.error,
-.row-transport button.recording,
 .record-btn.recording { color: var(--record); background: transparent; border: 0; }
-.session-pill.paused,
-.row-transport button.paused { color: var(--amber); background: transparent; border: 0; }
+.session-pill.paused { color: var(--amber); background: transparent; border: 0; }
 
 .history-item:hover,
 .history-item.is-active { background: transparent; }
@@ -515,6 +510,7 @@ button.qstale-chip:hover { color: var(--ink); }
 
 /* ---------- 18. Transport: one capsule - pause/resume, stop, time ---------- */
 .transport {
+  margin-left: 0;
   gap: 0.35rem;
   padding: 0.2rem 0.85rem 0.2rem 0.2rem;
   border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);

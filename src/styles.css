@@ -590,61 +590,6 @@ body {
   box-shadow: inset 2px 0 0 var(--brand);
 }
 
-/* Pause/stop on the live row, shown only while another conversation is open. */
-.row-transport {
-  display: none;
-  gap: 0.25rem;
-  align-self: flex-start;
-}
-
-.history-item:not(.is-active) > .row-transport {
-  display: flex;
-}
-
-.row-transport button {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--muted);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
-  cursor: pointer;
-  transition: color 200ms ease, background 200ms ease, border-color 200ms ease,
-    box-shadow 200ms ease, transform 200ms var(--ease);
-}
-
-.row-transport button:hover {
-  background: var(--surface-2);
-  color: var(--ink);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--ink) 14%, transparent);
-  transform: translateY(-1px);
-}
-
-.row-transport button:active {
-  transform: scale(0.9);
-}
-
-.row-transport button.recording {
-  color: var(--record);
-  background: var(--record-soft);
-  border-color: color-mix(in srgb, var(--record) 35%, var(--line));
-}
-
-.row-transport button.paused {
-  color: var(--amber);
-  background: color-mix(in srgb, var(--amber) 14%, var(--bg));
-  border-color: color-mix(in srgb, var(--amber) 40%, var(--line));
-}
-
-.row-transport svg {
-  width: 12px;
-  height: 12px;
-}
-
 .history-item.is-recording::after {
   content: "●";
   align-self: flex-start;
