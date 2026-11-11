@@ -447,21 +447,16 @@ button.qtext { cursor: pointer; }
 .qcard.answered:hover { border-left-color: var(--green); }
 .qcard.answered .qtext { color: var(--muted); }
 .qtag {
-  display: block;
-  margin: 0 0 0.25rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: color-mix(in srgb, var(--green) 75%, var(--ink));
-  font: 500 0.7rem var(--font-sans);
-  letter-spacing: 0.01em;
-  text-align: left;
+  display: inline-block;
+  margin-bottom: 0.3rem;
+  padding: 0.05rem 0.55rem 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  color: color-mix(in srgb, var(--green) 80%, var(--ink));
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.02em;
 }
-/* Clickable: underlined, with an arrow that nudges on hover. */
-.qtag-link { cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
-.qtag-link::after { content: "›"; display: inline-block; margin-left: 0.25rem; transition: transform 120ms ease; }
-.qtag-link:hover { color: var(--ink); }
-.qtag-link:hover::after { transform: translateX(2px); }
+.qtag::before { content: "✓ "; }
 .qanswer {
   display: block;
   margin: 0.45rem 0 0;
@@ -475,6 +470,10 @@ button.qtext { cursor: pointer; }
   line-height: 1.5;
   text-align: left;
 }
+/* The LLM's answer: small, and underlined when it can jump to where it was said. */
+.qanswer { font-size: 0.8rem; }
+button.qanswer { cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ink) 40%, transparent); text-underline-offset: 0.25em; }
+button.qanswer:hover { text-decoration-color: var(--ink); }
 .qstale { margin-top: 0.25rem; }
 .qstale-label { margin: 0 0 0.4rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
 .qstale-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
