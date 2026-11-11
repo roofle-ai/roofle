@@ -501,3 +501,14 @@ button.qstale-chip:hover { color: var(--ink); }
 .notes-meta-row { justify-content: flex-start; gap: 0.4rem; }
 .notes-tokens { font-size: 0.78rem; letter-spacing: 0.02em; }
 .notes-tokens:not(:empty)::before { content: "·"; margin-right: 0.4rem; }
+
+/* ---------- 17. Transcription tab: aligned to the page column ---------- */
+/* The list already carries --pad-l/--pad-r; the pane's old centred padding doubled it up. */
+.transcription-pane { padding-left: 0; padding-right: 0; }
+.transcription-empty { padding: 0 var(--pad-r) 0 var(--pad-l); }
+/* Fixed columns so every row's text starts at the same x, whoever is speaking. */
+.transcription-row { grid-template-columns: 2.75rem 2.75rem minmax(0, 1fr); column-gap: 0.5rem; }
+.source-label,
+.source-label.source-system { padding: 0; background: transparent; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.05em; }
+.source-label.source-mic { color: var(--brand-strong); }
+.transcription-text { font-size: 1.05rem; }
