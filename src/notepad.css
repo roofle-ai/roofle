@@ -276,9 +276,10 @@ body { font-family: var(--font-sans); font-size: 1rem; }
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.6;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.5;
   text-align: left;
 }
 button.qtext { cursor: pointer; }
@@ -611,3 +612,7 @@ button.qstale-chip:hover { color: var(--ink); }
 .crumb { gap: 0.6rem; }
 .crumb h1 { line-height: 1.1; }
 .crumb-logo { width: 30px; height: 30px; border-radius: 8px; }
+
+/* ---------- 23. "More" button: the three dots with a label, like Assist ---------- */
+.more-btn { display: inline-flex; align-items: center; gap: 0.4rem; width: auto; height: auto; padding: 0.35rem 0.6rem; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; }
+.more-btn svg { flex: none; width: 15px; height: 15px; }
