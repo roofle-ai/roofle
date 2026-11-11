@@ -8,7 +8,6 @@ import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
-import { walkthroughDone } from "./walkthrough";
 import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
 import { refreshNotesTitle, saveNotesNow } from "./notes";
 import { setNotesPlaceholder } from "./notes-editor";
@@ -92,7 +91,6 @@ async function applyCallSetup({ kind, callType, goal }: CallSetup): Promise<void
 }
 
 async function start(): Promise<void> {
-  await walkthroughDone(); // first time only: show "How Roofle works" before the call setup
   if (!(await ensureModel())) return;
   const setup = await askCallSetup();
   if (setup === null) return;

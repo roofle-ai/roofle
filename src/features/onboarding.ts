@@ -6,7 +6,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { loadAiConfig } from "../ai";
 import { refreshIcons } from "../lib/icons";
 import { openSettings } from "../settings";
-import { showWalkthroughOnce } from "./walkthrough";
 
 const DONE_KEY = "roofle-onboarding-done";
 const POLL_MS = 2000;
@@ -134,17 +133,13 @@ async function refresh(): Promise<void> {
   const list = await steps();
   if (list.every((s) => s.done)) {
     hide(); // finished: never shown again
-    showWalkthroughOnce(); // the guide comes right after setup completes
     return;
   }
   render(list);
 }
 
 export function initOnboarding(): void {
-  if (isDone()) {
-    showWalkthroughOnce(); // onboarding finished or dismissed earlier; no-op once seen
-    return;
-  }
+  if (isDone()) return; // finished or dismissed earlier
   card.hidden = false;
   void refresh();
   timer = window.setInterval(() => void refresh(), POLL_MS);

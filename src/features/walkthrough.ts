@@ -1,7 +1,5 @@
-// "How it works": slides shown once after setup, reopenable from Settings → About.
+// "How it works": slides opened from Settings → About (never shown automatically).
 // A slide with a `target` glows that element and puts the popup beside it with an arrow.
-const SEEN_KEY = "roofle-walkthrough-seen";
-
 interface Slide {
   title: string;
   body: string;
@@ -72,7 +70,6 @@ const MARGIN = 16;
 const ARROW = 32;
 const GAP = 12;
 let index = 0;
-let waiters: (() => void)[] = [];
 let glowing: Element | null = null;
 let revealed: { node: HTMLElement; wasHidden: boolean } | null = null;
 
@@ -138,12 +135,6 @@ function draw(): void {
 function close(): void {
   root.hidden = true;
   unpoint();
-  for (const done of waiters.splice(0)) done();
-  try {
-    localStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    /* shows again next launch; harmless */
-  }
 }
 
 el("walkthrough-back").addEventListener("click", () => {
@@ -165,23 +156,4 @@ export function showWalkthrough(): void {
   index = 0;
   root.hidden = false; // visible first so the popup can be measured
   draw();
-}
-
-function seen(): boolean {
-  try {
-    return localStorage.getItem(SEEN_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function showWalkthroughOnce(): void {
-  if (!seen() && root.hidden) showWalkthrough();
-}
-
-/** Resolves once the guide is out of the way: at once if it was seen, else after showing it and the user closing it. */
-export function walkthroughDone(): Promise<void> {
-  if (seen() && root.hidden) return Promise.resolve();
-  if (root.hidden) showWalkthrough();
-  return new Promise((resolve) => waiters.push(resolve));
 }
