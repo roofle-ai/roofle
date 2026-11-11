@@ -18,6 +18,7 @@ export const dom = {
   notesInput: query<HTMLTextAreaElement>("#notes-input"),
   notesTabs: Array.from(document.querySelectorAll<HTMLButtonElement>(".notes-tab")),
   notesPane: query<HTMLDivElement>("#notes-pane"),
+  notesWelcome: query<HTMLDivElement>("#notes-welcome"),
   transcriptionPane: query<HTMLDivElement>("#transcription-pane"),
   transcriptionList: query<HTMLOListElement>("#transcription-list"),
   transcriptionEmpty: query<HTMLParagraphElement>("#transcription-empty"),

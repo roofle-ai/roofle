@@ -379,3 +379,27 @@ button.qtext { cursor: pointer; }
   cursor: pointer;
 }
 .feedback-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* ---------- 14. Welcome text on a fresh, empty notepad ---------- */
+.notes-pane { position: relative; }
+.notes-pane.has-welcome .notes-input::placeholder { color: transparent; }
+.notes-welcome {
+  position: absolute;
+  top: 3.5rem;
+  left: var(--pad-l);
+  right: var(--pad-r);
+  pointer-events: none; /* clicks reach the textarea underneath */
+  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+.notes-welcome[hidden] { display: none; }
+.notes-welcome p { margin: 0; }
+.notes-welcome-lead { color: var(--ink); font-size: 1.15rem; }
+.notes-welcome-steps { margin: 1rem 0; padding: 0; list-style: none; counter-reset: step; }
+.notes-welcome-steps li { position: relative; margin: 0 0 0.7rem; padding-left: 1.75rem; counter-increment: step; }
+.notes-welcome-steps li::before { content: counter(step); position: absolute; left: 0; top: 0; color: var(--brand); font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; }
+.notes-welcome-steps b { color: var(--ink); font-weight: 600; }
+.notes-welcome-steps em { font-style: normal; color: var(--ink); }
+.notes-welcome-foot { font-size: 0.9rem; color: var(--faint); }

@@ -14,6 +14,7 @@ import { initModelSetup } from "./features/model-setup";
 import { initOnboarding } from "./features/onboarding";
 import { initNotes } from "./features/notes";
 import { initNotesTabs } from "./features/notes-tabs";
+import { initWelcome } from "./features/welcome";
 import { initTopics } from "./features/topics";
 import { initTransport } from "./features/transport";
 import { initWrapUp } from "./features/wrap-up";
@@ -36,6 +37,7 @@ async function init(): Promise<void> {
   });
   initTransport(openSettings);
   initNotes();
+  initWelcome();
   initNotesTabs();
   initRecap();
   initFigures();

@@ -3,6 +3,7 @@ import { session } from "../app/state";
 import { dom } from "../lib/dom";
 import { setStatus, showToast } from "../lib/status";
 import { saveNotes } from "../transcripts";
+import { syncWelcome } from "./welcome";
 
 const AUTOSAVE_DELAY_MS = 800;
 let saveTimer: number | undefined;
@@ -16,6 +17,7 @@ export function setNotesText(text: string): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
   dom.notesInput.value = text;
+  syncWelcome();
 }
 
 /** Live transcript words if any, else "Notes / <date> / <time>". */
@@ -58,6 +60,7 @@ export function clearNotes(): void {
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
   dom.notesInput.value = "";
+  syncWelcome();
   session.titleFromTranscript = undefined;
   renderNotesMeta(new Date());
 }

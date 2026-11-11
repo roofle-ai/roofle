@@ -97,6 +97,16 @@
         aria-label="Conversation notes"
         placeholder="Start recording or type your notes here…"
       ></textarea>
+      <!-- Shown on a fresh, empty notepad (features/welcome.ts). Clicks fall through to the textarea. -->
+      <div id="notes-welcome" class="notes-welcome" hidden>
+        <p class="notes-welcome-lead">Welcome to Roofle. Listen, note, coach.</p>
+        <ol class="notes-welcome-steps">
+          <li><b>Start a conversation.</b> Click <em>New conversation</em> (or press ⌘R), pick the kind of call and, if you like, a goal.</li>
+          <li><b>Just talk.</b> Roofle transcribes you and the other side on your Mac, keeps live notes, and suggests questions worth asking in the margin.</li>
+          <li><b>Wrap up.</b> Stop for a recap, action items and a follow-up email. Everything is saved; reopen past calls from the menu at the top left.</li>
+        </ol>
+        <p class="notes-welcome-foot">This page is a notepad too: type anywhere. Audio never leaves your Mac, and AI runs on your own key.</p>
+      </div>
     </div>
     <!-- Read-only transcription, each utterance labelled with its source. -->
     <div id="transcription-pane" class="transcription-pane" role="tabpanel" aria-labelledby="tab-transcription" hidden>

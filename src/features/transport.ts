@@ -11,6 +11,7 @@ import { updateAnalyseVisibility } from "./analysis";
 import { walkthroughDone } from "./walkthrough";
 import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
 import { refreshNotesTitle, saveNotesNow } from "./notes";
+import { syncWelcome } from "./welcome";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
@@ -60,6 +61,7 @@ export function setSessionState(state: SessionState): void {
   dom.notesInput.placeholder =
     state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder();
 
+  syncWelcome();
   if (state === "recording") startTimer();
   else stopTimer();
   setStatus(state, STATUS_TEXT[state]);
