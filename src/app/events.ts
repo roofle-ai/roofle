@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { adoptActiveSession, loadHistory } from "../features/history";
 import { applyGeneratedNotes, refreshTokens } from "../features/notes";
-import { refreshTranscription } from "../features/notes-tabs";
+import { refreshTranscription, syncTranscriptTab } from "../features/notes-tabs";
 import { ingestChallenges } from "../features/questions";
 import { setSessionState } from "../features/transport";
 import { onWrapUp } from "../features/wrap-up";
@@ -17,6 +17,7 @@ const MODEL_PROGRESS_HIDE_MS = 900;
 function onTranscript({ kind, text }: Segment): void {
   if (kind === "Final") {
     session.hasTranscript = true;
+    syncTranscriptTab();
     refreshTranscription();
   }
   // Notes come from the agent, not raw transcription; only the title uses it.

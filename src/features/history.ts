@@ -14,6 +14,7 @@ import {
 } from "../transcripts";
 import { updateAnalyseVisibility } from "./analysis";
 import { refreshNotesTitle, setNotesText } from "./notes";
+import { syncTranscriptTab } from "./notes-tabs";
 import { ingestChallenges, resetQuestions } from "./questions";
 import { matchesSearch } from "./history-search";
 import { canDragToTopic, groupByTopic, rememberTopics, setDragId, topicName } from "./topics";
@@ -133,6 +134,7 @@ export async function openSession(id: number): Promise<void> {
       (detail.transcript?.trim() ? previewWords(detail.transcript) : undefined);
     refreshNotesTitle(new Date(detail.session.started_at));
     session.hasTranscript = detail.segments.length > 0;
+    syncTranscriptTab();
     setNotesText(detail.notes ?? "");
     syncWrapUp();
 
