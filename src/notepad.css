@@ -223,3 +223,23 @@ body { font-family: var(--font-serif); font-size: 1.0625rem; }
 /* Header row left of the page controls: notes toolbar sits right now the title moved up. */
 .transcript-head { justify-content: flex-end; min-height: 3rem; }
 .notes-editing { margin-right: auto; }
+
+/* ---------- 7. Sweep: whatever styles.css still draws ----------
+   Borders and static shadows are hidden everywhere (colour, not width, so
+   layout does not shift). Exempt: states that rely on them to be seen
+   (selected, drop target, tour spotlight) and the floating surfaces. */
+*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.analyse-dialog):not(.onb-card) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Fields lose their outline, so they get a quiet fill instead. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select { background: var(--surface-2); }
+
+/* Page-sized washes become plain paper. */
+.walkthrough-hero,
+.onb,
+.settings-head { background: var(--paper); }
+.settings-head-icon { background: transparent; color: var(--brand); }
