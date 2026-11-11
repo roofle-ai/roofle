@@ -13,6 +13,7 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     target: "#new-session-btn",
+    reveal: "#history-menu",
     title: "Start a conversation",
     body: "Click <b>New conversation</b>, use the menu-bar icon, or press <b>⌘R</b>. Roofle also notices Zoom and Teams calls. Pick the type of call and, if you like, a goal. That shapes the notes and the questions.",
   },
@@ -39,6 +40,7 @@ const SLIDES: Slide[] = [
   },
   {
     target: "#settings-btn",
+    reveal: "#history-menu",
     title: "Make it yours",
     body: "In <b>Settings</b>, add your <b>AI key</b>, tell Roofle about your role in <b>Profile</b> so notes and questions fit you, tune how often notes update under <b>Live Session</b>, and check your AI <b>Usage</b>. You can reopen this guide from <b>About</b>.",
   },

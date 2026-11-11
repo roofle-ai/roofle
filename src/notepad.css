@@ -170,3 +170,56 @@ body { font-family: var(--font-serif); font-size: 1.0625rem; }
 }
 .qcard:hover { border: 0; }
 .qcard.is-viewing { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+
+/* ---------- 6. Breadcrumb header + conversations dropdown ---------- */
+.crumb {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.crumb h1 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--muted); }
+.crumb-sep { color: var(--faint); }
+.crumb-btn {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.crumb-btn:hover .crumb-title { text-decoration: underline; text-underline-offset: 0.25em; }
+.crumb-btn [data-lucide] { width: 14px; height: 14px; flex: none; color: var(--muted); transition: transform 150ms var(--ease); }
+.crumb-btn[aria-expanded="true"] [data-lucide] { transform: rotate(180deg); }
+.crumb-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The one floating surface: it needs a soft edge to read against the page. */
+.history-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 20;
+  width: min(22rem, 90vw);
+  max-height: min(70vh, 34rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.history-menu[hidden] { display: none; }
+.history-menu .history-list { padding: 0; }
+.history-menu .history-footer { margin-top: 0; padding-top: 0.4rem; border: 0; }
+
+/* Header row left of the page controls: notes toolbar sits right now the title moved up. */
+.transcript-head { justify-content: flex-end; min-height: 3rem; }
+.notes-editing { margin-right: auto; }

@@ -24,8 +24,6 @@ export async function loadHistory(): Promise<void> {
   const sessions = await listSessions();
   rememberTopics(sessions);
   dom.historyList.querySelectorAll(".history-item, .topic-bucket, .history-group-label").forEach((el) => el.remove());
-  dom.historyRailBadge.hidden = sessions.length === 0;
-  dom.historyRailBadge.textContent = sessions.length > 99 ? "99+" : String(sessions.length);
   dom.historyEmpty.hidden = sessions.length !== 0;
   // A conversation is found by its title or by the topic it is filed under.
   const visible = sessions.filter((s) => matchesSearch(sessionTitle(s)) || matchesSearch(topicName(s.topic_id) ?? ""));

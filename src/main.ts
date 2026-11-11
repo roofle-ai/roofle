@@ -2,7 +2,7 @@ import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/newsreader/wght.css";
 import "@fontsource-variable/newsreader/wght-italic.css";
 import { initEvents } from "./app/events";
-import { initLayout } from "./app/layout";
+import { initHistoryMenu } from "./app/history-menu";
 import { initTheme } from "./app/theme";
 import { initAnalysis } from "./features/analysis";
 import { initAssistPrompts } from "./features/assist-prompts";
@@ -28,7 +28,7 @@ import { initPersona } from "./persona";
 async function init(): Promise<void> {
   refreshIcons();
   initTheme();
-  initLayout();
+  initHistoryMenu();
   initQuestionsCard();
   dom.statusDismiss.addEventListener("click", dismissStatus);
   document.getElementById("feedback-btn")!.addEventListener("click", () => {
