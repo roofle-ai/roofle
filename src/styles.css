@@ -4136,7 +4136,15 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .topic-bucket.is-open .topic-chevron { transform: rotate(90deg); }
 .topic-bucket-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topic-bucket-count { min-width: 1.1rem; padding: 0 0.3rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.62rem; font-weight: 600; text-align: center; }
-.history-collapsed .topic-bucket { display: none; }
+.history-group-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-top: 0.6rem; padding: 0.25rem 0.6rem 0.15rem;
+  color: var(--brand-strong); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.history-group-label::after { content: ""; flex: 1; height: 1px; background: var(--brand-faint); opacity: 0.6; }
+.history-list > .history-group-label:first-child, .topic-bucket-items > .history-group-label:first-child { margin-top: 0; }
+.topic-bucket-items .history-group-label { padding-left: 0.5rem; }
+.history-collapsed .topic-bucket, .history-collapsed .history-group-label { display: none; }
 .topic-menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
 .topic-menu-back { color: var(--muted); font-weight: 600; }
 .topic-menu-item > [data-lucide="chevron-right"] { margin-left: auto; }
