@@ -120,7 +120,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
 /* ---------- 5. Follow-up questions: an inline card under the notes ---------- */
 .questions-card {
   flex: 0 0 auto;
-  margin: 0 var(--gutter) 0.75rem;
+  margin: 0 var(--pad-r) 0.75rem var(--pad-l);
   max-height: 40%;
   display: flex;
   flex-direction: column;
@@ -223,9 +223,15 @@ select { background: var(--surface-2); }
 
 /* ---------- 8. The page: toolbar, big title, then the note ---------- */
 /* One reading column, centred; head, title and note all inset to it. */
-/* Left-aligned from the gutter, so the page uses the whole width. --pad-r keeps
-   lines under 72rem on huge windows and reserves room for the margin note. */
-.transcript { --pad-l: var(--gutter); --pad-r: max(var(--gutter), calc(100% - 72rem)); }
+/* Reading column: --col wide, centred. On wide windows the questions margin note
+   (--side) is part of the centred block, so text and note stay together. */
+.transcript {
+  --col: 46rem;
+  --side: 0rem;
+  --pad-l: max(var(--gutter), calc((100% - var(--col) - var(--side)) / 2));
+  --pad-r: max(var(--gutter), calc(100% - var(--pad-l) - var(--col)));
+}
+@media (min-width: 1280px) { .transcript { --side: 18.5rem; } }
 .transcript-head,
 .page-title,
 .notes-meta-row,
@@ -320,11 +326,10 @@ select { background: var(--surface-2); }
 
 /* Wide windows: questions sit in the right margin, like a comment. */
 @media (min-width: 1280px) {
-  .transcript:has(.questions-card:not([hidden])) { --pad-r: max(calc(var(--gutter) + 19rem), calc(100% - 72rem)); }
   .questions-card {
     position: absolute;
     top: 9rem;
-    right: var(--gutter);
+    left: calc(var(--pad-l) + var(--col) + 1.5rem);
     width: 17rem;
     margin: 0;
     max-height: calc(100% - 10.5rem);
