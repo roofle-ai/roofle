@@ -59,7 +59,7 @@
 }
 /* A disabled Save reads as inactive, not as a greyed-out solid button. */
 .settings-actions .btn-primary:disabled { background: var(--surface-2); color: var(--faint); opacity: 1; }
-.settings-status { margin-right: auto; font-size: 0.8rem; color: var(--faint); }
+.settings-status { margin-right: auto; font-size: 0.8rem; color: var(--muted); }
 
 /* ---------- Pane ---------- */
 .pane-head { margin: 0 0 1.5rem; padding-right: 2rem; }
@@ -67,7 +67,7 @@
 .pane-desc { margin: 0; }
 
 .settings-group { margin: 0 0 1.75rem; padding: 0; border: 0; background: transparent; }
-.group-title { margin: 0 0 0.85rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+.group-title { margin: 0 0 0.85rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .settings-card { padding: 0; border: 0; background: transparent; box-shadow: none; }
 
 /* Stacked field: label, control, hint. (Beats the card's own child padding.) */
@@ -90,12 +90,27 @@
 }
 .settings-row + .settings-row { border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
 .settings-row:first-child { padding-top: 0.25rem; }
+.settings-row { padding-top: 1rem; padding-bottom: 1rem; }
 .settings-row-text { flex: 1 1 auto; min-width: 0; }
 .settings-row-text .settings-field-label { margin: 0; }
 .settings-row-text .settings-field-hint { margin: 0.2rem 0 0; }
-.settings-unit { flex: none; display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--faint); }
+.settings-unit { flex: none; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--muted); }
 .settings-unit .settings-input { width: 5.5rem; text-align: right; }
 .settings-value { margin: 0; font-size: 0.875rem; color: var(--muted); text-align: right; }
+
+/* Select: compact, with a drawn chevron (the native arrow is cramped). */
+.settings-row select.settings-input {
+  width: auto;
+  min-width: 9rem;
+  padding-right: 2.25rem;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 1.15rem) 55%, calc(100% - 0.85rem) 55%;
+  background-size: 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+}
+.settings-unit input[type="range"] { width: 10rem; }
+.settings-unit #opacity-value { min-width: 2.75rem; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 /* API key: the Show button sits inside the field. */
 .settings-secret { position: relative; }
@@ -113,12 +128,19 @@
 
 /* Usage + About */
 .usage-table { margin-top: 0.5rem; }
-.usage-table th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.usage-table { width: 100%; }
+.usage-table th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .usage-table th,
-.usage-table td { padding: 0.55rem 0.5rem; }
+.usage-table td { padding: 0.7rem 0.5rem; border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent); }
+.usage-table thead th { border-top: 0; padding-bottom: 0.5rem; }
+.usage-when { color: var(--muted); }
+.usage-title { color: var(--ink); }
+.usage-total { margin: 0.2rem 0 0; color: var(--muted); }
+.usage-total strong { color: var(--ink); }
 .usage-table th:first-child,
 .usage-table td:first-child { padding-left: 0; }
-.month-btn { border: 0; background: transparent; color: var(--muted); }
+.month-btn { border: 0; border-radius: 8px; background: var(--surface-2); color: var(--ink); }
+.month-label { color: var(--ink); }
 .month-btn:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
 .about-love { margin-top: 1.25rem; text-align: left; }
 

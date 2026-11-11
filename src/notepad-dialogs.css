@@ -30,7 +30,7 @@
 .analyse-desc,
 .settings-field-hint,
 .settings-subtitle,
-.pane-desc { font-size: 0.8rem; line-height: 1.5; color: var(--faint); }
+.pane-desc { font-size: 0.8rem; line-height: 1.5; color: var(--muted); }
 .analyse-opt { color: var(--faint); font-weight: 400; }
 .pane-title,
 .group-title { font-family: var(--font-sans); font-weight: 600; color: var(--ink); }
