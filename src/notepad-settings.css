@@ -1,50 +1,56 @@
 /* ============================================================
    Notepad skin, part 3: the Settings dialog.
-   Layout: sidebar (title + sections) | main (pane + Cancel/Save).
-   Pane content follows one pattern: header, groups, rows with the
-   label on the left and the control on the right.
+   Large rounded sheet with a hairline edge. A slightly darker
+   sidebar of plain-text sections (the active one is an outlined
+   pill) beside the pane. Fields are underlines, buttons are
+   outlined pills, secondary actions are underlined links.
    ============================================================ */
 
-/* ---------- Frame ---------- */
 .settings-dialog {
+  --hair: color-mix(in srgb, var(--ink) 14%, transparent);
   display: flex;
   flex-direction: row;
   width: 100%;
-  max-width: 54rem;
-  height: min(36rem, 100%);
+  max-width: 62rem;
+  height: min(42rem, 100%);
   padding: 0;
   overflow: hidden;
+  border: 1px solid var(--hair);
+  border-radius: 24px;
 }
 
 /* ---------- Sidebar ---------- */
 .settings-side {
-  flex: 0 0 13.5rem;
+  flex: 0 0 15rem;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 0.75rem 1rem;
-  background: var(--surface-2);
-}
-.settings-side .settings-title { margin: 0 0 1.25rem; padding: 0 0.75rem; font-size: 1.05rem; }
-.settings-nav { flex: none; display: flex; flex-direction: column; gap: 0.15rem; padding: 0; background: transparent; border: 0; }
-.settings-nav-item {
-  gap: 0.6rem;
-  padding: 0.5rem 0.75rem;
+  padding: 1.75rem 1rem 1rem;
+  background: color-mix(in srgb, #000 5%, var(--paper-solid));
   border: 0;
-  border-radius: 8px;
+  border-right: 1px solid var(--hair);
+}
+.settings-side .settings-title { margin: 0 0 0.5rem; padding: 0.65rem 1rem; font-size: 1rem; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.settings-nav { flex: none; display: flex; flex-direction: column; gap: 0.25rem; padding: 0; background: transparent; border: 0; }
+.settings-nav-item {
+  gap: 0;
+  padding: 0.65rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 400;
+  box-shadow: none;
 }
-.settings-nav-item [data-lucide] { width: 16px; height: 16px; }
-.settings-nav-item:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
-.settings-nav-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-strong); font-weight: 600; box-shadow: none; }
+.settings-nav-item [data-lucide] { display: none; }
+.settings-nav-item:hover { background: transparent; color: var(--ink); }
+.settings-nav-item.active { border-color: var(--hair); background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); font-weight: 400; }
 .settings-nav-item.active::before { display: none; }
 
 /* ---------- Main column ---------- */
 .settings-main { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.settings-main .settings-close { position: absolute; top: 0.9rem; right: 0.9rem; z-index: 1; width: 2rem; height: 2rem; display: grid; place-items: center; padding: 0; }
-.settings-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1.75rem 2rem 1rem; }
+.settings-main .settings-close { position: absolute; top: 1.5rem; right: 1.5rem; z-index: 1; width: 2rem; height: 2rem; display: grid; place-items: center; padding: 0; color: var(--muted); }
+.settings-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2.25rem 3rem 1.5rem; }
 .settings-actions {
   flex: 0 0 auto;
   display: flex;
@@ -52,105 +58,130 @@
   justify-content: flex-end;
   gap: 0.5rem;
   margin: 0;
-  padding: 0.9rem 2rem 1.25rem;
+  padding: 0.9rem 3rem 1.5rem;
   background: transparent;
   border: 0;
-  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
 }
-/* A disabled Save reads as inactive, not as a greyed-out solid button. */
-.settings-actions .btn-primary:disabled { background: var(--surface-2); color: var(--faint); opacity: 1; }
-.settings-status { margin-right: auto; font-size: 0.8rem; color: var(--muted); }
+.settings-status { margin-right: auto; font-size: 0.85rem; color: var(--muted); }
 
 /* ---------- Pane ---------- */
-.pane-head { margin: 0 0 1.5rem; padding-right: 2rem; }
-.pane-title { margin: 0 0 0.25rem; font-size: 1.2rem; letter-spacing: -0.01em; }
-.pane-desc { margin: 0; }
+.pane-head { margin: 0 0 2rem; padding: 0 3rem 0 0; border: 0; }
+.pane-head .pane-title { margin: 0 0 0.4rem; font-size: 1.6rem; font-weight: 500; letter-spacing: -0.015em; }
+.pane-head .pane-desc { margin: 0; font-size: 1rem; line-height: 1.6; }
 
-.settings-group { margin: 0 0 1.75rem; padding: 0; border: 0; background: transparent; }
-.group-title { margin: 0 0 0.85rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.settings-group { margin: 0 0 2rem; padding: 0; border: 0; background: transparent; }
+.group-title { margin: 0 0 1rem; font-size: 0.9rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
 .settings-card { padding: 0; border: 0; background: transparent; box-shadow: none; }
 
-/* Stacked field: label, control, hint. (Beats the card's own child padding.) */
-.settings-card > .settings-field { margin: 0 0 1.1rem; padding: 0; }
+/* Labels are quiet; values are the large, bright text. */
+.settings-field-label { display: block; margin: 0 0 0.25rem; font-size: 0.9rem; font-weight: 400; color: var(--muted); }
+.analyse-label { font-weight: 500; }
+
+/* Stacked field: label, underline input, hint. */
+.settings-card > .settings-field { margin: 0 0 1.75rem; padding: 0; }
 .settings-card > .settings-field + .settings-field { margin-top: 0; }
-.settings-card > .ai-settings-actions { margin: 0.25rem 0 0; padding: 0; background: transparent; border: 0; border-radius: 0; }
-.settings-field-label { display: block; margin: 0 0 0.35rem; }
-.settings-field .settings-input { display: block; width: 100%; }
-.settings-field-hint { margin: 0.4rem 0 0; }
+.settings-card > .ai-settings-actions { margin: 0.5rem 0 0; padding: 0; background: transparent; border: 0; border-radius: 0; justify-content: flex-start; }
+.settings-field-hint { margin: 0.5rem 0 0; font-size: 0.85rem; }
 
-/* Row: label + hint on the left, control on the right, hairline between rows. */
-.settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin: 0;
-  padding: 0.9rem 0;
+/* Fields: an underline, no box. */
+.settings-input {
+  padding: 0.4rem 0;
   border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.05rem;
 }
-.settings-row + .settings-row { border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
-.settings-row:first-child { padding-top: 0.25rem; }
-.settings-row { padding-top: 1rem; padding-bottom: 1rem; }
-.settings-row-text { flex: 1 1 auto; min-width: 0; }
-.settings-row-text .settings-field-label { margin: 0; }
-.settings-row-text .settings-field-hint { margin: 0.2rem 0 0; }
-.settings-unit { flex: none; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--muted); }
-.settings-unit .settings-input { width: 5.5rem; text-align: right; }
-.settings-value { margin: 0; font-size: 0.875rem; color: var(--muted); text-align: right; }
+.settings-input:hover { border-bottom-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.settings-input:focus { outline: 0; border-bottom-color: var(--brand); }
+.settings-field .settings-input { display: block; width: 100%; max-width: 32rem; }
+textarea.settings-input { padding: 0.75rem 1rem; border: 1px solid var(--hair); border-radius: 14px; font-size: 0.95rem; line-height: 1.55; max-width: none; }
+textarea.settings-input:focus { border-color: var(--brand); }
 
-/* Select: compact, with a drawn chevron (the native arrow is cramped). */
+/* Rows: label + hint left, control right, hairline between rows. */
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin: 0; padding: 1.25rem 0; border: 0; }
+.settings-row + .settings-row { border-top: 1px solid var(--hair); }
+.settings-row:first-child { padding-top: 0.25rem; }
+.settings-row-text { flex: 1 1 auto; min-width: 0; }
+.settings-row-text .settings-field-label { margin: 0; font-size: 1rem; color: var(--ink); }
+.settings-row-text .settings-field-hint { margin: 0.25rem 0 0; }
+.settings-unit { flex: none; display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; color: var(--muted); }
+.settings-unit .settings-input { width: 5rem; text-align: right; }
+.settings-value { margin: 0; font-size: 1rem; color: var(--ink); text-align: right; }
+
+/* Select: underline with a drawn chevron. */
 .settings-row select.settings-input {
   width: auto;
   min-width: 9rem;
-  padding-right: 2.25rem;
+  padding-right: 1.75rem;
   appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 1.15rem) 55%, calc(100% - 0.85rem) 55%;
+  background-position: calc(100% - 0.55rem) 55%, calc(100% - 0.25rem) 55%;
   background-size: 0.3rem 0.3rem;
   background-repeat: no-repeat;
 }
 .settings-unit input[type="range"] { width: 10rem; }
 .settings-unit #opacity-value { min-width: 2.75rem; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
 
-/* API key: the Show button sits inside the field. */
-.settings-secret { position: relative; }
-.settings-secret .settings-input { padding-right: 4.5rem; }
-.settings-secret-btn { position: absolute; top: 50%; right: 0.5rem; transform: translateY(-50%); padding: 0.2rem 0.55rem; border: 0; border-radius: 6px; background: transparent; color: var(--brand-strong); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-.settings-secret-btn:hover { background: color-mix(in srgb, var(--brand) 12%, transparent); }
-.ai-settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; }
+/* API key: Show sits at the end of the underline. */
+.settings-secret { position: relative; max-width: 32rem; }
+.settings-secret .settings-input { max-width: none; padding-right: 4rem; }
+.settings-secret-btn { position: absolute; top: 50%; right: 0; transform: translateY(-50%); padding: 0.2rem 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 0.9rem; cursor: pointer; text-decoration: underline; text-underline-offset: 0.25em; }
+.settings-secret-btn:hover { color: var(--ink); }
+.ai-settings-actions { display: flex; align-items: center; gap: 0.75rem; }
+.ai-test-result:empty { display: none; }
 
-/* Profile: the summary text area. */
+/* Buttons here: outlined pills, like "Sign out". */
+.settings-dialog .btn-outline {
+  padding: 0.6rem 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+.settings-dialog .btn-outline:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.settings-actions .btn-primary { padding: 0.6rem 1.5rem; font-size: 0.95rem; }
+.settings-actions .btn-ghost { padding: 0.6rem 1rem; font-size: 0.95rem; }
+/* Disabled Save is just quiet text. */
+.settings-actions .btn-primary:disabled { background: transparent; color: var(--faint); opacity: 1; }
+
+/* Links: muted + underlined, like "Delete account". */
+.settings-link { color: var(--muted); text-decoration: underline; text-underline-offset: 0.25em; }
+.settings-link:hover { color: var(--ink); }
+
+/* Profile */
+.persona-q { margin: 1.5rem 0 0.75rem; font-size: 0.9rem; font-weight: 400; color: var(--muted); }
 .persona-cards + .persona-q,
-.persona-chips + .persona-q { margin-top: 1.5rem; }
-.persona-q { margin: 1.25rem 0 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--ink); }
-.persona-summary-group { margin-top: 1.5rem; }
-.persona-summary-foot { margin-top: 0.4rem; }
+.persona-chips + .persona-q { margin-top: 2rem; }
+.persona-summary-group { margin-top: 2rem; }
+.persona-summary-foot { margin-top: 0.5rem; }
 
 /* Usage + About */
-.usage-table { margin-top: 0.5rem; }
-.usage-table { width: 100%; }
-.usage-table th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.usage-table { width: 100%; margin-top: 0.5rem; }
+.usage-table th { font-size: 0.8rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
 .usage-table th,
-.usage-table td { padding: 0.7rem 0.5rem; border-top: 1px solid color-mix(in srgb, var(--ink) 9%, transparent); }
+.usage-table td { padding: 0.8rem 0.5rem; border-top: 1px solid var(--hair); }
 .usage-table thead th { border-top: 0; padding-bottom: 0.5rem; }
-.usage-when { color: var(--muted); }
-.usage-title { color: var(--ink); }
-.usage-total { margin: 0.2rem 0 0; color: var(--muted); }
-.usage-total strong { color: var(--ink); }
 .usage-table th:first-child,
 .usage-table td:first-child { padding-left: 0; }
-.month-btn { border: 0; border-radius: 8px; background: var(--surface-2); color: var(--ink); }
+.usage-when { color: var(--muted); }
+.usage-title { color: var(--ink); }
+.usage-total { margin: 0.25rem 0 0; color: var(--muted); }
+.usage-total strong { color: var(--ink); }
+.month-btn { border: 0; border-radius: 999px; background: transparent; color: var(--muted); }
+.month-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
 .month-label { color: var(--ink); }
-.month-btn:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
-.about-love { margin-top: 1.25rem; text-align: left; }
+.about-love { margin-top: 1.5rem; text-align: left; }
 
-/* Narrow windows: stack the sidebar as a top tab strip. */
-@media (max-width: 640px) {
-  .settings-dialog { flex-direction: column; }
-  .settings-side { flex: none; padding: 1rem 1rem 0.5rem; }
-  .settings-side .settings-title { margin-bottom: 0.5rem; }
+/* Narrow windows: the sidebar becomes a row of tabs on top. */
+@media (max-width: 680px) {
+  .settings-dialog { flex-direction: column; border-radius: 18px; }
+  .settings-side { flex: none; padding: 1rem 1rem 0.5rem; border-right: 0; border-bottom: 1px solid var(--hair); }
+  .settings-side .settings-title { display: none; }
   .settings-nav { flex-direction: row; overflow-x: auto; }
   .settings-nav-item { white-space: nowrap; }
-  .settings-content { padding: 1.25rem 1.25rem 0.5rem; }
-  .settings-actions { padding: 0.75rem 1.25rem 1rem; }
+  .settings-content { padding: 1.5rem 1.25rem 0.5rem; }
+  .settings-actions { padding: 0.75rem 1.25rem 1.25rem; }
 }
