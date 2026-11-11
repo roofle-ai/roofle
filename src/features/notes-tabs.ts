@@ -134,14 +134,25 @@ export function setNotesTab(tab: NotesTab): void {
   refreshTranscription();
 }
 
+/**
+ * The Notes / Transcription switch only exists once there is a transcription to show;
+ * until then the notes are the only thing on the page.
+ */
+export function syncTranscriptTab(): void {
+  dom.notesTabBar.hidden = !session.hasTranscript;
+  if (!session.hasTranscript && session.notesTab === "transcription") setNotesTab("notes");
+}
+
 /** A new or switched session always starts on its notes. */
 export function resetNotesTabs(): void {
   clearTranscriptSource();
   setNotesTab("notes");
   renderTranscription([]);
+  syncTranscriptTab();
 }
 
 export function initNotesTabs(): void {
+  syncTranscriptTab();
   dom.transcriptionPane.addEventListener("scroll", () => {
     const pane = dom.transcriptionPane;
     if (pane.hidden) return;

@@ -180,7 +180,7 @@ export async function initPersona(): Promise<void> {
     error.textContent = "";
     const picker = $("persona-picker");
     picker.classList.toggle("onb-card", step === "model");
-    left.hidden = step === "model"; // the model download cannot be skipped
+    left.hidden = step === "role" || step === "model"; // nothing before the first step; the model download cannot be skipped
     if (step === "summary") {
       left.textContent = "Back";
       next.textContent = at + 1 < steps.length ? "Continue" : "Get started";
@@ -196,7 +196,7 @@ export async function initPersona(): Promise<void> {
           .then((t) => ((box.value = choice.summary = t.slice(0, SUMMARY_MAX)), count()))
           .catch((err) => (error.textContent = String(err)));
     } else if (step === "role" || step === "meetings") {
-      left.textContent = step === "role" ? "Skip for now" : "Back";
+      left.textContent = "Back";
       next.textContent = at + 1 < steps.length ? "Continue" : "Get started";
       next.disabled = step === "role" && !choice.roleId;
       mountPersonaPicker(picker, choice, (p) => ((choice = { ...p, summary: undefined }), (next.disabled = !p.roleId)), step === "role" ? "role" : "meetings");
@@ -218,11 +218,6 @@ export async function initPersona(): Promise<void> {
     else if (step === "summary") void savePersonaThen(choice);
     else if (!downloading) void download();
   });
-  left.addEventListener("click", () => {
-    const step = steps[at];
-    if (step === "role") void savePersonaThen(EMPTY); // skip: save the empty persona so it is not asked again
-    else if (step === "meetings" || step === "summary") go(at - 1);
-    else advance();
-  });
+  left.addEventListener("click", () => go(at - 1)); // Back (hidden on the first and last steps)
   render();
 }

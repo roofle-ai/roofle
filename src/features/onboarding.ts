@@ -4,8 +4,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { loadAiConfig } from "../ai";
+import { refreshIcons } from "../lib/icons";
 import { openSettings } from "../settings";
-import { showWalkthroughOnce } from "./walkthrough";
 
 const DONE_KEY = "roofle-onboarding-done";
 const POLL_MS = 2000;
@@ -13,6 +13,8 @@ const PANE = "x-apple.systempreferences:com.apple.preference.security?Privacy_";
 
 interface Step {
   id: string;
+  /** Lucide icon name shown until the step is done. */
+  icon: string;
   title: string;
   hint: string;
   done: boolean;
@@ -50,27 +52,30 @@ async function steps(): Promise<Step[]> {
   const list: Step[] = [];
   list.push({
     id: "model",
+    icon: "download",
     title: "Speech model",
     hint: modelReady ? "Ready." : "Downloading automatically. This takes a few minutes, once.",
     done: modelReady,
   });
   list.push({
     id: "mic",
+    icon: "mic",
     title: "Microphone access",
     hint: "So Roofle can hear you.",
     done: perms.mic === "granted",
     action:
       perms.mic === "undetermined"
         ? { label: "Allow", run: () => void invoke("request_permission", { kind: "mic" }) }
-        : { label: "Open Settings", run: () => void openUrl(`${PANE}Microphone`) },
+        : { label: "Open settings", run: () => void openUrl(`${PANE}Microphone`) },
   });
   list.push({
     id: "screen",
-    title: "Screen & system audio recording",
-    hint: "So Roofle can hear the other side of the call. Restart Roofle after enabling.",
+    icon: "monitor",
+    title: "Screen & system audio",
+    hint: "To hear the other side of the call. Restart Roofle after enabling.",
     done: perms.screen,
     action: {
-      label: "Allow",
+      label: "Open settings",
       run: () => {
         void invoke("request_permission", { kind: "screen" });
         void openUrl(`${PANE}ScreenCapture`);
@@ -79,63 +84,78 @@ async function steps(): Promise<Step[]> {
   });
   list.push({
     id: "ai",
+    icon: "key-round",
     title: "AI key",
     hint: "Powers live notes, questions and recaps. Bring your own key.",
     done: ai.has_api_key,
-    action: { label: "Open Settings", run: openSettings },
+    action: { label: "Add key", run: openSettings },
   });
   return list;
 }
 
-function render(list: Step[]): void {
-  const left = list.filter((s) => !s.done).length;
+/** A step as a list item; an unfinished one with an action is a single clickable row. */
+function stepRow(s: Step): string {
+  const icon = s.done ? CHECK : `<i data-lucide="${s.icon}" aria-hidden="true"></i>`;
+  const body = `<span class="onboarding-ico">${icon}</span>
+    <span class="onboarding-text"><b>${s.title}</b>${s.done ? "" : `<span>${s.hint}</span>`}</span>`;
+  if (s.done || !s.action) return `<li><div class="onboarding-step${s.done ? " is-done" : ""}">${body}</div></li>`;
+  return `<li><button type="button" class="onboarding-step onboarding-row" data-step="${s.id}">${body}
+    <span class="onboarding-go">${s.action.label}</span></button></li>`;
+}
+
+function render(list: Step[], title: string): void {
+  const done = list.filter((s) => s.done).length;
   const html = `
     <div class="onboarding-head">
-      <strong>Get set up: ${left} step${left > 1 ? "s" : ""} left</strong>
-      <button type="button" class="onboarding-skip" data-skip>Dismiss</button>
+      <strong>${title}</strong>
+      <span class="onboarding-count">${done} of ${list.length}</span>
+      <button type="button" class="onboarding-skip" data-skip aria-label="Dismiss" title="Dismiss">×</button>
     </div>
-    <ul class="onboarding-list">
-      ${list
-        .map(
-          (s) => `<li class="onboarding-step${s.done ? " is-done" : ""}">
-            <span class="onboarding-tick">${s.done ? CHECK : ""}</span>
-            <span class="onboarding-text"><b>${s.title}</b><span>${s.hint}</span></span>
-            ${!s.done && s.action ? `<button type="button" class="model-banner-btn onboarding-btn" data-step="${s.id}">${s.action.label}</button>` : ""}
-          </li>`,
-        )
-        .join("")}
-    </ul>`;
+    <div class="onboarding-bar" aria-hidden="true"><i style="width:${(done / list.length) * 100}%"></i></div>
+    <ul class="onboarding-list">${list.map(stepRow).join("")}</ul>`;
   if (html === lastRender) return; // keep the buttons stable while polling
   lastRender = html;
   card.innerHTML = html;
-  card.querySelector("[data-skip]")!.addEventListener("click", hide);
+  refreshIcons();
+  card.querySelector("[data-skip]")!.addEventListener("click", dismiss);
   for (const btn of card.querySelectorAll<HTMLButtonElement>("[data-step]")) {
     btn.addEventListener("click", () => list.find((s) => s.id === btn.dataset.step)?.action?.run());
   }
 }
 
+/** Once setup is finished or dismissed, the popup only returns for a missing permission, and shows just those rows. */
+const PERMISSION_STEPS = new Set(["mic", "screen"]);
+let setupFinished = false;
+
 function hide(): void {
-  markDone();
   clearInterval(timer);
   card.hidden = true;
 }
 
+/** Dismissing during first setup is remembered; afterwards it only lasts until the next launch. */
+function dismiss(): void {
+  if (!setupFinished) markDone();
+  hide();
+}
+
 async function refresh(): Promise<void> {
-  const list = await steps();
-  if (list.every((s) => s.done)) {
-    hide(); // finished: never shown again
-    showWalkthroughOnce(); // the guide comes right after setup completes
-    return;
+  try {
+    const all = await steps();
+    const list = setupFinished ? all.filter((s) => PERMISSION_STEPS.has(s.id)) : all;
+    if (list.every((s) => s.done)) {
+      if (!setupFinished) markDone(); // everything done: first-run setup is over
+      hide();
+      return;
+    }
+    card.hidden = false;
+    render(list, setupFinished ? "Permissions needed" : "Finish setting up");
+  } catch (err) {
+    console.error("setup checklist failed", err); // never leave an empty popup behind
   }
-  render(list);
 }
 
 export function initOnboarding(): void {
-  if (isDone()) {
-    showWalkthroughOnce(); // onboarding finished or dismissed earlier; no-op once seen
-    return;
-  }
-  card.hidden = false;
+  setupFinished = isDone();
   void refresh();
   timer = window.setInterval(() => void refresh(), POLL_MS);
 }

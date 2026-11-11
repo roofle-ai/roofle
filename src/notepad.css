@@ -1,0 +1,618 @@
+/* ============================================================
+   Notepad skin — loaded after styles.css, overrides it.
+   Flat paper: no borders, no shadows, no button fills.
+   Remove the <link> in index.html to get the old look back.
+   Sections: 1 tokens · 2 surfaces · 3 controls · 4 states
+   ============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+/* Floating surfaces (dropdowns): hairline ring + soft drop. */
+/* --paper-solid is the page colour; --paper adds the window-opacity setting. */
+:root {
+  --paper-solid: #fdfcf8;
+  --line: transparent;
+  --radius-md: 4px;
+  --radius-lg: 0;
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: none;
+  --drop: rgba(0, 0, 0, 0.16); /* shadows are always black, never a light glow */
+  --float: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent), 0 8px 28px var(--drop);
+}
+/* :root[...] out-ranks styles.css's ":root:not([data-theme=light])" dark block. */
+:root[data-theme="dark"] {
+  --paper-solid: #1c1c1c;
+  --drop: rgba(0, 0, 0, 0.5);
+  --ink: #ececec;
+  --muted: #a3a3a3;
+  --faint: #6f6f6f;
+}
+:root,
+:root[data-theme="dark"] {
+  --paper: color-mix(in srgb, var(--paper-solid) calc(var(--opacity, 1) * 100%), transparent);
+  --bg: var(--paper);
+  --surface: var(--paper);
+  --surface-2: color-mix(in srgb, var(--ink) 6%, var(--paper));
+}
+
+body { font-family: var(--font-sans); font-size: 1rem; }
+
+/* ---------- 2. Surfaces: one sheet, no cards ---------- */
+.cmdbar,
+.workspace,
+.panel,
+.panel.history,
+.panel.questions,
+.panel.transcript,
+.transcript-head,
+.settings-actions {
+  background: var(--paper);
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-radius: 0;
+}
+
+.workspace { padding: 0; }
+.assist-sep { background: transparent; margin: 0.35rem 0; }
+
+/* ---------- 3. Controls: text and icons only ---------- */
+.btn,
+.btn-outline,
+.btn-ghost,
+.btn-primary,
+.btn-danger,
+.icon-btn,
+.record-btn,
+.stop-btn,
+.new-chat,
+.session-pill,
+.assist-menu button {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.btn-primary { color: var(--brand-strong); font-weight: 600; }
+.btn-danger { color: var(--record); }
+
+.btn:hover:not(:disabled),
+.btn-ghost:hover,
+.btn-primary:hover,
+.btn-danger:hover,
+.icon-btn:hover,
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled),
+.new-chat:hover,
+.session-pill:hover,
+.assist-menu button:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.icon-btn:hover,
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled) { text-decoration: none; }
+
+.btn:active:not(:disabled) { background: transparent; }
+
+/* ---------- 4. States that carry meaning stay coloured (text only) ---------- */
+.session-pill.recording,
+.session-pill.error,
+.record-btn.recording { color: var(--record); background: transparent; border: 0; }
+.session-pill.paused { color: var(--amber); background: transparent; border: 0; }
+
+.history-item:hover,
+.history-item.is-active { background: transparent; }
+.history-item.is-active .history-title { color: var(--ink); }
+
+/* Keyboard focus must stay visible even without borders. */
+:focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 2px; }
+
+/* ---------- 6. Header (menu + wordmark) and conversations dropdown ---------- */
+.cmdbar { min-height: 0; padding: 1rem var(--gutter); align-items: center; }
+.crumb { position: relative; display: flex; align-items: center; gap: 0.6rem; }
+.crumb h1 { margin: 0; font-family: var(--font-serif); font-size: 1.2rem; font-weight: 500; color: var(--ink); }
+.crumb-btn { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.crumb-btn:hover,
+.crumb-btn[aria-expanded="true"] { color: var(--ink); }
+.crumb-btn [data-lucide] { width: 20px; height: 20px; }
+
+/* The one floating surface: it needs a soft edge to read against the page. */
+.history-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 20;
+  width: min(22rem, 90vw);
+  max-height: min(70vh, 34rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--float);
+}
+.history-menu[hidden] { display: none; }
+.history-menu .history-list { padding: 0; }
+
+
+/* ---------- 7. Sweep: whatever styles.css still draws ----------
+   Borders and static shadows are hidden everywhere (colour, not width, so
+   layout does not shift). Exempt: states that rely on them to be seen
+   (selected, drop target, tour spotlight) and the floating surfaces. */
+*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card):not(.qcard):not(.wrapup-chip):not(.recap-card):not(.recap-action):not(.onboarding):not(.settings-dialog):not(.settings-side):not(.settings-nav-item):not(.settings-input):not(.settings-row):not(.settings-actions):not(th):not(td):not(.btn-outline):not(.persona-card):not(.persona-chip):not(.onboarding-go):not(.analyse-chip):not(.transport):not(.topic-menu) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Page-sized washes become plain paper. */
+.walkthrough-hero,
+.onb,
+.settings-head { background: var(--paper); }
+.settings-head-icon { background: transparent; color: var(--brand); }
+
+/* ---------- 8. The page: toolbar, big title, then the note ---------- */
+/* One reading column, centred; head, title and note all inset to it. */
+/* Reading column (--col) and the questions note (--side) form one centred block. */
+.transcript {
+  --side: 18.5rem; /* the questions note: 17rem wide + 1.5rem gap */
+  --col: min(46rem, calc(100% - 2 * var(--gutter) - var(--side)));
+  --pad-l: max(var(--gutter), calc((100% - var(--col) - var(--side)) / 2));
+  --pad-r: max(var(--gutter), calc(100% - var(--pad-l) - var(--col)));
+}
+.transcript-head,
+.page-title,
+.notes-meta-row,
+.transcription-list { padding-left: var(--pad-l); padding-right: var(--pad-r); }
+.transcript-head { justify-content: flex-start; min-height: 0; padding-top: 1.5rem; padding-bottom: 0; }
+.page-title {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-top: 0.5rem;
+  padding-bottom: 1rem;
+  font-family: var(--font-sans);
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.notes-page { padding-top: 0; }
+
+
+/* Body text: calm and loose. */
+.notes-input { font-size: 1.1rem; line-height: 1.85; }
+
+/* Assist: a ghost toolbar item like the rest, not a tinted pill. */
+.assist-btn,
+.assist-btn:hover,
+.assist-btn[aria-expanded="true"] { background: transparent; border: 0; color: var(--muted); }
+.assist-btn:hover { color: var(--ink); }
+
+/* New conversation lives in the header now, beside the other actions. */
+.cmdbar .new-chat { width: auto; padding: 0.35rem 0.7rem; color: var(--ink); }
+
+/* ---------- 9. Toolbar row: tabs · Assist · more ........ record ---------- */
+.transcript-head { gap: 0.25rem; align-items: center; }
+.transcript-head > * { flex: 0 0 auto; }
+.notes-tabs { position: static; transform: none; padding: 0; margin-right: 0.75rem; background: transparent; gap: 0.25rem; }
+.notes-tab { padding: 0.35rem 0.6rem; font-size: 0.85rem; border-radius: var(--radius-md); }
+.notes-tab:hover { background: transparent; color: var(--ink); }
+.notes-tab.active { background: var(--surface-2); color: var(--ink); }
+.assist-btn { padding: 0.35rem 0.6rem; font-size: 0.85rem; font-weight: 500; }
+.more-btn { background: transparent; border: 0; color: var(--muted); }
+.page-title { padding-top: 1rem; overflow-wrap: anywhere; }
+
+/* Assist menu: one clean list under the toolbar, no tinted boxes. */
+.assist-menu {
+  left: var(--pad-l);
+  right: auto;
+  top: 3.5rem;
+  width: min(26rem, calc(100% - 2 * var(--gutter)));
+  margin: 0;
+  padding: 0.4rem;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--float);
+}
+.assist-groups { display: flex; flex-direction: column; gap: 0.25rem; }
+.assist-group { padding: 0; background: transparent; border: 0; }
+.assist-group-title { padding: 0.5rem 0.6rem 0.2rem; font-size: 0.68rem; letter-spacing: 0.08em; color: var(--faint); }
+.assist-group button { padding: 0.4rem 0.6rem; border-radius: var(--radius-md); }
+.assist-group button:hover:not(:disabled) { background: var(--surface-2); text-decoration: none; }
+.assist-group button:hover .assist-item-label { color: var(--ink); }
+.assist-group button [data-lucide] { background: transparent; color: var(--muted); padding: 0; }
+.assist-item-desc { color: var(--faint); }
+
+/* ---------- 10. Follow-up questions: labelled, outlined boxes in the right margin ---------- */
+.questions-card {
+  position: absolute;
+  top: var(--q-top, 9rem); /* set by features/questions.ts to line up with the notes text */
+  left: calc(var(--pad-l) + var(--col) + 1.5rem);
+  width: 17rem;
+  max-height: calc(100% - var(--q-top, 9rem) - 1rem);
+  overflow-y: auto;
+}
+/* Small windows: a slimmer note, still on the right. */
+@media (max-width: 760px) {
+  .transcript { --side: 12rem; }
+  .questions-card { width: 10.5rem; }
+}
+.questions-card[hidden] { display: none; }
+.questions-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.questions-list { display: flex; flex-direction: column; gap: 1.1rem; }
+
+/* No box: a hairline rule on the left, like a comment thread. */
+.qcard {
+  position: relative;
+  padding: 0.1rem 1.25rem 0.1rem 0.9rem;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  background: transparent;
+  transition: border-color 150ms ease;
+}
+.qcard:hover { border-left-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.qcard.answered .qtext { color: var(--muted); }
+.qcard.is-viewing { border-left-color: var(--ink); }
+.qcard.is-new { animation: qenter 220ms ease-out; }
+.qtext {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: left;
+}
+button.qtext { cursor: pointer; }
+/* Dismiss only when pointing at the box. */
+.qfeedback-btn {
+  position: absolute;
+  top: 0.1rem;
+  right: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.qcard:hover .qfeedback-btn,
+.qfeedback-btn:focus-visible { opacity: 1; }
+
+/* ---------- 11. Wrap-up actions: quiet outlined pills under the title ---------- */
+.wrapup-pill {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem var(--pad-r) 1rem var(--pad-l);
+  animation: none;
+}
+/* Quiet pills: a hairline outline and a barely-there tint; colour only on hover. */
+.wrapup-chip {
+  flex-direction: row;
+  height: auto;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.wrapup-chip [data-lucide],
+.wrapup-chip svg { color: var(--faint); transition: color 150ms ease; }
+.wrapup-chip span { max-width: none; margin: 0; opacity: 1; }
+.wrapup-chip:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+  box-shadow: none;
+  color: var(--ink);
+}
+.wrapup-chip:hover:not(:disabled) [data-lucide],
+.wrapup-chip:hover:not(:disabled) svg { color: var(--brand); }
+
+/* ---------- 12. Brand accents: small, for wayfinding only ---------- */
+::selection { background: color-mix(in srgb, var(--brand) 28%, transparent); }
+
+/* Where you are, what you can do. */
+.notes-tab.active { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand-strong); }
+.cmdbar .new-chat [data-lucide],
+.assist-btn [data-lucide]:first-child,
+.crumb-btn:hover { color: var(--brand); }
+.more-btn:hover,
+.icon-btn:hover { color: var(--brand-strong); }
+
+/* Questions: a brand-tinted rule and label, strongest when active. */
+.questions-label { color: color-mix(in srgb, var(--brand) 70%, var(--faint)); }
+.qcard { border-left-color: color-mix(in srgb, var(--brand) 35%, transparent); }
+.qcard:hover { border-left-color: color-mix(in srgb, var(--brand) 75%, transparent); }
+.qcard.is-viewing { border-left-color: var(--brand); }
+
+/* Wrap-up pills: icons carry a hint of the accent even at rest. */
+.wrapup-chip [data-lucide],
+.wrapup-chip svg { color: color-mix(in srgb, var(--brand) 60%, var(--faint)); }
+
+/* ---------- 13. Settings icon in the header; feedback as a quiet footer link ---------- */
+.app-foot { flex: 0 0 auto; display: flex; justify-content: flex-end; padding: 0.4rem var(--gutter) 0.7rem; }
+.feedback-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.feedback-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 0.2em; }
+
+/* ---------- 14. Welcome text on a fresh, empty notepad ---------- */
+.notes-pane { position: relative; }
+.notes-pane.has-welcome .tiptap p.is-editor-empty:first-child::before { color: transparent; }
+.notes-welcome {
+  position: absolute;
+  top: 3.5rem;
+  left: var(--pad-l);
+  right: var(--pad-r);
+  pointer-events: none; /* clicks reach the textarea underneath */
+  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+.notes-welcome[hidden] { display: none; }
+.notes-welcome p { margin: 0; }
+.notes-welcome-lead { color: var(--ink); font-size: 1.15rem; }
+.notes-welcome-steps { margin: 1rem 0; padding: 0; list-style: none; counter-reset: step; }
+.notes-welcome-steps li { position: relative; margin: 0 0 0.7rem; padding-left: 1.75rem; counter-increment: step; }
+.notes-welcome-steps li::before { content: counter(step); position: absolute; left: 0; top: 0; color: var(--brand); font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; }
+.notes-welcome-steps b { color: var(--ink); font-weight: 600; }
+.notes-welcome-steps em { font-style: normal; color: var(--ink); }
+.notes-welcome-foot { font-size: 0.9rem; color: var(--faint); }
+
+/* ---------- 15. Notes editor: rendered markdown you can type in ---------- */
+.notes-input { padding: 0; overflow-y: auto; font-size: 1.1rem; line-height: 1.85; }
+.notes-input .tiptap {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem var(--pad-r) 4.5rem var(--pad-l);
+  outline: none;
+  caret-color: var(--brand);
+  font-family: var(--font-serif);
+  color: var(--ink);
+}
+.notes-input .tiptap > :first-child { margin-top: 0; }
+.notes-input .tiptap p { margin: 0 0 0.9em; }
+.notes-input .tiptap h1,
+.notes-input .tiptap h2,
+.notes-input .tiptap h3 { margin: 1.4em 0 0.4em; font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+.notes-input .tiptap h1 { font-size: 1.5em; }
+.notes-input .tiptap h2 { font-size: 1.25em; }
+.notes-input .tiptap h3 { font-size: 1.05em; }
+.notes-input .tiptap ul,
+.notes-input .tiptap ol { margin: 0 0 0.9em; padding-left: 1.4em; }
+.notes-input .tiptap li { margin: 0.15em 0; }
+.notes-input .tiptap li > p { margin: 0; }
+.notes-input .tiptap strong { font-weight: 600; }
+.notes-input .tiptap a { color: var(--brand-strong); text-decoration: underline; text-underline-offset: 0.2em; cursor: text; }
+/* The rule is a background, since borders are hidden page-wide. */
+.notes-input .tiptap blockquote { margin: 0 0 0.9em; padding-left: 1rem; background: linear-gradient(color-mix(in srgb, var(--ink) 22%, transparent), color-mix(in srgb, var(--ink) 22%, transparent)) left / 2px 100% no-repeat; color: var(--muted); }
+.notes-input .tiptap code { padding: 0.1em 0.35em; border-radius: 4px; background: var(--surface-2); font-size: 0.9em; }
+.notes-input .tiptap pre { margin: 0 0 0.9em; padding: 0.75rem 1rem; border-radius: 8px; background: var(--surface-2); overflow-x: auto; }
+.notes-input .tiptap pre code { padding: 0; background: none; }
+.notes-input .tiptap hr { margin: 1.5em 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); }
+.notes-input .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--faint);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Answered: green-tinted (resolved), a tag on top, the question, then the answer as the key line. */
+.qcard.answered { border-left-color: color-mix(in srgb, var(--green) 55%, transparent); }
+.qcard.answered:hover { border-left-color: var(--green); }
+.qcard.answered .qtext { color: var(--muted); }
+.qtag {
+  display: inline-block;
+  margin-bottom: 0.3rem;
+  padding: 0.05rem 0.55rem 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  color: color-mix(in srgb, var(--green) 80%, var(--ink));
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.02em;
+}
+.qtag::before { content: "✓ "; }
+.qanswer {
+  display: block;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: left;
+}
+/* The LLM's answer: small, and underlined when it can jump to where it was said. */
+.qanswer { font-size: 0.8rem; }
+button.qanswer { cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ink) 40%, transparent); text-underline-offset: 0.25em; }
+button.qanswer:hover { text-decoration-color: var(--ink); }
+.qstale { margin-top: 0.25rem; }
+.qstale-label { margin: 0 0 0.4rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.qstale-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.qstale-chip {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--faint);
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.qstale-chip { cursor: pointer; }
+button.qstale-chip:hover { color: var(--ink); }
+
+/* ---------- 16. Token count sits right after the date and time ---------- */
+.notes-meta-row { justify-content: flex-start; gap: 0.4rem; }
+.notes-tokens { font-size: 0.78rem; letter-spacing: 0.02em; }
+.notes-tokens:not(:empty)::before { content: "·"; margin-right: 0.4rem; }
+
+/* ---------- 17. Transcription tab: aligned to the page column ---------- */
+/* The list already carries --pad-l/--pad-r; the pane's old centred padding doubled it up. */
+.transcription-pane { padding-left: 0; padding-right: 0; }
+.transcription-empty { padding: 0 var(--pad-r) 0 var(--pad-l); }
+/* Fixed columns so every row's text starts at the same x, whoever is speaking. */
+.transcription-row { grid-template-columns: 2.75rem 2.75rem minmax(0, 1fr); column-gap: 0.5rem; }
+.source-label,
+.source-label.source-system { padding: 0; background: transparent; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.05em; }
+.source-label.source-mic { color: var(--brand-strong); }
+.transcription-text { font-size: 1.05rem; }
+
+/* ---------- 18. Transport: one capsule - pause/resume, stop, time ---------- */
+.transport {
+  margin-left: 0;
+  gap: 0.35rem;
+  padding: 0.2rem 0.85rem 0.2rem 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: 999px;
+  background: transparent;
+}
+.record-btn,
+.stop-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 14%, transparent); transform: none; }
+.record-btn:active,
+.stop-btn:active { transform: scale(0.94); }
+.record-icon { width: 14px; height: 14px; }
+.stop-btn svg { width: 12px; height: 12px; }
+
+/* Recording: a soft red button with a pulse. Paused (the play icon): solid, inviting a resume. */
+.record-btn.recording { background: color-mix(in srgb, var(--record) 16%, transparent); color: var(--record); }
+.record-btn.recording:hover:not(:disabled) { background: color-mix(in srgb, var(--record) 26%, transparent); }
+.record-btn.paused { background: var(--ink); color: var(--paper-solid); }
+.record-btn.paused:hover:not(:disabled) { background: var(--ink); opacity: 0.85; }
+
+/* Time, with a state dot: red and pulsing while recording, amber while paused. */
+.timer { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 3.25rem; font-size: 0.85rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.timer::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.transport:has(.record-btn.recording) .timer::before { background: var(--record); animation: blink 1.4s ease-in-out infinite; }
+.transport:has(.record-btn.paused) .timer { color: var(--amber); }
+.transport:has(.record-btn.paused) .timer::before { background: var(--amber); }
+
+/* ---------- 19. The ⋯ menu: same look as the Assist menu ---------- */
+.topic-menu {
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: auto;
+  width: 18rem;
+  max-height: min(70vh, 28rem);
+  padding: 0.4rem;
+  background: var(--paper);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--float);
+}
+.topic-menu-title { padding: 0.5rem 0.6rem 0.2rem; font-size: 0.68rem; letter-spacing: 0.08em; color: var(--faint); }
+.topic-menu-sep { height: 0; margin: 0.35rem 0; background: transparent; }
+.topic-menu-item { gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: var(--radius-md); font-size: 0.8125rem; }
+.topic-menu-item:hover:not(:disabled) { background: var(--surface-2); text-decoration: none; }
+.topic-menu-item [data-lucide] { width: 16px; height: 16px; color: var(--muted); }
+.topic-menu-item .topic-check,
+.topic-menu-item[aria-checked="true"] { color: var(--ink); }
+.topic-menu-danger,
+.topic-menu-danger [data-lucide] { color: var(--record); }
+.topic-menu-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--record) 10%, transparent); }
+
+/* Switch rows: label + hint on the left, the switch on the right. */
+.topic-menu-item > .topic-menu-text { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; white-space: normal; }
+.topic-menu-label { color: var(--ink); }
+.topic-menu-hint { font-size: 0.72rem; line-height: 1.3; color: var(--faint); white-space: normal; }
+.topic-menu-item > .topic-switch { position: relative; flex: none; width: 30px; height: 18px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 20%, transparent); transition: background 150ms ease; }
+.topic-menu-item > .topic-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--paper-solid); transition: transform 150ms var(--ease); }
+.topic-menu-toggle[aria-checked="true"] > .topic-switch { background: var(--brand); }
+.topic-menu-toggle[aria-checked="true"] > .topic-switch::after { transform: translateX(12px); }
+.topic-menu-toggle:disabled { opacity: 0.5; }
+
+/* ---------- 20. Brand accents in the dropdowns (Assist, ⋯, conversations) ---------- */
+.assist-menu,
+.topic-menu,
+.history-menu { box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 24%, transparent), 0 8px 28px var(--drop); }
+
+/* Group headings and icons carry a hint of the accent. */
+.assist-group-title,
+.topic-menu-title { color: color-mix(in srgb, var(--brand) 70%, var(--faint)); }
+.assist-group button [data-lucide],
+.topic-menu-item [data-lucide] { color: color-mix(in srgb, var(--brand) 70%, var(--muted)); }
+
+/* Hover and selection are indigo-tinted instead of grey. */
+.assist-group button:hover:not(:disabled),
+.topic-menu-item:hover:not(:disabled),
+.history-item:hover { background: color-mix(in srgb, var(--brand) 11%, transparent); }
+.topic-menu-item[aria-checked="true"]:not(.topic-menu-toggle),
+.topic-menu-item .topic-check { color: var(--brand-strong); }
+.topic-menu-danger,
+.topic-menu-danger [data-lucide] { color: var(--record); }
+.topic-menu-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--record) 10%, transparent); }
+
+/* Conversations menu: the open conversation is marked in the accent colour. */
+.history-item.is-active .history-title { color: var(--brand-strong); }
+.history-item.is-active::before { background: var(--brand); }
+
+/* ---------- 21. The app logo beside the wordmark ---------- */
+.crumb { gap: 0.6rem; }
+.crumb h1 { line-height: 1.1; }
+.crumb-logo { width: 30px; height: 30px; border-radius: 8px; }
+
+/* ---------- 23. "Options" button: the three dots with a label, like Assist ---------- */
+.more-btn { display: inline-flex; align-items: center; gap: 0.4rem; width: auto; height: auto; padding: 0.35rem 0.6rem; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; }
+.more-btn svg { flex: none; width: 15px; height: 15px; color: color-mix(in srgb, var(--brand) 75%, var(--muted)); }

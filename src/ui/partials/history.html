@@ -1,24 +1,12 @@
-<aside class="panel history" id="history-panel">
-  <div class="panel-head">
-    <div class="panel-title">
-      <h2 class="panel-h2">Conversations</h2>
-      <p class="panel-sub">Your recorded conversations.</p>
-    </div>
-    <button id="toggle-history" type="button" class="icon-btn" aria-label="Collapse conversations panel" aria-pressed="true" aria-controls="history-panel" title="Toggle conversations panel">
-      <i data-lucide="panel-left" aria-hidden="true"></i>
+<!-- Conversations + settings: the dropdown behind the header breadcrumb (see app/history-menu.ts). -->
+<div class="history-menu" id="history-menu" role="dialog" aria-label="Conversations" hidden>
+  <div class="history-search">
+    <i data-lucide="search" aria-hidden="true"></i>
+    <input id="history-search" type="text" class="history-search-input" placeholder="Search" aria-label="Search conversations and topics" autocomplete="off" spellcheck="false" />
+    <button id="history-search-clear" type="button" class="history-search-clear" aria-label="Clear search" hidden>
+      <i data-lucide="x" aria-hidden="true"></i>
     </button>
   </div>
-
-  <button id="new-session-btn" type="button" class="new-chat">
-    <i data-lucide="plus" aria-hidden="true"></i>
-    <span>New conversation</span>
-  </button>
-
-  <!-- Collapsed rail: one icon (click to expand) with the number of saved conversations. -->
-  <button id="history-rail" type="button" class="history-rail" aria-label="Show conversations" title="Conversations">
-    <i data-lucide="history" aria-hidden="true"></i>
-    <span id="history-rail-badge" class="rail-badge" hidden></span>
-  </button>
 
   <div class="history-list">
     <p id="history-no-results" class="history-no-results" hidden>Nothing matches your search.</p>
@@ -33,19 +21,4 @@
       <p class="empty-copy">Start a new conversation and it will appear here.</p>
     </div>
   </div>
-  <div class="history-search">
-    <i data-lucide="search" aria-hidden="true"></i>
-    <input id="history-search" type="text" class="history-search-input" placeholder="Search" aria-label="Search conversations and topics" autocomplete="off" spellcheck="false" />
-    <button id="history-search-clear" type="button" class="history-search-clear" aria-label="Clear search" hidden>
-      <i data-lucide="x" aria-hidden="true"></i>
-    </button>
-  </div>
-
-  <div class="history-footer">
-    <button id="settings-btn" type="button" class="icon-btn icon-btn-label" aria-label="Settings">
-      <i data-lucide="settings" aria-hidden="true"></i><span>Settings</span>
-    </button>
-  </div>
-</aside>
-
-<div class="resizer" data-resizer="history"></div>
+</div>

@@ -5,6 +5,7 @@ import { session } from "../app/state";
 import { confirmDialog } from "../lib/confirm";
 import { create, dom } from "../lib/dom";
 import { showToast } from "../lib/status";
+import { getNotes, onNotesChange } from "./notes-editor";
 import { syncTopic } from "./topics";
 import { getActionItems, getRecipe, regenerateNotes, runRecipe } from "../transcripts";
 import type { ActionItem, Draft, RecipeKind, WrapUp } from "../types";
@@ -20,7 +21,7 @@ let resultFor: number | null = null;
 /** What the result panel currently holds, for Copy / Open in Mail. */
 let current: { chip: Chip; draft?: Draft; items?: ActionItem[] } | null = null;
 
-const hasNotes = (): boolean => dom.notesInput.value.trim() !== "";
+const hasNotes = (): boolean => getNotes().trim() !== "";
 
 /** A call just ended: recipes wait on the final notes. */
 export function markWrapUpPending(id: number): void {
@@ -171,7 +172,7 @@ export function initWrapUp(): void {
   dom.wrapupTriggers.forEach((t) =>
     t.addEventListener("click", () => void runChip(t.dataset.recipe as Chip)),
   );
-  dom.notesInput.addEventListener("input", syncWrapUp);
+  onNotesChange(syncWrapUp);
   dom.wrapupCopy.addEventListener("click", () => void copy());
   dom.wrapupMail.addEventListener("click", openInMail);
   dom.wrapupRefresh.addEventListener("click", () => {

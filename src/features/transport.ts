@@ -8,13 +8,14 @@ import { dom } from "../lib/dom";
 import { describeError, setStatus } from "../lib/status";
 import { loadLiveSessionSettings } from "../settings";
 import { updateAnalyseVisibility } from "./analysis";
-import { walkthroughDone } from "./walkthrough";
 import { adoptActiveSession, loadHistory, syncTransportPlacement } from "./history";
-import { refreshNotesTitle, saveNotesNow, setNotesPreview } from "./notes";
+import { refreshNotesTitle, saveNotesNow } from "./notes";
+import { setNotesPlaceholder } from "./notes-editor";
+import { syncWelcome } from "./welcome";
 import { ensureModel } from "./model-setup";
 import { markWrapUpPending, syncWrapUp } from "./wrap-up";
 import { askCallSetup, type CallSetup } from "./call-setup";
-import { resetQuestions, setAnalysisMode, initFollowupToggle, setQuestionsHint, syncFollowups } from "./questions";
+import { resetQuestions, syncFollowups } from "./questions";
 import { resetTimer, startTimer, stopTimer } from "./timer";
 import { resetView } from "./view";
 
@@ -56,17 +57,14 @@ export function setSessionState(state: SessionState): void {
   dom.recordIconPause.toggleAttribute("hidden", state !== "recording");
   dom.stopBtn.hidden = state === "idle";
 
-  // Live text is appended to the editor, so it must be showing while a session is active.
-  if (state !== "idle") setNotesPreview(false);
   // Shown only while the editor is empty, so it disappears once notes arrive.
-  dom.notesInput.placeholder =
-    state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder();
+  setNotesPlaceholder(state === "idle" ? IDLE_NOTES_PLACEHOLDER : liveNotesPlaceholder());
 
+  syncWelcome();
   if (state === "recording") startTimer();
   else stopTimer();
   setStatus(state, STATUS_TEXT[state]);
 
-  setQuestionsHint();
   updateAnalyseVisibility();
   syncWrapUp();
   syncTransportPlacement();
@@ -93,7 +91,6 @@ async function applyCallSetup({ kind, callType, goal }: CallSetup): Promise<void
 }
 
 async function start(): Promise<void> {
-  await walkthroughDone(); // first time only: show "How Roofle works" before the call setup
   if (!(await ensureModel())) return;
   const setup = await askCallSetup();
   if (setup === null) return;
@@ -105,7 +102,6 @@ async function start(): Promise<void> {
       resetTimer();
     }
     resetQuestions();
-    setAnalysisMode(false);
     const settings = loadLiveSessionSettings();
     await invoke("set_char_limit", { limit: settings.charLimit });
     await invoke("set_max_open_questions", { limit: settings.maxOpenQuestions });
@@ -131,7 +127,6 @@ export async function stop(): Promise<void> {
   } finally {
     setSessionState("idle");
     await saveNotesNow();
-    setAnalysisMode(true);
     await loadHistory();
   }
 }
@@ -184,7 +179,6 @@ export function initTransport(openSettings: () => void): void {
   dom.stopBtn.addEventListener("click", () => void stop());
   dom.newSessionBtn?.addEventListener("click", () => void newSession());
   dom.settingsBtn?.addEventListener("click", openSettings);
-  initFollowupToggle();
   initShortcuts();
   // Tray "New conversation": same flow as the record button, goal prompt included.
   void listen("start-requested", () => {

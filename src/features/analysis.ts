@@ -3,7 +3,7 @@ import { session } from "../app/state";
 import { create, dom } from "../lib/dom";
 import { formatScore, humanizeKey } from "../lib/format";
 import { analyseSession, getSessionAnalysis, type AnalysisResult } from "../transcripts";
-import { syncQuestionsPanel } from "./questions";
+import { syncQuestionsCard } from "./questions";
 
 const CONTEXTS = ["Discovery", "Demo", "Interview", "Team meeting", "1:1"];
 /** The only contexts the sales-lens review fits. */
@@ -37,12 +37,12 @@ async function refreshReviewLabel(): Promise<void> {
 
 export function hideDashboard(): void {
   dom.analysisDashboard.hidden = true;
-  syncQuestionsPanel();
+  syncQuestionsCard();
 }
 
 function showDashboard(): void {
   dom.analysisDashboard.hidden = false;
-  syncQuestionsPanel();
+  syncQuestionsCard();
 }
 
 /** Show a stored analysis if there is one; otherwise ask for the conversation type. */

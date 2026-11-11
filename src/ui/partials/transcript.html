@@ -1,9 +1,10 @@
 <section class="panel transcript" id="transcript-panel">
   <div class="transcript-head">
-    <h2 id="chat-title" class="new-title">Notes</h2>
-    <span id="notes-editing" class="notes-editing" role="status">
-      <span class="notes-editing-dot" aria-hidden="true"></span>Editing
-    </span>
+    <!-- Notes / Transcription switch. Only notes are editable. -->
+    <div id="notes-tabs" class="notes-tabs" role="tablist" aria-label="Meeting content">
+      <button id="tab-notes" type="button" class="notes-tab active" role="tab" aria-selected="true" aria-controls="notes-pane" data-tab="notes">Notes</button>
+      <button id="tab-transcription" type="button" class="notes-tab" role="tab" aria-selected="false" aria-controls="transcription-pane" data-tab="transcription">Transcription</button>
+    </div>
     <!-- Assist actions: a trigger that opens a small popover of AI helpers. -->
     <div id="assist-control" class="assist-control" hidden>
       <button id="assist-btn" type="button" class="assist-btn" aria-haspopup="menu" aria-expanded="false">
@@ -47,38 +48,15 @@
     <!-- More: conversation options (topic, export). -->
     <div id="topic-control" class="topic-control" hidden>
       <button id="topic-btn" type="button" class="more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Conversation options" title="Conversation options">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
+        <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+        <span>Options</span>
       </button>
       <div id="topic-menu" class="topic-menu" role="menu" aria-label="Topic" hidden></div>
-    </div>
-    <!-- Transport: shown while the viewed conversation is the live one (otherwise its history row carries the controls) -->
-    <div id="floating-control" class="transport is-idle">
-      <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
-        <span class="record-btn-inner">
-          <svg id="record-icon-play" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-            <path d="M8 5.14v13.72c0 .9.98 1.45 1.75.98l10.2-6.86a1.15 1.15 0 0 0 0-1.96L9.75 4.16A1.15 1.15 0 0 0 8 5.14z" />
-          </svg>
-          <svg id="record-icon-pause" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" hidden>
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" />
-          </svg>
-        </span>
-      </button>
-      <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop conversation" hidden>
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-          <rect x="6" y="6" width="12" height="12" rx="2" />
-        </svg>
-      </button>
-      <span id="timer" class="timer" aria-hidden="true">00:00</span>
     </div>
   </div>
 
   <div id="notes-page" class="notes-page">
-    <!-- Notes / Transcription switch. Centred over the page; only notes are editable. -->
-    <div class="notes-tabs" role="tablist" aria-label="Meeting content">
-      <button id="tab-notes" type="button" class="notes-tab active" role="tab" aria-selected="true" aria-controls="notes-pane" data-tab="notes">Notes</button>
-      <button id="tab-transcription" type="button" class="notes-tab" role="tab" aria-selected="false" aria-controls="transcription-pane" data-tab="transcription">Transcription</button>
-    </div>
+    <h2 id="chat-title" class="page-title">Notes</h2>
     <!-- Editable notes: the textarea holds the final notes (agent output +
          user edits) and is what gets persisted per session. -->
     <div id="notes-pane" class="notes-pane" role="tabpanel" aria-labelledby="tab-notes">
@@ -86,14 +64,25 @@
         <time id="notes-meta" class="notes-meta"></time>
         <span id="notes-tokens" class="notes-tokens" title="LLM tokens used by this session"></span>
       </div>
-      <textarea
-        id="notes-input"
-        class="notes-input"
-        spellcheck="true"
-        aria-label="Conversation notes"
-        placeholder="Start recording or type your notes here…"
-      ></textarea>
-      <div id="notes-preview" class="notes-preview markdown-body" aria-label="Rendered notes" hidden></div>
+      <!-- Wrap-up: quick follow-ups, a row of one-click actions under the title for a finished session that has a transcript. -->
+      <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
+        <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
+        <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
+        <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
+        <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
+      </div>
+      <!-- The notepad editor mounts here (features/notes-editor.ts). -->
+      <div id="notes-input" class="notes-input"></div>
+      <!-- Shown on a fresh, empty notepad (features/welcome.ts). Clicks fall through to the textarea. -->
+      <div id="notes-welcome" class="notes-welcome" hidden>
+        <p class="notes-welcome-lead">Welcome to Roofle. Listen, note, coach.</p>
+        <ol class="notes-welcome-steps">
+          <li><b>Start a conversation.</b> Click <em>New conversation</em> (or press ⌘R), pick the kind of call and, if you like, a goal.</li>
+          <li><b>Just talk.</b> Roofle transcribes you and the other side on your Mac, keeps live notes, and suggests questions worth asking in the margin.</li>
+          <li><b>Wrap up.</b> Stop for a recap, action items and a follow-up email. Everything is saved; reopen past calls from the menu at the top left.</li>
+        </ol>
+        <p class="notes-welcome-foot">This page is a notepad too: type anywhere. Audio never leaves your Mac, and AI runs on your own key.</p>
+      </div>
     </div>
     <!-- Read-only transcription, each utterance labelled with its source. -->
     <div id="transcription-pane" class="transcription-pane" role="tabpanel" aria-labelledby="tab-transcription" hidden>
@@ -101,6 +90,8 @@
       <p id="transcription-empty" class="transcription-empty" hidden>No transcription yet.</p>
     </div>
   </div>
+
+  <!--@questions-->
 
   <!-- Recap card: the answer to Assist → Recap last 30 seconds. -->
   <aside id="recap-card" class="recap-card" role="status" aria-live="polite" hidden>
@@ -175,13 +166,6 @@
     </footer>
   </aside>
 
-  <!-- Wrap-up: quick follow-ups, a slim icon rail (labels on hover) for a finished session that has a transcript. -->
-  <div id="wrapup-pill" class="wrapup-pill" role="group" aria-label="Follow up on this call" hidden>
-    <button type="button" class="wrapup-chip" data-recipe="recap-email"><i data-lucide="mail" aria-hidden="true"></i><span>Recap email</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="slack-post"><i data-lucide="message-square-text" aria-hidden="true"></i><span>Slack post</span></button>
-    <button type="button" class="wrapup-chip" data-recipe="action-items"><i data-lucide="list-checks" aria-hidden="true"></i><span>Action items</span></button>
-    <button id="wrapup-regen" type="button" class="wrapup-chip" title="Write the notes again from the full transcript"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Regenerate notes</span></button>
-  </div>
   <aside id="wrapup-result" class="recap-card wrapup-result" role="status" aria-live="polite" hidden>
     <header class="recap-head">
       <span class="recap-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
@@ -216,21 +200,6 @@
   </div>
 </section>
 
-<div class="resizer" data-resizer="questions"></div>
-
-<!-- Save prompt: shown when leaving the notes editor with unsaved edits. -->
-<div id="save-notes-modal" class="analyse-overlay" role="dialog" aria-modal="true" aria-labelledby="save-notes-title" hidden>
-  <div class="analyse-dialog">
-    <div class="analyse-head">
-      <h2 id="save-notes-title" class="analyse-title">Save your changes?</h2>
-    </div>
-    <p class="analyse-desc">You have unsaved edits to these notes.</p>
-    <div class="analyse-actions">
-      <button id="save-notes-discard" type="button" class="btn-ghost">Discard</button>
-      <button id="save-notes-save" type="button" class="btn-primary">Save changes</button>
-    </div>
-  </div>
-</div>
 
 <!-- Analyse modal: pick the conversation type, then run the offline-agent. -->
 <!-- Call setup: asked when recording starts; steers which gaps matter. -->

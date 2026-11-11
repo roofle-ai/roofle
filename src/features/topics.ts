@@ -11,7 +11,8 @@ import { createTopic, deleteTopic, listTopics, renameSession, setSessionTopic, t
 import { runExport } from "./export";
 import { loadHistory, removeSession } from "./history";
 import { isSearching, matchesSearch } from "./history-search";
-import { isEditingNotes, refreshNotesTitle, startEditingNotes } from "./notes";
+import { refreshNotesTitle } from "./notes";
+import { canToggleFollowups, isFollowupsEnabled, setFollowupsEnabled } from "./questions";
 
 let topics: Topic[] = [];
 const topicOf = new Map<number, number | null>();
@@ -102,14 +103,32 @@ export function groupByTopic(
     bucket.classList.toggle("has-active", !open && mine.some((s) => s.id === session.viewedId));
     if (open) {
       const items = create("div", "topic-bucket-items");
-      items.append(...(mine.length ? mine.map(renderItem) : [create("p", "topic-bucket-empty", "No conversations yet")]));
+      items.append(...(mine.length ? groupByDate(mine, renderItem) : [create("p", "topic-bucket-empty", "No conversations yet")]));
       bucket.append(items);
     }
     return [bucket];
   });
   const known = new Set(topics.map((t) => t.id));
   const unfiled = sessions.filter((s) => s.topic_id === null || !known.has(s.topic_id));
-  return [...unfiled.map(renderItem), ...buckets];
+  return [...groupByDate(unfiled, renderItem), ...buckets];
+}
+
+const DAY = 86_400_000;
+const AGES: [number, string][] = [[0, "Today"], [1, "Yesterday"], [7, "Last week"], [30, "Last month"], [365, "Last year"], [Infinity, "Older"]];
+
+/** Rows under date headings (calendar days, local time); headings only appear for groups that have rows. */
+function groupByDate(sessions: SessionSummary[], renderItem: (s: SessionSummary) => HTMLElement): HTMLElement[] {
+  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = midnight(new Date());
+  const out: HTMLElement[] = [];
+  let last = "";
+  for (const s of sessions) {
+    const age = Math.max(0, Math.round((today - midnight(new Date(s.started_at))) / DAY));
+    const label = AGES.find(([max]) => age <= max)![1];
+    if (label !== last) out.push(create("div", "history-group-label", (last = label)));
+    out.push(renderItem(s));
+  }
+  return out;
 }
 
 /** Delete a topic after confirming; its conversations are kept, unfiled. */
@@ -192,6 +211,20 @@ function item(label: string, icon: string, onClick: () => void): HTMLButtonEleme
   return b;
 }
 
+/** A row with a switch on the right: label, one-line hint, and the on/off state. */
+function toggleItem(label: string, hint: string, icon: string, on: boolean, onClick: () => void): HTMLButtonElement {
+  const b = create("button", "topic-menu-item topic-menu-toggle");
+  b.type = "button";
+  b.setAttribute("role", "menuitemcheckbox");
+  b.setAttribute("aria-checked", String(on));
+  b.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i>`;
+  const text = create("span", "topic-menu-text");
+  text.append(create("span", "topic-menu-label", label), create("span", "topic-menu-hint", hint));
+  b.append(text, create("span", "topic-switch"));
+  b.addEventListener("click", onClick);
+  return b;
+}
+
 function go(next: "root" | "topic"): void {
   view = next;
   renderMenu();
@@ -206,11 +239,6 @@ function renderMenu(): void {
     topic.insertAdjacentHTML("beforeend", `<i data-lucide="chevron-right" aria-hidden="true"></i>`);
     const busy = session.state !== "idle";
     topic.disabled = busy;
-    const editNotes = item("Edit notes", "pencil", () => {
-      closeMenu();
-      startEditingNotes();
-    });
-    editNotes.disabled = busy || session.notesTab !== "notes" || isEditingNotes();
     const rename = item("Rename conversation", "pencil", () => {
       const input = nameInput(
         async (title) => {
@@ -240,13 +268,27 @@ function renderMenu(): void {
       closeMenu();
       if (session.viewedId !== null) void removeSession(session.viewedId);
     });
+    const canToggle = canToggleFollowups();
+    const suggest = toggleItem(
+      "Question suggestions",
+      canToggle ? "Suggest questions while you record" : "Available while recording",
+      "message-square-quote",
+      isFollowupsEnabled(),
+      () => {
+        setFollowupsEnabled(!isFollowupsEnabled());
+        renderMenu();
+      },
+    );
+    suggest.disabled = !canToggle;
     del.classList.add("topic-menu-danger");
     del.disabled = busy;
     dom.topicMenu.replaceChildren(
-      editNotes,
+      create("div", "topic-menu-title", "Conversation"),
       rename,
       topic,
-      create("div", "topic-menu-sep"),
+      create("div", "topic-menu-title", "Live"),
+      suggest,
+      create("div", "topic-menu-title", "Export"),
       item("Export transcript", "download", () => void runExport("transcript")),
       item("Export notes", "download", () => void runExport("notes")),
       create("div", "topic-menu-sep"),

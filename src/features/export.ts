@@ -2,16 +2,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import { session } from "../app/state";
-import { dom } from "../lib/dom";
 import { exportStamp } from "../lib/format";
 import { showToast } from "../lib/status";
 import { getSession } from "../transcripts";
+import { getNotes } from "./notes-editor";
 import { closeMenu } from "./topics";
 
 type ExportKind = "transcript" | "notes";
 
 async function contentFor(kind: ExportKind): Promise<string> {
-  if (kind === "notes") return dom.notesInput.value;
+  if (kind === "notes") return getNotes();
   if (session.viewedId === null) return "";
   try {
     return (await getSession(session.viewedId))?.transcript ?? "";

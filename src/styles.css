@@ -53,8 +53,6 @@
 
   --ring: var(--brand);
   --gutter: clamp(1.25rem, 3vw, 2.5rem);
-  --history-w: 240px;
-  --questions-w: 340px;
 
   /* ---- Scaled design tokens (consistency) ---- */
   --space-1: 0.25rem;
@@ -171,63 +169,11 @@ body {
   backdrop-filter: blur(10px);
 }
 
-.cmdbar-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-/* Brand lockup: icon chip on the left with name + tag stacked beside it. */
-.brand-lockup {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.brand-chip {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--brand) 40%, transparent);
-  color: #fff;
-}
-
-.brand-chip svg {
-  width: 22px;
-  height: 22px;
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.15;
-}
-
-.wordmark {
-  margin: 0;
-  display: inline-flex;
-  white-space: nowrap;
-}
-
 .wordmark-name {
   font-size: 1.15rem;
   font-weight: 750;
   letter-spacing: -0.02em;
   color: var(--brand-strong);
-}
-
-.wordmark-tag {
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--faint);
 }
 
 .icon-btn {
@@ -472,38 +418,6 @@ body {
   overflow: hidden;
 }
 
-/* Fixed gutter between panels (panel widths are not user-resizable). */
-.resizer {
-  flex: 0 0 8px;
-}
-
-/* ---------- Left: history ---------- */
-.history {
-  flex: 0 0 var(--history-w, 240px);
-  background: var(--surface);
-  padding: 0 0.7rem 0.7rem;
-  gap: 0.5rem;
-}
-
-.panel-head {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.7rem 0.1rem 0.3rem;
-}
-
-.panel-heading,
-.panel-h2 {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
 .new-chat {
   flex: 0 0 auto;
   display: inline-flex;
@@ -594,11 +508,6 @@ body {
   margin-bottom: 0.35rem;
 }
 
-.empty-orb.insight {
-  background: color-mix(in srgb, var(--insight) 12%, var(--surface));
-  color: var(--insight);
-}
-
 .empty-orb i,
 .empty-orb svg {
   width: 22px;
@@ -681,61 +590,6 @@ body {
   box-shadow: inset 2px 0 0 var(--brand);
 }
 
-/* Pause/stop on the live row, shown only while another conversation is open. */
-.row-transport {
-  display: none;
-  gap: 0.25rem;
-  align-self: flex-start;
-}
-
-.history-item:not(.is-active) > .row-transport {
-  display: flex;
-}
-
-.row-transport button {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--muted);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 10%, transparent);
-  cursor: pointer;
-  transition: color 200ms ease, background 200ms ease, border-color 200ms ease,
-    box-shadow 200ms ease, transform 200ms var(--ease);
-}
-
-.row-transport button:hover {
-  background: var(--surface-2);
-  color: var(--ink);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--ink) 14%, transparent);
-  transform: translateY(-1px);
-}
-
-.row-transport button:active {
-  transform: scale(0.9);
-}
-
-.row-transport button.recording {
-  color: var(--record);
-  background: var(--record-soft);
-  border-color: color-mix(in srgb, var(--record) 35%, var(--line));
-}
-
-.row-transport button.paused {
-  color: var(--amber);
-  background: color-mix(in srgb, var(--amber) 14%, var(--bg));
-  border-color: color-mix(in srgb, var(--amber) 40%, var(--line));
-}
-
-.row-transport svg {
-  width: 12px;
-  height: 12px;
-}
-
 .history-item.is-recording::after {
   content: "●";
   align-self: flex-start;
@@ -808,19 +662,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.new-title {
-  margin: 0;
-  /* Shrinks (ellipsis) before Assist or the transport controls are squeezed. */
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-}
-
 /* Notes live directly on the panel — no nested card. The writing column is
    centred by padding (not max-width) so scrollbars stay at the panel edge. */
 .notes-page {
@@ -849,11 +690,6 @@ body {
   padding: 0.15rem;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--brand) 6%, var(--bg));
-}
-
-/* While the notes editor has focus the switch gets out of the way. */
-.transcript:has(.notes-editing.on) .notes-tabs {
-  display: none;
 }
 
 .notes-tab {
@@ -1029,8 +865,7 @@ body {
   display: none;
 }
 
-.notes-input,
-.notes-preview {
+.notes-input {
   flex: 1 1 auto;
   width: 100%;
   min-height: 0;
@@ -1061,85 +896,9 @@ body {
   outline: none;
 }
 
-/* Non-interactive "Editing" indicator in the panel header. */
-.notes-editing {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  /* Takes the free space so everything after it stays pinned right. */
-  margin: 0 auto 0 0.75rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--brand) 14%, transparent);
-  color: var(--brand);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-/* Invisible but still laid out (the global [hidden] rule is display:none !important),
-   so the header never shifts when it toggles. */
-.notes-editing {
-  visibility: hidden;
-}
-
-.notes-editing.on {
-  visibility: visible;
-}
-
-.notes-editing-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.notes-preview {
-  overflow-wrap: anywhere;
-}
-
-.notes-input[hidden],
-.notes-preview[hidden] {
+.notes-input[hidden] {
   display: none;
 }
-
-.markdown-body > :first-child { margin-top: 0; }
-.markdown-body > :last-child { margin-bottom: 0; }
-.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
-  line-height: 1.3;
-  margin: 1.4em 0 0.5em;
-}
-.markdown-body h1 { font-size: 1.6em; }
-.markdown-body h2 { font-size: 1.35em; }
-.markdown-body h3 { font-size: 1.15em; }
-.markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body pre, .markdown-body blockquote, .markdown-body table {
-  margin: 0 0 0.9em;
-}
-.markdown-body ul, .markdown-body ol { padding-left: 1.5em; }
-.markdown-body a { color: var(--brand); }
-.markdown-body code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.88em;
-  background: var(--surface);
-  padding: 0.1em 0.35em;
-  border-radius: 4px;
-}
-.markdown-body pre {
-  background: var(--surface);
-  padding: 0.8rem 1rem;
-  border-radius: var(--radius-lg);
-  overflow-x: auto;
-}
-.markdown-body pre code { background: none; padding: 0; }
-.markdown-body blockquote {
-  border-left: 3px solid var(--line);
-  padding-left: 1rem;
-  color: var(--faint);
-}
-.markdown-body table { border-collapse: collapse; }
-.markdown-body th, .markdown-body td { border: 1px solid var(--line); padding: 0.35em 0.7em; }
-.markdown-body hr { border: none; border-top: 1px solid var(--line); margin: 1.4em 0; }
-.notes-preview-empty { color: var(--faint); font-style: italic; }
 
 .notes-input::placeholder {
   color: var(--faint);
@@ -1147,7 +906,6 @@ body {
 }
 
 .notes-input::-webkit-scrollbar,
-.notes-preview::-webkit-scrollbar,
 .history-list::-webkit-scrollbar,
 .questions-list::-webkit-scrollbar,
 .transcription-pane::-webkit-scrollbar {
@@ -1155,7 +913,6 @@ body {
 }
 
 .notes-input::-webkit-scrollbar-track,
-.notes-preview::-webkit-scrollbar-track,
 .history-list::-webkit-scrollbar-track,
 .questions-list::-webkit-scrollbar-track,
 .transcription-pane::-webkit-scrollbar-track {
@@ -1164,7 +921,6 @@ body {
 
 /* Thumb is inset from the edge by a transparent border so it never touches it. */
 .notes-input::-webkit-scrollbar-thumb,
-.notes-preview::-webkit-scrollbar-thumb,
 .history-list::-webkit-scrollbar-thumb,
 .questions-list::-webkit-scrollbar-thumb,
 .transcription-pane::-webkit-scrollbar-thumb {
@@ -1175,7 +931,6 @@ body {
 }
 
 .notes-input::-webkit-scrollbar-thumb:hover,
-.notes-preview::-webkit-scrollbar-thumb:hover,
 .history-list::-webkit-scrollbar-thumb:hover,
 .questions-list::-webkit-scrollbar-thumb:hover,
 .transcription-pane::-webkit-scrollbar-thumb:hover {
@@ -1220,87 +975,6 @@ body {
   white-space: nowrap;
 }
 
-/* ---------- Right: follow-up questions ---------- */
-.questions {
-  flex: 0 0 var(--questions-w, 340px);
-  background: var(--surface);
-}
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.live-badge {
-  display: none;
-}
-
-.live-badge.show {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.14rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.64rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.live-badge.live {
-  color: var(--record);
-  background: var(--record-soft);
-}
-
-.live-badge.live::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--record);
-  animation: blink 1.4s ease-in-out infinite;
-}
-
-.live-badge.analysis {
-  color: var(--brand-strong);
-  background: var(--brand-tint);
-}
-
-.questions-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0.25rem 0.7rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.questions-empty {
-  margin: auto;
-  padding: 1.5rem 0.7rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  text-align: center;
-  color: var(--faint);
-}
-
-.questions-empty > i {
-  width: 22px;
-  height: 22px;
-  color: var(--brand-faint);
-}
-
-.questions-empty p {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  max-width: 18rem;
-}
-
 @keyframes qenter {
   from {
     opacity: 0;
@@ -1318,108 +992,9 @@ body {
   border-left: 1px solid var(--line);
 }
 
-/* Header mirrors the main panel's: same padding, divider and background, and a
-   shared minimum height so both dividers line up across the workspace. */
-.panel.history .panel-head,
-.panel.questions .panel-head {
-  align-items: center;
-  box-sizing: border-box;
-  min-height: 4rem;
-  padding: 0.9rem 0.7rem 0.6rem 0.55rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--brand) 10%, var(--line));
-  background: linear-gradient(
-    180deg,
-    var(--bg),
-    color-mix(in srgb, var(--brand) 3%, var(--bg))
-  );
-}
-
 .transcript-head {
   box-sizing: border-box;
   min-height: 4rem;
-}
-
-.panel.history .panel-h2,
-.panel.questions .panel-h2 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  color: var(--ink);
-}
-
-.panel.history .panel-title,
-.panel.questions .panel-title {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-}
-
-.panel-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.panel-sub {
-  margin: 0;
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 0.7rem;
-  line-height: 1.4;
-  color: var(--muted);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* Open cards get a brand accent bar + soft shadow; resolved cards shift to green. */
-
-/* Collapsed panels (toggled from the header). The right panel leaves the
-   layout; the left one shrinks to a slim rail with just the new-chat button. */
-.workspace.questions-collapsed .resizer[data-resizer="questions"],
-.workspace.history-collapsed .resizer[data-resizer="history"] {
-  display: none;
-}
-
-.workspace.history-collapsed #history-panel {
-  flex: 0 0 56px;
-  padding: 0 0.5rem 0.7rem;
-  align-items: center;
-  border-right: 1px solid var(--line);
-}
-
-.history-collapsed #history-panel .panel-title,
-.history-collapsed .history-label,
-.history-collapsed .history-empty,
-.history-collapsed .new-chat span,
-.history-collapsed .history-title,
-.history-collapsed .history-delete {
-  display: none;
-}
-
-.panel.history .panel-head {
-  margin: 0 -0.7rem 0.1rem;
-  padding-left: 1.25rem;
-}
-
-.history-collapsed #history-panel .panel-head {
-  justify-content: center;
-  min-height: 0;
-  padding: 0.7rem 0 0.3rem;
-  border-bottom: none;
-  background: transparent;
-}
-
-.history-collapsed .new-chat {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-}
-
-/* Rail shows only the + button; history is visible when expanded. */
-.history-collapsed .history-list {
-  display: none;
 }
 
 .icon-btn[aria-pressed="false"] {
@@ -2321,16 +1896,6 @@ body {
   );
 }
 
-/* Left rail: same violet wash as the right panel. */
-.panel.history {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--brand) 11%, var(--surface)),
-    color-mix(in srgb, var(--brand) 5%, var(--surface))
-  );
-  border-right: 1px solid color-mix(in srgb, var(--brand) 14%, var(--line));
-}
-
 .history-item:hover {
   background: color-mix(in srgb, var(--brand) 12%, transparent);
 }
@@ -2348,16 +1913,6 @@ body {
   background: var(--bg);
 }
 
-/* Right: a soft violet wash that fades toward the brand tint. */
-.panel.questions {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--brand) 11%, var(--surface)),
-    color-mix(in srgb, var(--brand) 5%, var(--surface))
-  );
-  border-left: 1px solid color-mix(in srgb, var(--brand) 14%, var(--line));
-}
-
 /* ============================================================
    Panels as rounded cards on a tinted canvas. The resizer gutter
    is the only divider (no per-panel borders → no doubled lines).
@@ -2371,13 +1926,6 @@ body {
   border: 1px solid color-mix(in srgb, var(--brand) 12%, var(--line));
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1);
-}
-
-.panel.history,
-.panel.questions,
-.workspace.history-collapsed #history-panel {
-  border-left: 1px solid color-mix(in srgb, var(--brand) 12%, var(--line));
-  border-right: 1px solid color-mix(in srgb, var(--brand) 12%, var(--line));
 }
 
 /* Main panel: header and paper are rounded to match the card. */
@@ -2404,138 +1952,6 @@ body {
   height: 1px;
   margin: 0.55rem 0 0.35rem;
   background: color-mix(in srgb, var(--brand) 22%, var(--line));
-}
-
-/* Collapsed left rail keeps the same 8px gutter the resizer gives the others. */
-.workspace.history-collapsed #history-panel {
-  margin-right: 8px;
-}
-
-/* ---------- Collapsed right rail ---------- */
-.questions-rail {
-  display: none;
-}
-
-/* Hide the follow-up panel while the notes are being edited (the "Editing" pill is on). */
-.workspace:has(.notes-editing.on) #questions-panel,
-.workspace:has(.notes-editing.on) .resizer[data-resizer="questions"] {
-  display: none;
-}
-
-.workspace.questions-collapsed #questions-panel {
-  flex: 0 0 56px;
-  margin-left: 8px;
-  padding: 0 0.5rem 0.7rem;
-  align-items: center;
-}
-
-.questions-collapsed #questions-panel .panel-title,
-.questions-collapsed #questions-panel .questions-empty,
-.questions-collapsed #questions-panel .questions-list {
-  display: none;
-}
-
-.questions-collapsed #questions-panel .panel-head {
-  justify-content: center;
-  min-height: 0;
-  padding: 0.7rem 0 0.3rem;
-  border-bottom: none;
-  background: transparent;
-}
-
-.questions-collapsed .questions-rail {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-top: 0.3rem;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--insight) 14%, var(--bg));
-  color: var(--insight);
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.questions-rail [data-lucide] {
-  width: 18px;
-  height: 18px;
-}
-
-.questions-rail:hover {
-  background: color-mix(in srgb, var(--insight) 24%, var(--bg));
-}
-
-.questions-rail:active {
-  transform: scale(0.94);
-}
-
-.questions-rail:focus-visible {
-  outline: 2px solid var(--brand-soft);
-  outline-offset: 2px;
-}
-
-/* Collapsed left rail: a history icon whose badge counts saved conversations. */
-.history-rail {
-  display: none;
-}
-
-.history-collapsed .history-rail {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-top: 0.5rem;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--brand-tint);
-  color: var(--brand-strong);
-  cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
-}
-
-.history-rail [data-lucide] {
-  width: 18px;
-  height: 18px;
-}
-
-.history-rail:hover {
-  background: color-mix(in srgb, var(--brand) 18%, transparent);
-}
-
-.history-rail:active {
-  transform: scale(0.94);
-}
-
-.history-rail:focus-visible {
-  outline: 2px solid var(--brand-soft);
-  outline-offset: 2px;
-}
-
-/* Count badge, top-right of the rail icon. */
-.rail-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--radius-pill);
-  background: var(--brand);
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-  box-shadow: 0 0 0 2px var(--surface);
-}
-
-/* While live, the badge turns recording-red and pulses to draw the eye. */
-.questions-rail.is-live .rail-badge {
-  background: var(--record);
-  animation: blink 1.4s ease-in-out infinite;
 }
 
 /* ---------- Settings: sidebar + content (app-style dialog) ---------- */
@@ -2698,241 +2114,6 @@ select.settings-input {
   background: var(--surface);
 }
 
-
-/* ============================================================
-   Follow-up questions — grouped cards
-   ============================================================ */
-.questions-list {
-  gap: 1rem;
-  padding-top: 0.5rem;
-}
-
-.qgroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.qgroup-title {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0 -0.15rem;
-  padding: 0;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.qgroup-count {
-  min-width: 1.2rem;
-  padding: 0.02rem 0.35rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 0.64rem;
-  font-weight: 600;
-  text-align: center;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.qcard {
-  --accent: var(--brand);
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  box-shadow: inset 3px 0 0 0 var(--accent), 0 1px 2px rgba(15, 23, 42, 0.05);
-  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
-}
-
-.qcard.is-new {
-  animation: qenter 220ms ease-out;
-}
-
-.qcard:hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-}
-
-.qcard.answered {
-  --accent: var(--green);
-}
-
-.qcard.stale {
-  --accent: var(--faint);
-}
-
-.qcard-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.qcard-head [data-lucide],
-.qcard-head svg {
-  flex: 0 0 auto;
-  width: 15px;
-  height: 15px;
-  margin-top: 0.18rem;
-  color: var(--accent);
-}
-
-.qtext {
-  margin: 0;
-  font-size: 0.86rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: var(--ink);
-}
-
-.qcard.stale .qtext {
-  font-weight: 400;
-  color: var(--muted);
-}
-
-/* Compact jump-to-source pill under the question. */
-.qsource {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-left: 1.4rem;
-  padding: 0.18rem 0.6rem 0.18rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--bg);
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 160ms var(--ease), border-color 160ms var(--ease), background 160ms var(--ease);
-}
-
-.qsource [data-lucide],
-.qsource svg {
-  width: 12px;
-  height: 12px;
-}
-
-.qsource-time {
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--faint);
-}
-
-.qsource:hover,
-.qsource:focus-visible,
-.qcard.is-viewing .qsource {
-  color: var(--brand);
-  border-color: var(--brand);
-  background: var(--brand-faint);
-}
-
-.qcard.is-viewing {
-  border-color: var(--brand);
-}
-
-/* The brief answer lifted from the conversation. */
-.qanswer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-left: 1.4rem;
-  padding: 0.5rem 0.65rem;
-  border-radius: var(--radius-sm, 8px);
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
-}
-
-.qanswer-label {
-  font-size: 0.64rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 80%, var(--ink));
-}
-
-.qanswer-text {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--ink);
-}
-
-.qcard.stale .qanswer-text {
-  color: var(--muted);
-}
-
-/* Suggest-questions switch: a quiet row aligned with the card column. */
-.followup-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0.6rem 0.7rem 0.2rem 0.55rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.followup-toggle input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.followup-track {
-  position: relative;
-  flex: 0 0 auto;
-  width: 30px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--line);
-  transition: background 150ms ease;
-}
-
-.followup-track::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.3);
-  transition: transform 150ms var(--ease);
-}
-
-.followup-toggle input:checked + .followup-track {
-  background: var(--brand);
-}
-
-.followup-toggle input:checked + .followup-track::after {
-  transform: translateX(12px);
-}
-
-.followup-toggle input:focus-visible + .followup-track {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-.followup-toggle:has(input:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.questions-collapsed #questions-panel .followup-toggle {
-  display: none;
-}
 
 /* Recap card: a compact floating answer under the header, top-right. */
 .recap-card {
@@ -3192,46 +2373,7 @@ select.settings-input {
   .recap-skeleton span {
     animation: none;
   }
-}
-
-/* Earlier (answered / stale) groups collapse behind their title. */
-details.qgroup > summary.qgroup-title {
-  cursor: pointer;
-  list-style: none;
-}
-
-details.qgroup > summary.qgroup-title::-webkit-details-marker {
-  display: none;
-}
-
-details.qgroup[open] > summary.qgroup-title {
-  margin-bottom: 0.45rem;
-}
-
-/* Feedback row on open cards. */
-.qfeedback-btn {
-  margin: -0.1rem -0.3rem 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0 0.35rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.2;
-  cursor: pointer;
-}
-
-.qfeedback-btn:hover,
-.qfeedback-btn:focus-visible,
-.qfeedback-btn[aria-pressed="true"] {
-  border-color: var(--brand);
-  color: var(--brand);
-}
-
-/* Call setup dialog: free-text goal beside the select. */
+}/* Call setup dialog: free-text goal beside the select. */
 .analyse-input {
   width: 100%;
   padding: 0.55rem 0.75rem;
@@ -3611,27 +2753,7 @@ details.qgroup[open] > summary.qgroup-title {
   .wrapup-pill {
     animation: none;
   }
-}
-
-
-/* Theme + settings live at the bottom of the left panel; stacked in the rail. */
-.history-footer {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: auto;
-  padding: 0.6rem 0 0;
-  border-top: 1px solid var(--line);
-}
-
-.history-collapsed .history-footer {
-  flex-direction: column;
-  width: 100%;
-  justify-content: center;
-}
-
-/* Walkthrough popup */
+}/* Walkthrough popup */
 .walkthrough-dialog {
   position: relative;
   max-width: 30rem;
@@ -4034,10 +3156,6 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .settings-secret { margin-top: 0.4rem; }
 .settings-secret .settings-input { margin-top: 0; }
 .settings-secret-btn { top: 50%; padding: 0.15rem 0.5rem; font-size: 0.6875rem; }
-.icon-btn-label { width: auto; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0 0.6rem; font: inherit; font-size: 0.8125rem; font-weight: 500; }
-.history-collapsed .icon-btn-label { width: 32px; padding: 0; justify-content: center; }
-.history-collapsed .icon-btn-label span { display: none; }
-
 /* Topics — ⋯ menu in the notes header */
 .topic-control { position: relative; flex: 0 0 auto; }
 .more-btn {
@@ -4136,7 +3254,14 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .topic-bucket.is-open .topic-chevron { transform: rotate(90deg); }
 .topic-bucket-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topic-bucket-count { min-width: 1.1rem; padding: 0 0.3rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 0.62rem; font-weight: 600; text-align: center; }
-.history-collapsed .topic-bucket { display: none; }
+.history-group-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-top: 0.6rem; padding: 0.25rem 0.6rem 0.15rem;
+  color: var(--brand-strong); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.history-group-label::after { content: ""; flex: 1; height: 1px; background: var(--brand-faint); opacity: 0.6; }
+.history-list > .history-group-label:first-child, .topic-bucket-items > .history-group-label:first-child { margin-top: 0; }
+.topic-bucket-items .history-group-label { padding-left: 0.5rem; }
 .topic-menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
 .topic-menu-back { color: var(--muted); font-weight: 600; }
 .topic-menu-item > [data-lucide="chevron-right"] { margin-left: auto; }
@@ -4185,13 +3310,6 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .btn-danger { background: var(--record); box-shadow: none; }
 .btn-danger:hover { background: var(--record); filter: brightness(1.08); }
 
-/* History panel at its minimum width: "New conversation" shrinks to just the + icon. */
-.panel.history { container-type: inline-size; }
-@container (max-width: 160px) {
-  .new-chat span { display: none; }
-  .new-chat { width: 36px; height: 36px; padding: 0; align-self: center; }
-}
-
 /* Sidebar search */
 .history-search {
   margin-top: 0.25rem;
@@ -4233,8 +3351,6 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 .history-search-clear:hover { background: var(--surface-2); color: var(--ink); }
 .history-search-clear [data-lucide] { width: 12px; height: 12px; }
 .history-no-results { margin: 0.75rem 0.25rem; font-size: 0.75rem; text-align: center; color: var(--faint); }
-.history-collapsed .history-search { display: none; }
-
 /* Assist menu: each category is a tinted card; its accent colour drives border, heading and icons. */
 /* Wide menu: the category cards pack into as many balanced, top-aligned columns as fit.
    The columns live in an inner wrapper so the menu itself can still scroll vertically. */

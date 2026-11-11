@@ -1,21 +1,36 @@
 <header class="cmdbar">
-  <div class="cmdbar-brand">
-    <h1 class="wordmark">
-      <span class="brand-lockup">
-        <span class="brand-chip" aria-hidden="true">
-          <!--@roofle-icon-->
-        </span>
-        <span class="brand-text">
-          <span class="wordmark-name">Roofle</span>
-          <span class="wordmark-tag">Listen. Note. Coach.</span>
-        </span>
-      </span>
-    </h1>
-  </div>
-
+  <nav class="crumb" aria-label="Main menu">
+    <button id="crumb-btn" type="button" class="crumb-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="history-menu" aria-label="Conversations and settings" title="Conversations and settings">
+      <i data-lucide="menu" aria-hidden="true"></i>
+    </button>
+    <img class="crumb-logo" src="__ROOFLE_LOGO__" alt="" width="30" height="30" />
+    <h1 class="wordmark-name">Roofle</h1>
+    <!--@history-menu-->
+  </nav>
   <div class="cmdbar-actions">
-    <button id="feedback-btn" type="button" class="icon-btn icon-btn-label" aria-label="Submit feedback">
-      <i data-lucide="message-square-heart" aria-hidden="true"></i><span>Submit feedback</span>
+    <!-- Transport: shown while a conversation is being recorded, in place of "New conversation" -->
+    <div id="floating-control" class="transport is-idle">
+      <button id="record-btn" type="button" class="record-btn" aria-label="Start recording">
+        <span class="record-btn-inner">
+          <svg id="record-icon-play" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+            <path d="M8 5.14v13.72c0 .9.98 1.45 1.75.98l10.2-6.86a1.15 1.15 0 0 0 0-1.96L9.75 4.16A1.15 1.15 0 0 0 8 5.14z" />
+          </svg>
+          <svg id="record-icon-pause" class="record-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" hidden>
+            <rect x="6" y="5" width="4" height="14" rx="1" />
+            <rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        </span>
+      </button>
+      <button id="stop-btn" type="button" class="stop-btn" aria-label="Stop conversation" hidden>
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+        </svg>
+      </button>
+      <span id="timer" class="timer" aria-hidden="true">00:00</span>
+    </div>
+    <button id="new-session-btn" type="button" class="new-chat">
+      <i data-lucide="plus" aria-hidden="true"></i>
+      <span>New conversation</span>
     </button>
     <span id="session-pill" class="session-pill" role="status" aria-live="polite" aria-atomic="true">
       <span id="status-dot" class="status-dot idle" aria-hidden="true"></span>
@@ -24,5 +39,8 @@
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
     </span>
+    <button id="settings-btn" type="button" class="icon-btn" aria-label="Settings" title="Settings">
+      <i data-lucide="settings" aria-hidden="true"></i>
+    </button>
   </div>
 </header>

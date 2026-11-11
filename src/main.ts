@@ -2,7 +2,7 @@ import "@fontsource-variable/inter/wght.css";
 import "@fontsource-variable/newsreader/wght.css";
 import "@fontsource-variable/newsreader/wght-italic.css";
 import { initEvents } from "./app/events";
-import { initLayout } from "./app/layout";
+import { initHistoryMenu } from "./app/history-menu";
 import { initTheme } from "./app/theme";
 import { initAnalysis } from "./features/analysis";
 import { initAssistPrompts } from "./features/assist-prompts";
@@ -14,6 +14,9 @@ import { initModelSetup } from "./features/model-setup";
 import { initOnboarding } from "./features/onboarding";
 import { initNotes } from "./features/notes";
 import { initNotesTabs } from "./features/notes-tabs";
+import { mountNotesEditor } from "./features/notes-editor";
+import { initQuestionsAlignment } from "./features/questions";
+import { initWelcome } from "./features/welcome";
 import { initTopics } from "./features/topics";
 import { initTransport } from "./features/transport";
 import { initWrapUp } from "./features/wrap-up";
@@ -27,7 +30,7 @@ import { initPersona } from "./persona";
 async function init(): Promise<void> {
   refreshIcons();
   initTheme();
-  initLayout();
+  initHistoryMenu();
   dom.statusDismiss.addEventListener("click", dismissStatus);
   document.getElementById("feedback-btn")!.addEventListener("click", () => {
     const url = import.meta.env.VITE_FEEDBACK_URL;
@@ -35,7 +38,10 @@ async function init(): Promise<void> {
     else showToast("The feedback form isn't set up yet.");
   });
   initTransport(openSettings);
+  mountNotesEditor();
   initNotes();
+  initWelcome();
+  initQuestionsAlignment();
   initNotesTabs();
   initRecap();
   initFigures();
