@@ -211,6 +211,20 @@ function item(label: string, icon: string, onClick: () => void): HTMLButtonEleme
   return b;
 }
 
+/** A row with a switch on the right: label, one-line hint, and the on/off state. */
+function toggleItem(label: string, hint: string, icon: string, on: boolean, onClick: () => void): HTMLButtonElement {
+  const b = create("button", "topic-menu-item topic-menu-toggle");
+  b.type = "button";
+  b.setAttribute("role", "menuitemcheckbox");
+  b.setAttribute("aria-checked", String(on));
+  b.innerHTML = `<i data-lucide="${icon}" aria-hidden="true"></i>`;
+  const text = create("span", "topic-menu-text");
+  text.append(create("span", "topic-menu-label", label), create("span", "topic-menu-hint", hint));
+  b.append(text, create("span", "topic-switch"));
+  b.addEventListener("click", onClick);
+  return b;
+}
+
 function go(next: "root" | "topic"): void {
   view = next;
   renderMenu();
@@ -254,18 +268,27 @@ function renderMenu(): void {
       closeMenu();
       if (session.viewedId !== null) void removeSession(session.viewedId);
     });
-    const suggest = item(`Question suggestions: ${isFollowupsEnabled() ? "On" : "Off"}`, "message-square-quote", () => {
-      setFollowupsEnabled(!isFollowupsEnabled());
-      renderMenu();
-    });
-    suggest.disabled = !canToggleFollowups();
+    const canToggle = canToggleFollowups();
+    const suggest = toggleItem(
+      "Question suggestions",
+      canToggle ? "Suggest questions while you record" : "Available while recording",
+      "message-square-quote",
+      isFollowupsEnabled(),
+      () => {
+        setFollowupsEnabled(!isFollowupsEnabled());
+        renderMenu();
+      },
+    );
+    suggest.disabled = !canToggle;
     del.classList.add("topic-menu-danger");
     del.disabled = busy;
     dom.topicMenu.replaceChildren(
+      create("div", "topic-menu-title", "Conversation"),
       rename,
       topic,
+      create("div", "topic-menu-title", "Live"),
       suggest,
-      create("div", "topic-menu-sep"),
+      create("div", "topic-menu-title", "Export"),
       item("Export transcript", "download", () => void runExport("transcript")),
       item("Export notes", "download", () => void runExport("notes")),
       create("div", "topic-menu-sep"),
