@@ -1,0 +1,115 @@
+/* ============================================================
+   Notepad skin — loaded after styles.css, overrides it.
+   Flat paper: no borders, no shadows, no button fills.
+   Remove the <link> in index.html to get the old look back.
+   Sections: 1 tokens · 2 surfaces · 3 controls · 4 states
+   ============================================================ */
+
+/* ---------- 1. Tokens ---------- */
+:root {
+  --paper: #fdfcf8;
+  --line: transparent;
+  --surface: var(--paper);
+  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--paper));
+  --radius-md: 4px;
+  --radius-lg: 0;
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --paper: #14161b; }
+}
+html[data-theme="dark"] { --paper: #14161b; }
+
+:root,
+html[data-theme="dark"] {
+  --bg: var(--paper);
+  --surface: var(--paper);
+  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--paper));
+}
+
+body { font-family: var(--font-serif); font-size: 1.0625rem; }
+
+/* ---------- 2. Surfaces: one sheet, no cards ---------- */
+.cmdbar,
+.workspace,
+.panel,
+.panel.history,
+.panel.questions,
+.panel.transcript,
+.transcript-head,
+.settings-actions {
+  background: var(--paper);
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  border-radius: 0;
+}
+
+.workspace { padding: 0; }
+.assist-sep { background: transparent; margin: 0.35rem 0; }
+
+/* ---------- 3. Controls: text and icons only ---------- */
+.btn,
+.btn-outline,
+.btn-ghost,
+.btn-primary,
+.btn-danger,
+.icon-btn,
+.record-btn,
+.stop-btn,
+.new-chat,
+.row-transport button,
+.session-pill,
+.assist-menu button {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.btn-primary { color: var(--brand-strong); font-weight: 600; }
+.btn-danger { color: var(--record); }
+
+.btn:hover:not(:disabled),
+.btn-ghost:hover,
+.btn-primary:hover,
+.btn-danger:hover,
+.icon-btn:hover,
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled),
+.new-chat:hover,
+.row-transport button:hover,
+.session-pill:hover,
+.assist-menu button:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.icon-btn:hover,
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled),
+.row-transport button:hover { text-decoration: none; }
+
+.btn:active:not(:disabled) { background: transparent; }
+
+/* ---------- 4. States that carry meaning stay coloured (text only) ---------- */
+.session-pill.recording,
+.session-pill.error,
+.row-transport button.recording,
+.record-btn.recording { color: var(--record); background: transparent; border: 0; }
+.session-pill.paused,
+.row-transport button.paused { color: var(--amber); background: transparent; border: 0; }
+
+.history-item:hover,
+.history-item.is-active { background: transparent; }
+.history-item.is-active .history-title { color: var(--ink); }
+
+/* Keyboard focus must stay visible even without borders. */
+:focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 2px; }
