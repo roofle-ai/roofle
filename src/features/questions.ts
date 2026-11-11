@@ -57,7 +57,7 @@ function renderQuestion(q: QuestionView): HTMLElement {
   card.dataset.qid = String(q.id);
   if (!seen.has(q.id)) card.classList.add("is-new");
   if (q.id === viewingSourceOf) card.classList.add("is-viewing");
-  if (q.status === "answered") card.append(create("span", "qtag", "Answered later in the conversation"));
+  if (q.status === "answered") card.append(create("span", "qtag", "Answered"));
   card.append(renderText(q, "qtext"));
   if (q.status === "open") card.append(renderHide(q));
   if (q.status === "answered" && q.reason) card.append(renderAnswer(q, q.reason));

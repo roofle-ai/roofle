@@ -442,18 +442,21 @@ button.qtext { cursor: pointer; }
   pointer-events: none;
 }
 
-/* Answered: green-tinted (resolved), a small underlined note on top, the question, then the answer as the key line. */
+/* Answered: green-tinted (resolved), a tag on top, the question, then the answer as the key line. */
 .qcard.answered { border-left-color: color-mix(in srgb, var(--green) 55%, transparent); }
 .qcard.answered:hover { border-left-color: var(--green); }
 .qcard.answered .qtext { color: var(--muted); }
 .qtag {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: color-mix(in srgb, var(--green) 75%, var(--ink));
-  font: 500 0.7rem var(--font-sans);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  display: inline-block;
+  margin-bottom: 0.3rem;
+  padding: 0.05rem 0.55rem 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  color: color-mix(in srgb, var(--green) 80%, var(--ink));
+  font: 600 0.68rem var(--font-sans);
+  letter-spacing: 0.02em;
 }
+.qtag::before { content: "✓ "; }
 .qanswer {
   display: block;
   margin: 0.45rem 0 0;
