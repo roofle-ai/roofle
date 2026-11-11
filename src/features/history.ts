@@ -16,7 +16,7 @@ import { updateAnalyseVisibility } from "./analysis";
 import { refreshNotesTitle, showLoadedNotes } from "./notes";
 import { ingestChallenges, resetQuestions, setAnalysisMode, updateFollowupToggle } from "./questions";
 import { matchesSearch } from "./history-search";
-import { groupByTopic, rememberTopics, topicName } from "./topics";
+import { canDragToTopic, groupByTopic, rememberTopics, setDragId, topicName } from "./topics";
 import { resetView } from "./view";
 import { syncWrapUp } from "./wrap-up";
 
@@ -59,6 +59,16 @@ function renderItem(s: SessionSummary): HTMLElement {
       void openSession(s.id);
     }
   });
+
+  if (canDragToTopic() && s.status !== "recording") {
+    item.draggable = true;
+    item.addEventListener("dragstart", (e) => {
+      setDragId(s.id);
+      e.dataTransfer?.setData("text/plain", String(s.id));
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+    });
+    item.addEventListener("dragend", () => setDragId(null));
+  }
 
   item.append(renderDeleteButton(s.id));
   return item;

@@ -19,6 +19,12 @@ const collapsed = new Set<number>();
 
 export const topicName = (id: number | null): string | undefined => topics.find((t) => t.id === id)?.name;
 
+/** Rows are draggable only when there is a topic to drop on. */
+export const canDragToTopic = (): boolean => topics.length > 0;
+
+let dragId: number | null = null;
+export const setDragId = (id: number | null): void => void (dragId = id);
+
 const fail = (err: unknown) => setStatus("error", String(err));
 
 /** History loaded: remember each session's topic for the menu. */
@@ -64,6 +70,30 @@ export function groupByTopic(
     del.addEventListener("click", (e) => {
       e.stopPropagation();
       void removeTopic(t);
+    });
+
+    bucket.addEventListener("dragover", (e) => {
+      if (dragId === null) return;
+      e.preventDefault();
+      bucket.classList.add("is-drop");
+    });
+    bucket.addEventListener("dragleave", (e) => {
+      if (!bucket.contains(e.relatedTarget as Node | null)) bucket.classList.remove("is-drop");
+    });
+    bucket.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      bucket.classList.remove("is-drop");
+      const id = dragId;
+      dragId = null;
+      if (id === null) return;
+      const title = document.querySelector(`.history-item[data-id="${id}"] .history-title`)?.textContent;
+      if (!(await confirmDialog("Move conversation?", `Move "${title ?? "this conversation"}" to "${t.name}"?`, "Move"))) return;
+      try {
+        await setSessionTopic(id, t.id);
+        await loadHistory();
+      } catch (err) {
+        fail(err);
+      }
     });
 
     const row = create("div", "topic-bucket-row");
@@ -267,6 +297,33 @@ export function syncTopic(): void {
 
 export async function initTopics(): Promise<void> {
   await refreshTopics().catch(fail);
+
+  // Dropping a filed conversation anywhere in the list outside a bucket takes it out of its topic.
+  const list = dom.historyList;
+  const outside = (e: DragEvent) => dragId !== null && !!topicOf.get(dragId) && !(e.target as HTMLElement).closest(".topic-bucket");
+  list.addEventListener("dragover", (e) => {
+    list.classList.toggle("is-drop", outside(e));
+    if (outside(e)) e.preventDefault();
+  });
+  list.addEventListener("dragleave", (e) => {
+    if (!list.contains(e.relatedTarget as Node | null)) list.classList.remove("is-drop");
+  });
+  list.addEventListener("drop", async (e) => {
+    list.classList.remove("is-drop");
+    if (!outside(e)) return;
+    e.preventDefault();
+    const id = dragId!;
+    dragId = null;
+    const title = document.querySelector(`.history-item[data-id="${id}"] .history-title`)?.textContent;
+    const from = topicName(topicOf.get(id) ?? null);
+    if (!(await confirmDialog("Remove from topic?", `Move "${title ?? "this conversation"}" out of "${from}"?`, "Remove"))) return;
+    try {
+      await setSessionTopic(id, null);
+      await loadHistory();
+    } catch (err) {
+      fail(err);
+    }
+  });
 
   dom.topicBtn.addEventListener("click", () => {
     const open = dom.topicMenu.hidden;

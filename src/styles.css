@@ -4111,6 +4111,9 @@ button.settings-link { padding: 0; border: 0; background: none; font: inherit; c
 
 /* Topics — sidebar buckets */
 .topic-bucket { display: flex; flex-direction: column; gap: 2px; }
+.history-list.is-drop { background: color-mix(in srgb, currentColor 8%, transparent); border-radius: 8px; transition: background .15s; }
+.topic-bucket { transition: background .15s, box-shadow .15s; border-radius: 8px; }
+.topic-bucket.is-drop { background: hsl(var(--topic-hue) 70% 55% / .14); box-shadow: 0 0 0 2px hsl(var(--topic-hue) 70% 55% / .55); }
 .topic-bucket-head {
   display: flex;
   align-items: center;
