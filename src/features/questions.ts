@@ -26,7 +26,7 @@ document.addEventListener(SOURCE_EVENT, (e) => {
   });
 });
 /** Collapsed "earlier" groups the user has opened; survives re-renders. */
-const expandedGroups = new Set<Status>(["answered"]);
+const expandedGroups = new Set<Status>();
 /** Ids already shown, so only genuinely new cards play the entrance animation. */
 const seen = new Set<number>();
 

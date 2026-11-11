@@ -6,6 +6,7 @@
    ============================================================ */
 
 /* ---------- 1. Tokens ---------- */
+/* Floating surfaces (dropdowns): hairline ring + soft drop. */
 /* --paper-solid is the page colour; --paper adds the window-opacity setting. */
 :root {
   --paper-solid: #fdfcf8;
@@ -15,6 +16,7 @@
   --shadow-1: none;
   --shadow-2: none;
   --shadow-3: none;
+  --float: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent), 0 8px 28px color-mix(in srgb, var(--ink) 16%, transparent);
 }
 /* :root[...] out-ranks styles.css's ":root:not([data-theme=light])" dark block. */
 :root[data-theme="dark"] {
@@ -195,7 +197,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
   padding: 0.6rem;
   background: var(--paper);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 16%, transparent);
+  box-shadow: var(--float);
 }
 .history-menu[hidden] { display: none; }
 .history-menu .history-list { padding: 0; }
@@ -206,7 +208,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
    Borders and static shadows are hidden everywhere (colour, not width, so
    layout does not shift). Exempt: states that rely on them to be seen
    (selected, drop target, tour spotlight) and the floating surfaces. */
-*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.analyse-dialog):not(.onb-card) {
+*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card) {
   border-color: transparent;
   box-shadow: none;
 }
@@ -242,32 +244,10 @@ select { background: var(--surface-2); }
 }
 .notes-page { padding-top: 0; }
 
-/* Notes / Transcription switch sits in the column's top-right, out of the title's way. */
-.notes-tabs { left: auto; right: var(--notes-pad-x); top: 0.9rem; transform: none; background: transparent; }
-.notes-tab.active { color: var(--ink); background: var(--surface-2); }
-.notes-tab:hover { color: var(--ink); background: transparent; }
-.page-title { padding-right: 14rem; }
 
 /* Body text: calm and loose. */
 .notes-input,
 .notes-preview { font-size: 1.1rem; line-height: 1.85; }
-
-/* Wide windows: questions become a margin note beside the page, like a comment. */
-@media (min-width: 1360px) {
-  .questions-card {
-    position: absolute;
-    top: 9.5rem;
-    right: calc(var(--notes-pad-x) - 16.5rem);
-    width: 15rem;
-    margin: 0;
-    max-height: calc(100% - 11rem);
-    background: transparent;
-  }
-  .questions-card-head { padding-left: 0; }
-  .questions-card-chevron { display: none; }
-  .questions-card-body { padding: 0; }
-  .questions-card .qtext { font-family: var(--font-serif); font-size: 1rem; line-height: 1.6; color: var(--ink); }
-}
 
 /* Assist: a ghost toolbar item like the rest, not a tinted pill. */
 .assist-btn,
@@ -275,14 +255,83 @@ select { background: var(--surface-2); }
 .assist-btn[aria-expanded="true"] { background: transparent; border: 0; color: var(--muted); }
 .assist-btn:hover { color: var(--ink); }
 
-/* Margin note: quiet, one line header, no red/blue accents. */
-.questions-card-head { white-space: nowrap; font-weight: 500; }
-.questions-card .live-badge.show,
-.questions-card .live-badge.live,
-.questions-card .live-badge.analysis { background: transparent; color: var(--faint); padding: 0; font-weight: 400; }
-.questions-card .live-badge.live::before { display: none; }
-.questions-card .qgroup-title { margin-left: 0; }
-.questions-card .qcard-head [data-lucide] { color: var(--faint); }
-
 /* New conversation lives in the header now, beside the other actions. */
 .cmdbar .new-chat { width: auto; padding: 0.35rem 0.7rem; color: var(--ink); }
+
+/* ---------- 9. Toolbar row: tabs · Assist · more ........ record ---------- */
+.transcript-head { gap: 0.25rem; align-items: center; }
+.transcript-head > * { flex: 0 0 auto; }
+.notes-tabs { position: static; transform: none; padding: 0; margin-right: 0.75rem; background: transparent; gap: 0.25rem; }
+.notes-tab { padding: 0.35rem 0.6rem; font-size: 0.85rem; border-radius: var(--radius-md); }
+.notes-tab:hover { background: transparent; color: var(--ink); }
+.notes-tab.active { background: var(--surface-2); color: var(--ink); }
+.assist-btn { padding: 0.35rem 0.6rem; font-size: 0.85rem; font-weight: 500; }
+.more-btn { background: transparent; border: 0; color: var(--muted); }
+.page-title { padding-top: 1rem; overflow-wrap: anywhere; }
+
+/* Assist menu: one clean list under the toolbar, no tinted boxes. */
+.assist-menu {
+  left: var(--notes-pad-x);
+  right: auto;
+  top: 3.5rem;
+  width: min(26rem, calc(100% - 2 * var(--gutter)));
+  margin: 0;
+  padding: 0.4rem;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--float);
+}
+.assist-groups { display: flex; flex-direction: column; gap: 0.25rem; }
+.assist-group { padding: 0; background: transparent; border: 0; }
+.assist-group-title { padding: 0.5rem 0.6rem 0.2rem; font-size: 0.68rem; letter-spacing: 0.08em; color: var(--faint); }
+.assist-group button { padding: 0.4rem 0.6rem; border-radius: var(--radius-md); }
+.assist-group button:hover:not(:disabled) { background: var(--surface-2); text-decoration: none; }
+.assist-group button:hover .assist-item-label { color: var(--ink); }
+.assist-group button [data-lucide] { background: transparent; color: var(--muted); padding: 0; }
+.assist-item-desc { color: var(--faint); }
+
+/* ---------- 10. Follow-up questions: quiet list ---------- */
+.questions-card-head { white-space: nowrap; font-weight: 500; text-transform: none; }
+.questions-card .live-badge.show,
+.questions-card .live-badge.live,
+.questions-card .live-badge.analysis { margin-left: auto; padding: 0; background: transparent; color: var(--faint); font-weight: 400; }
+.questions-card .live-badge.live::before { display: none; }
+.questions-card-chevron { margin-left: 0.25rem; }
+.questions-card .followup-toggle { font-size: 0.8rem; color: var(--faint); }
+.questions-card .qgroup-title { margin-left: 0; color: var(--faint); }
+.questions-card .qgroup-count { background: transparent; padding: 0; }
+
+.qcard { gap: 0.25rem; padding: 0.5rem 0; }
+.qtext { font-family: var(--font-serif); font-size: 1.02rem; line-height: 1.55; color: var(--ink); }
+.qcard-head { align-items: flex-start; }
+.qcard-head [data-lucide] { color: var(--faint); margin-top: 0.3rem; }
+/* Dismiss only when pointing at the question. */
+.qfeedback-btn { opacity: 0; transition: opacity 120ms ease; }
+.qcard:hover .qfeedback-btn,
+.qfeedback-btn:focus-visible { opacity: 1; }
+/* "Source 01:05" reads as a quiet link, not a chip. */
+.qsource { padding: 0; margin-left: 1.5rem; background: transparent; border: 0; color: var(--faint); font-size: 0.75rem; }
+.qsource:hover,
+.qcard.is-viewing .qsource { background: transparent; color: var(--ink); text-decoration: underline; }
+.qanswer { margin: 0 0 0 1.5rem; padding: 0; background: transparent; border: 0; }
+.qanswer-label { color: var(--faint); }
+.qanswer-text { color: var(--muted); font-size: 0.9rem; }
+
+/* Wide windows: questions sit in the right margin, like a comment. */
+@media (min-width: 1440px) {
+  .questions-card {
+    position: absolute;
+    top: 9rem;
+    right: calc(var(--notes-pad-x) - 18.5rem);
+    width: 17rem;
+    margin: 0;
+    max-height: calc(100% - 10.5rem);
+    background: transparent;
+  }
+  .questions-card-head { padding-left: 0; padding-right: 0; }
+  .questions-card-body { padding: 0; }
+}
+
+/* Collapsed groups ("Answered", "No longer relevant") show a chevron. */
+details.qgroup > summary.qgroup-title::after { content: "›"; margin-left: auto; font-size: 1rem; transition: transform 120ms ease; }
+details.qgroup[open] > summary.qgroup-title::after { transform: rotate(90deg); }
