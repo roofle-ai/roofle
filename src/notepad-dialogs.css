@@ -61,6 +61,25 @@
 ::placeholder { color: var(--faint); }
 .analyse-count { color: var(--faint); }
 
+/* Goal suggestions: clearly outlined, readable chips. */
+.analyse-chips { gap: 0.5rem; }
+.analyse-chip {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: left;
+}
+.analyse-chip:hover,
+.analyse-chip:focus-visible {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--ink);
+}
+
 /* ---------- 4. Buttons: one solid primary, everything else quiet ---------- */
 .btn-primary {
   padding: 0.55rem 1.2rem;
@@ -140,6 +159,7 @@
   font-weight: 600;
 }
 .onboarding-skip { color: var(--faint); }
+.model-banner { color: var(--ink); }
 
 /* ---------- 8. Tour ---------- */
 .walkthrough-hero { background: transparent; color: var(--ink); padding: 0.25rem 0 0.5rem; }
