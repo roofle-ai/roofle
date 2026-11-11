@@ -170,14 +170,13 @@
             </header>
             <div class="settings-group">
               <div class="settings-card">
-                <div class="settings-row">
-                  <div class="settings-row-text">
-                    <label for="theme-select" class="settings-field-label">Theme</label>
+                <div class="settings-row theme-row">
+                  <div class="settings-row-text"><span class="settings-field-label">Theme</span></div>
+                  <div id="theme-options" class="theme-options" role="group" aria-label="Theme">
+                    <button type="button" class="theme-opt" data-theme-opt="system" aria-pressed="false"><i data-lucide="monitor" aria-hidden="true"></i>System default</button>
+                    <button type="button" class="theme-opt" data-theme-opt="light" aria-pressed="false"><i data-lucide="sun" aria-hidden="true"></i>Light</button>
+                    <button type="button" class="theme-opt" data-theme-opt="dark" aria-pressed="false"><i data-lucide="moon" aria-hidden="true"></i>Dark</button>
                   </div>
-                  <select id="theme-select" class="settings-input">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                  </select>
                 </div>
                 <div class="settings-row">
                   <div class="settings-row-text">

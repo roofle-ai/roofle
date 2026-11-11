@@ -185,3 +185,15 @@ textarea.settings-input:focus { border-color: var(--brand); }
   .settings-content { padding: 1.5rem 1.25rem 0.5rem; }
   .settings-actions { padding: 0.75rem 1.25rem 1.25rem; }
 }
+
+/* Theme: icon + label options instead of a dropdown. */
+.theme-row { flex-wrap: wrap; }
+.theme-options { display: flex; gap: 0.4rem; }
+.theme-opt {
+  display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
+  padding: 0.4rem 0.75rem; font-size: 0.8rem; color: var(--muted);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); border-radius: 999px;
+}
+.theme-opt svg { width: 1rem; height: 1rem; }
+.theme-opt:hover { color: var(--ink); }
+.theme-opt[aria-pressed="true"] { color: var(--ink); border-color: var(--brand); background: color-mix(in srgb, var(--brand) 9%, transparent); }
