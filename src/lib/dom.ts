@@ -49,7 +49,7 @@ export const dom = {
   historySearchClear: query<HTMLButtonElement>("#history-search-clear"),
   historyNoResults: query<HTMLParagraphElement>("#history-no-results"),
   historyEmpty: query<HTMLDivElement>("#history-empty"),
-  chatTitle: query<HTMLSpanElement>("#chat-title"),
+  chatTitle: query<HTMLHeadingElement>("#chat-title"),
   workspace: query<HTMLDivElement>(".workspace"),
   questionsList: query<HTMLDivElement>("#questions-list"),
   questionsEmpty: query<HTMLParagraphElement>("#questions-empty"),

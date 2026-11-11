@@ -6,31 +6,32 @@
    ============================================================ */
 
 /* ---------- 1. Tokens ---------- */
+/* --paper-solid is the page colour; --paper adds the window-opacity setting. */
 :root {
-  --paper: #fdfcf8;
+  --paper-solid: #fdfcf8;
   --line: transparent;
-  --surface: var(--paper);
-  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--paper));
   --radius-md: 4px;
   --radius-lg: 0;
   --shadow-1: none;
   --shadow-2: none;
   --shadow-3: none;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --paper: #14161b; }
+/* :root[...] out-ranks styles.css's ":root:not([data-theme=light])" dark block. */
+:root[data-theme="dark"] {
+  --paper-solid: #1c1c1c;
+  --ink: #ececec;
+  --muted: #a3a3a3;
+  --faint: #6f6f6f;
 }
-html[data-theme="dark"] { --paper: #14161b; }
-
 :root,
-html[data-theme="dark"] {
+:root[data-theme="dark"] {
+  --paper: color-mix(in srgb, var(--paper-solid) calc(var(--opacity, 1) * 100%), transparent);
   --bg: var(--paper);
   --surface: var(--paper);
-  --surface-2: color-mix(in srgb, var(--ink) 5%, var(--paper));
+  --surface-2: color-mix(in srgb, var(--ink) 6%, var(--paper));
 }
 
-body { font-family: var(--font-serif); font-size: 1.0625rem; }
+body { font-family: var(--font-sans); font-size: 1rem; }
 
 /* ---------- 2. Surfaces: one sheet, no cards ---------- */
 .cmdbar,
@@ -171,34 +172,14 @@ body { font-family: var(--font-serif); font-size: 1.0625rem; }
 .qcard:hover { border: 0; }
 .qcard.is-viewing { background: color-mix(in srgb, var(--brand) 8%, transparent); }
 
-/* ---------- 6. Breadcrumb header + conversations dropdown ---------- */
-.crumb {
-  position: relative;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.crumb h1 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--muted); }
-.crumb-sep { color: var(--faint); }
-.crumb-btn {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.3rem;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.crumb-btn:hover .crumb-title { text-decoration: underline; text-underline-offset: 0.25em; }
-.crumb-btn [data-lucide] { width: 14px; height: 14px; flex: none; color: var(--muted); transition: transform 150ms var(--ease); }
-.crumb-btn[aria-expanded="true"] [data-lucide] { transform: rotate(180deg); }
-.crumb-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ---------- 6. Header (menu + wordmark) and conversations dropdown ---------- */
+.cmdbar { min-height: 0; padding: 1rem var(--gutter); align-items: center; }
+.crumb { position: relative; display: flex; align-items: center; gap: 0.6rem; }
+.crumb h1 { margin: 0; font-family: var(--font-serif); font-size: 1.2rem; font-weight: 500; color: var(--ink); }
+.crumb-btn { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.crumb-btn:hover,
+.crumb-btn[aria-expanded="true"] { color: var(--ink); }
+.crumb-btn [data-lucide] { width: 20px; height: 20px; }
 
 /* The one floating surface: it needs a soft edge to read against the page. */
 .history-menu {
@@ -220,9 +201,6 @@ body { font-family: var(--font-serif); font-size: 1.0625rem; }
 .history-menu .history-list { padding: 0; }
 .history-menu .history-footer { margin-top: 0; padding-top: 0.4rem; border: 0; }
 
-/* Header row left of the page controls: notes toolbar sits right now the title moved up. */
-.transcript-head { justify-content: flex-end; min-height: 3rem; }
-.notes-editing { margin-right: auto; }
 
 /* ---------- 7. Sweep: whatever styles.css still draws ----------
    Borders and static shadows are hidden everywhere (colour, not width, so
@@ -243,3 +221,65 @@ select { background: var(--surface-2); }
 .onb,
 .settings-head { background: var(--paper); }
 .settings-head-icon { background: transparent; color: var(--brand); }
+
+/* ---------- 8. The page: toolbar, big title, then the note ---------- */
+/* One reading column, centred; head, title and note all inset to it. */
+.transcript { --notes-pad-x: max(var(--gutter), calc((100% - 780px) / 2)); }
+.transcript-head { justify-content: flex-start; min-height: 0; padding: 1.5rem var(--notes-pad-x) 0; }
+.notes-editing:not(.on) { display: none; }
+.notes-editing { margin: 0; }
+
+.page-title {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.5rem var(--notes-pad-x) 1rem;
+  font-family: var(--font-sans);
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.notes-page { padding-top: 0; }
+
+/* Notes / Transcription switch sits in the column's top-right, out of the title's way. */
+.notes-tabs { left: auto; right: var(--notes-pad-x); top: 0.9rem; transform: none; background: transparent; }
+.notes-tab.active { color: var(--ink); background: var(--surface-2); }
+.notes-tab:hover { color: var(--ink); background: transparent; }
+.page-title { padding-right: 14rem; }
+
+/* Body text: calm and loose. */
+.notes-input,
+.notes-preview { font-size: 1.1rem; line-height: 1.85; }
+
+/* Wide windows: questions become a margin note beside the page, like a comment. */
+@media (min-width: 1360px) {
+  .questions-card {
+    position: absolute;
+    top: 9.5rem;
+    right: calc(var(--notes-pad-x) - 16.5rem);
+    width: 15rem;
+    margin: 0;
+    max-height: calc(100% - 11rem);
+    background: transparent;
+  }
+  .questions-card-head { padding-left: 0; }
+  .questions-card-chevron { display: none; }
+  .questions-card-body { padding: 0; }
+  .questions-card .qtext { font-family: var(--font-serif); font-size: 1rem; line-height: 1.6; color: var(--ink); }
+}
+
+/* Assist: a ghost toolbar item like the rest, not a tinted pill. */
+.assist-btn,
+.assist-btn:hover,
+.assist-btn[aria-expanded="true"] { background: transparent; border: 0; color: var(--muted); }
+.assist-btn:hover { color: var(--ink); }
+
+/* Margin note: quiet, one line header, no red/blue accents. */
+.questions-card-head { white-space: nowrap; font-weight: 500; }
+.questions-card .live-badge.show,
+.questions-card .live-badge.live,
+.questions-card .live-badge.analysis { background: transparent; color: var(--faint); padding: 0; font-weight: 400; }
+.questions-card .live-badge.live::before { display: none; }
+.questions-card .qgroup-title { margin-left: 0; }
+.questions-card .qcard-head [data-lucide] { color: var(--faint); }
