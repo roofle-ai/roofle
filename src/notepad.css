@@ -152,7 +152,7 @@ body { font-family: var(--font-sans); font-size: 1rem; }
    Borders and static shadows are hidden everywhere (colour, not width, so
    layout does not shift). Exempt: states that rely on them to be seen
    (selected, drop target, tour spotlight) and the floating surfaces. */
-*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card):not(.qcard):not(.wrapup-chip):not(.recap-card):not(.recap-action):not(.onboarding):not(.settings-dialog):not(.settings-side):not(.settings-nav-item):not(.settings-input):not(.settings-row):not(.settings-actions):not(th):not(td):not(.btn-outline):not(.persona-card):not(.persona-chip):not(.onboarding-go):not(.analyse-chip) {
+*:not(.tour-highlight):not([aria-pressed="true"]):not(.is-drop):not(.history-menu):not(.assist-menu):not(.analyse-dialog):not(.onb-card):not(.qcard):not(.wrapup-chip):not(.recap-card):not(.recap-action):not(.onboarding):not(.settings-dialog):not(.settings-side):not(.settings-nav-item):not(.settings-input):not(.settings-row):not(.settings-actions):not(th):not(td):not(.btn-outline):not(.persona-card):not(.persona-chip):not(.onboarding-go):not(.analyse-chip):not(.transport) {
   border-color: transparent;
   box-shadow: none;
 }
@@ -512,3 +512,42 @@ button.qstale-chip:hover { color: var(--ink); }
 .source-label.source-system { padding: 0; background: transparent; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.05em; }
 .source-label.source-mic { color: var(--brand-strong); }
 .transcription-text { font-size: 1.05rem; }
+
+/* ---------- 18. Transport: one capsule - pause/resume, stop, time ---------- */
+.transport {
+  gap: 0.35rem;
+  padding: 0.2rem 0.85rem 0.2rem 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: 999px;
+  background: transparent;
+}
+.record-btn,
+.stop-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--ink);
+  box-shadow: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+.record-btn:hover:not(:disabled),
+.stop-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 14%, transparent); transform: none; }
+.record-btn:active,
+.stop-btn:active { transform: scale(0.94); }
+.record-icon { width: 14px; height: 14px; }
+.stop-btn svg { width: 12px; height: 12px; }
+
+/* Recording: a soft red button with a pulse. Paused (the play icon): solid, inviting a resume. */
+.record-btn.recording { background: color-mix(in srgb, var(--record) 16%, transparent); color: var(--record); }
+.record-btn.recording:hover:not(:disabled) { background: color-mix(in srgb, var(--record) 26%, transparent); }
+.record-btn.paused { background: var(--ink); color: var(--paper-solid); }
+.record-btn.paused:hover:not(:disabled) { background: var(--ink); opacity: 0.85; }
+
+/* Time, with a state dot: red and pulsing while recording, amber while paused. */
+.timer { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 3.25rem; font-size: 0.85rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.timer::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.transport:has(.record-btn.recording) .timer::before { background: var(--record); animation: blink 1.4s ease-in-out infinite; }
+.transport:has(.record-btn.paused) .timer { color: var(--amber); }
+.transport:has(.record-btn.paused) .timer::before { background: var(--amber); }
