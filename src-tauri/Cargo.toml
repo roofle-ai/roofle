@@ -1,6 +1,6 @@
 [package]
 name = "roofle"
-version = "1.0.0"
+version = "2.0.0"
 description = "Roofle — meeting copilot"
 authors = ["Priyanshu Shekhar"]
 license.workspace = true

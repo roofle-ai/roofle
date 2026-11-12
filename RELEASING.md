@@ -8,7 +8,7 @@ the first time; after that, jump to [Release checklist](#release-checklist).
 | Piece | State |
 |---|---|
 | Build the DMG (`npm run tauri build`) | Works |
-| Version in one place per file (all `1.0.0`) | Done |
+| Version in one place per file (all `2.0.0`) | Done |
 | Apple signing and notarization | **Needs your Developer ID** (see below) |
 | `src-tauri/entitlements.plist` | Done, referenced from `tauri.conf.json` (see [Entitlements](#entitlements)) |
 | Homebrew tap repo (`roofle-ai/homebrew-roofle`, must be public) | Create it once (step 6 below); its `bump.yml` workflow updates the cask automatically after each release |

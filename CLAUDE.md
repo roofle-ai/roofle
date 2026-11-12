@@ -30,7 +30,7 @@ scripts/clean.sh             # DESTRUCTIVE (asks first): removes /Applications/R
 
 ## Conventions and gotchas
 
-- Version lives in the workspace `Cargo.toml` (`1.0.0`) plus `package.json` and `tauri.conf.json`; keep them in sync when bumping.
+- Version lives in the workspace `Cargo.toml` (`2.0.0`) plus `package.json` and `tauri.conf.json`; keep them in sync when bumping.
 - SQLite schema is migrated on startup via `PRAGMA user_version` (currently v4). Schema changes need a new migration step, never an edit to an old one.
 - LLM prompts are plain `.txt` files, compiled/loaded by the agent crates. Changing a prompt changes behaviour; check the matching code in `live-agent/src/notes.rs` etc. and run `cargo test -p live-agent`.
 - The LLM API key is user-supplied in Settings; no secrets in the repo (`.p12`, `.cer`, `.p8`, `.env*` are gitignored). Signing/notarization: see `RELEASING.md`.
