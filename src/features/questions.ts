@@ -11,6 +11,8 @@ let viewingSourceOf: number | null = null;
 /** Ids already shown, so only genuinely new cards play the entrance animation. */
 const seen = new Set<number>();
 let followupsEnabled = true;
+/** Which folded sections the user has opened, so re-renders keep them as they were. */
+const unfolded = new Set<string>();
 
 document.addEventListener(SOURCE_EVENT, (e) => {
   viewingSourceOf = (e as CustomEvent<number | null>).detail;
@@ -33,12 +35,26 @@ export function ingestChallenges(incoming: QuestionView[]): void {
 /** Open questions, then answered ones (with their answer), then the stale ones as small chips. */
 function renderQuestions(): void {
   const scrollTop = dom.questionsCard.scrollTop;
-  const cards = [...withStatus("open"), ...withStatus("answered")];
+  const open = withStatus("open");
+  const answered = withStatus("answered");
   const stale = withStatus("stale");
-  dom.questionsList.replaceChildren(...cards.map(renderQuestion), ...(stale.length ? [renderStale(stale)] : []));
+  dom.questionsList.replaceChildren(
+    ...open.map(renderQuestion),
+    ...(answered.length ? [fold("answered", `Answered (${answered.length})`, answered.map(renderQuestion))] : []),
+    ...(stale.length ? [fold("stale", `No longer relevant (${stale.length})`, [renderStale(stale)])] : []),
+  );
   dom.questionsCard.scrollTop = scrollTop;
-  [...cards, ...stale].forEach((q) => seen.add(q.id));
+  questions.forEach((q) => seen.add(q.id));
   syncQuestionsCard();
+}
+
+/** A collapsed section, so only the open questions take up room by default. */
+function fold(key: string, label: string, children: HTMLElement[]): HTMLElement {
+  const box = create("details", "qfold");
+  box.open = unfolded.has(key);
+  box.addEventListener("toggle", () => (box.open ? unfolded.add(key) : unfolded.delete(key)));
+  box.append(create("summary", "qfold-label", label), ...children);
+  return box;
 }
 
 /** A question's text; clicking it jumps to where in the transcription it came up. */
@@ -78,7 +94,6 @@ function renderAnswer(q: QuestionView, reason: string): HTMLElement {
 /** Questions that stopped mattering: a small label and one muted chip each (full text on hover). */
 function renderStale(items: QuestionView[]): HTMLElement {
   const box = create("section", "qstale");
-  box.append(create("p", "qstale-label", "No longer relevant"));
   const chips = create("div", "qstale-chips");
   for (const q of items) {
     const chip = renderText(q, "qstale-chip");
@@ -108,6 +123,7 @@ async function sendDismissed(q: QuestionView): Promise<void> {
 export function resetQuestions(): void {
   questions = [];
   seen.clear();
+  unfolded.clear();
   dom.questionsList.replaceChildren();
   syncQuestionsCard();
 }

@@ -120,15 +120,8 @@ fn run(app: AppHandle, session_id: i64, rx: std::sync::mpsc::Receiver<Msg>) {
             }
             Ok(Msg::SetMeetingType(kind)) => session.mem.meeting_type = kind,
             Ok(Msg::Feedback { key, kind }) => {
-                let _ = storage.set_question_feedback(session_id, &key, kind.as_str());
+                apply_feedback(&app, session_id, &key, kind);
                 session.on_feedback(&key, kind);
-                // The UI groups by status: asked/dismissed leave "Suggestions".
-                let (reason, status) = match kind {
-                    Feedback::Asked => ("Asked", QuestionStatus::Answered),
-                    Feedback::Dismissed => ("Dismissed", QuestionStatus::Stale),
-                };
-                let _ = storage.resolve_question_by_key(session_id, &key, status, reason, None);
-                publish(&app, session_id, 0);
             }
             // Call ended: held questions are dropped (no late noise); keep memory.
             Ok(Msg::Flush) => {
@@ -259,6 +252,20 @@ fn apply(app: &AppHandle, session: &Session, session_id: i64, seq: i64, events: 
     }
     publish(app, session_id, seq);
     notify::notify_new_questions(app, &opened);
+}
+
+/// Persist the user's feedback and refresh the UI. Called straight from the command so a slow
+/// LLM call in the worker can't delay it; the worker repeats it (idempotent) and updates memory.
+pub fn apply_feedback(app: &AppHandle, session_id: i64, key: &str, kind: Feedback) {
+    let storage = &app.state::<AppState>().storage;
+    let _ = storage.set_question_feedback(session_id, key, kind.as_str());
+    // The UI groups by status: asked/dismissed leave "Suggestions".
+    let (reason, status) = match kind {
+        Feedback::Asked => ("Asked", QuestionStatus::Answered),
+        Feedback::Dismissed => ("Dismissed", QuestionStatus::Stale),
+    };
+    let _ = storage.resolve_question_by_key(session_id, key, status, reason, None);
+    publish(app, session_id, 0);
 }
 
 fn publish(app: &AppHandle, session_id: i64, seq: i64) {
