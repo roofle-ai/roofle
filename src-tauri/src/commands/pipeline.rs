@@ -42,6 +42,7 @@ pub fn question_feedback(
         .find(|q| q.id == question_id)
         .and_then(|q| q.question_key)
         .ok_or("question not found")?;
+    crate::session_worker::apply_feedback(&app, session_id, &key, kind);
     state.sessions.send(&app, session_id, Msg::Feedback { key, kind });
     Ok(())
 }

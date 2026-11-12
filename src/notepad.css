@@ -9,7 +9,7 @@
 /* Floating surfaces (dropdowns): hairline ring + soft drop. */
 /* --paper-solid is the page colour; --paper adds the window-opacity setting. */
 :root {
-  --paper-solid: #f6f4ee;
+  --paper-solid: #fffdf5;
   --line: transparent;
   --radius-md: 4px;
   --radius-lg: 0;
@@ -248,6 +248,14 @@ body { font-family: var(--font-sans); font-size: 1rem; }
   .questions-card { width: 10.5rem; }
 }
 .questions-card[hidden] { display: none; }
+.questions-card { scrollbar-width: none; } /* still scrolls; just no bar */
+.questions-card::-webkit-scrollbar { display: none; }
+.qfold { display: flex; flex-direction: column; gap: 1.1rem; }
+.qfold-label { cursor: pointer; list-style: none; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.qfold-label::-webkit-details-marker { display: none; }
+.qfold-label::before { content: "▸ "; }
+.qfold[open] > .qfold-label::before { content: "▾ "; }
+.qfold-label:hover { color: var(--ink); }
 .questions-label {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;

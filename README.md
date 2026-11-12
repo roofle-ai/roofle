@@ -25,7 +25,7 @@ Roofle writes live notes and surfaces the right follow-up question while you're 
 
 ## 🎬 Demo
 
-https://github.com/user-attachments/assets/f5ef088f-fd9c-49a2-87c1-26a17801e0d4
+https://github.com/user-attachments/assets/4cbc5658-152a-48b0-9fb6-54a535fb4e3b
 
 ## 🚀 Install
 
