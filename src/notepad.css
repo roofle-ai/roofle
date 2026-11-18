@@ -9,7 +9,7 @@
 /* Floating surfaces (dropdowns): hairline ring + soft drop. */
 /* --paper-solid is the page colour; --paper adds the window-opacity setting. */
 :root {
-  --paper-solid: #fffdf5;
+  --paper-solid: #ffffff;
   --line: transparent;
   --radius-md: 4px;
   --radius-lg: 0;
@@ -409,14 +409,15 @@ button.qtext { cursor: pointer; }
 .notes-welcome-foot { font-size: 0.9rem; color: var(--faint); }
 
 /* ---------- 15. Notes editor: rendered markdown you can type in ---------- */
-.notes-input { padding: 0; overflow-y: auto; font-size: 1.1rem; line-height: 1.85; }
+.notes-input { padding: 0; overflow-y: auto; font-size: 1rem; line-height: 1.7; }
 .notes-input .tiptap {
   min-height: 100%;
   box-sizing: border-box;
   padding: 0.5rem var(--pad-r) 4.5rem var(--pad-l);
   outline: none;
   caret-color: var(--brand);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans); /* Inter: clearer than the serif at small sizes */
+  letter-spacing: -0.006em;
   color: var(--ink);
 }
 .notes-input .tiptap > :first-child { margin-top: 0; }

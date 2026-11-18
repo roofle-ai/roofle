@@ -16,10 +16,10 @@ with the sticking point.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 The topic and the main outcome so far. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated. Not wishes or
+"we could".
 ## Decisions
 Agreed, chosen or ruled out, with the reason in a few words.
 ## Open Points
 Unresolved questions, options still on the table, blockers, and who must decide.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated. Not wishes or
-"we could".

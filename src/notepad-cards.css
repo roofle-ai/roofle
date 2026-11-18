@@ -62,3 +62,38 @@
 .recap-action svg { width: 14px; height: 14px; }
 .recap-action.is-primary { border-color: transparent; background: var(--ink); color: var(--paper-solid); font-weight: 600; }
 .recap-action.is-primary:hover:not(:disabled) { background: var(--ink); color: var(--paper-solid); opacity: 0.85; }
+
+/* ---------- Notes sections: each `## heading` and its content is one card ---------- */
+/* Blocks of a section are siblings in the editor, so the card is drawn per block (side borders +
+   background) and closed with a top border/radius on the first and a bottom one on the last.
+   Compact on purpose: tighter type and spacing than the free-typing area, to fit more per screen. */
+.notes-input .tiptap .sec {
+  --sec-line: color-mix(in srgb, var(--ink) 10%, transparent);
+  --sec-bg: color-mix(in srgb, var(--ink) 3%, transparent);
+  margin: 0;
+  padding: 0 0.9rem 0.25em;
+  border-inline: 1px solid var(--sec-line);
+  background: var(--sec-bg);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.notes-input .tiptap .sec-actions { --sec-line: color-mix(in srgb, var(--brand) 40%, transparent); --sec-bg: color-mix(in srgb, var(--brand) 8%, transparent); }
+.notes-input .tiptap .sec-decisions { --sec-line: color-mix(in srgb, var(--ink) 18%, transparent); --sec-bg: color-mix(in srgb, var(--ink) 5%, transparent); }
+.notes-input .tiptap .sec-first {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--sec-line);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.notes-input .tiptap .sec-last {
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--sec-line);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+.notes-input .tiptap .sec-first.sec-last { border-radius: var(--radius-md); }
+.notes-input .tiptap h2.sec { padding-bottom: 0; font-size: 0.8rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.notes-input .tiptap h2.sec-actions { color: var(--brand-strong); }
+.notes-input .tiptap h2.sec + .sec { margin-top: 0; padding-top: 0; }
+.notes-input .tiptap :is(ul, ol).sec { padding-left: calc(0.9rem + 1.2em); }
+.notes-input .tiptap .sec li { margin: 0.05em 0; }
+.notes-input .tiptap > :first-child.sec-first { margin-top: 0; }

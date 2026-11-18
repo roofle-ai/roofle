@@ -25,19 +25,23 @@ line.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 The topic, who is teaching if stated, and what has been covered so far. No history.
+## Follow-ups
+Resources, readings, exercises, deadlines and things to do afterwards.
+`Owner: task — by date` only if stated.
 ## Key Concepts
 `- Term or idea: what it means or why it matters`, in teaching order.
 ## Steps & Details
 Procedures, rules, numbers, tools, standards, recommendations, as stated.
 ## Questions & Answers
 `- Q: question → A: answer`. A question not yet answered: `A: (not answered yet)`.
-## Follow-ups
-Resources, readings, exercises, deadlines and things to do afterwards.
-`Owner: task — by date` only if stated.
 
 ## EXAMPLE (about the right size)
 ## Summary
 Webinar on database indexing for backend engineers. Covered how B-tree indexes work, when they hurt writes, and composite index ordering.
+
+## Follow-ups
+- Reading: the speaker's index-tuning guide, link in chat
+- Exercise: rewrite one slow query with a composite index
 
 ## Key Concepts
 - B-tree index: sorted structure that turns full table scans into lookups.
@@ -51,7 +55,3 @@ Webinar on database indexing for backend engineers. Covered how B-tree indexes w
 
 ## Questions & Answers
 - Q: Do indexes help LIKE '%x%'? → A: No; only prefix searches ('x%') use a B-tree.
-
-## Follow-ups
-- Reading: the speaker's index-tuning guide, link in chat
-- Exercise: rewrite one slow query with a composite index

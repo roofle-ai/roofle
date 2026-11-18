@@ -18,11 +18,11 @@ did from what they said they would do.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 Who was interviewed (role, company if stated) and the main insight so far.
+## Follow-ups
+`Owner: task — by date`. Owner and date only if stated.
 ## Problems
 `- Problem: impact, frequency or cost if stated`.
 ## Current Workarounds
 Tools, processes and spend they use today.
 ## Quotes
 Short verbatim phrases that capture a pain or goal.
-## Follow-ups
-`Owner: task — by date`. Owner and date only if stated.

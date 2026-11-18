@@ -16,11 +16,11 @@ until someone agrees to it. Merge near-duplicate ideas into one line.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 What is being planned and where it stands. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.
 ## Ideas
 Options and suggestions raised, not yet agreed.
 ## Plan
 Agreed priorities, scope, milestones and estimates, with dates as stated.
 ## Risks & Dependencies
 What could slip the plan and what it waits on.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated.

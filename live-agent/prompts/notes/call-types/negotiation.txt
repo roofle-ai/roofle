@@ -17,6 +17,8 @@ Attribute positions to a side only if labelled or named.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 What is being negotiated and how far apart or close the sides are. No history.
+## Next Steps
+`Owner: task — by date`. Owner and date only if stated.
 ## Positions
 `- Side or topic: ask or offer, with figures and conditions`, including what
 can and cannot flex.
@@ -24,5 +26,3 @@ can and cannot flex.
 Terms both sides accepted, with figures and conditions.
 ## Open Terms
 Points still in dispute and what each side needs.
-## Next Steps
-`Owner: task — by date`. Owner and date only if stated.

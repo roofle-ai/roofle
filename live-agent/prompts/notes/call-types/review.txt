@@ -17,11 +17,11 @@ accepted risk. Do not judge the design yourself.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 What is under review and the overall direction so far. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.
+## Decisions
+Agreed changes or approach, with the reason in a few words.
 ## Design Notes
 Key facts about the design: components, data flow, constraints, trade-offs.
 ## Concerns
 `- Concern → outcome (resolved: answer / open / accepted risk)`.
-## Decisions
-Agreed changes or approach, with the reason in a few words.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated.

@@ -24,18 +24,21 @@ about the candidate are kept to a minimum.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 Who the candidate is and what the interview has covered so far. No history.
+## Next Steps
+Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
+and date only if stated.
 ## Questions & Answers
 `- Q: question → A: answer`, in the order asked.
 ## Candidate Snapshot
 Only essential facts that are not an answer to a question: current role,
 years of experience, availability, notice period, compensation expectation.
-## Next Steps
-Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
-and date only if stated.
 
 ## EXAMPLE (about the right size)
 ## Summary
 Backend engineer interview for a payments team. Covered past projects, system design and on-call; candidate is open to moving within two months.
+
+## Next Steps
+- Us: share take-home details — by Wednesday
 
 ## Questions & Answers
 - Q: Biggest project recently? → A: Led billing service migration to event-driven design; about 40 services over a year; failures dropped, no figure given.
@@ -46,6 +49,3 @@ Backend engineer interview for a payments team. Covered past projects, system de
 ## Candidate Snapshot
 - Senior engineer at a fintech, 6 years' experience.
 - Notice period 60 days.
-
-## Next Steps
-- Us: share take-home details — by Wednesday
