@@ -17,13 +17,13 @@ with owner and date.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 Vendor, product, and where the evaluation stands. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words.
 ## Key Points
 Only the 2-4 ideas that matter most to the decision and are not plain facts.
 ## Details
 Features, limits, pricing, terms, integrations, support, as stated.
 ## Open Questions
 Things the vendor could not answer or deferred.
-## Decisions
-Agreed, chosen or ruled out, with the reason in a few words.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated.

@@ -14,9 +14,9 @@ line per item with the owner if named. Skip narrative of how work was done.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 Overall state in one or two sentences. No history.
+## Next
+`Owner: task — by date`. Owner and date only if stated.
 ## Progress
 `- Owner or area: what is done or in flight`.
 ## Blockers
 `- What is blocked: by whom or what, and who owns unblocking`.
-## Next
-`Owner: task — by date`. Owner and date only if stated.

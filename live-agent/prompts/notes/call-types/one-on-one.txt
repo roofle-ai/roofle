@@ -17,9 +17,9 @@ on work and what was agreed.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 The main themes of the conversation. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated.
 ## Feedback
 `- Given or received: what was said, with the example if stated`.
 ## Topics Raised
 Goals, concerns, blockers, support asked for, and career or workload points.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated.

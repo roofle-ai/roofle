@@ -21,10 +21,15 @@ pub struct ActionItem {
 // ponytail: word-count heuristic; a short task label before ':' reads as an owner. Ask the LLM if that misfires.
 const MAX_OWNER_WORDS: usize = 3;
 
+/// Section names the call-type prompts use for commitments
+/// (`live-agent/prompts/notes/call-types/*.txt`). Keep in sync when adding a call type.
+const ACTION_SECTIONS: [&str; 4] = ["Action Items", "Next Steps", "Next", "Follow-ups"];
+
 /// Parse every action item in `notes`, in document order.
 pub fn parse_action_items(notes: &str) -> Vec<ActionItem> {
-    section_lines(notes, "Action Items")
-        .into_iter()
+    ACTION_SECTIONS
+        .iter()
+        .flat_map(|name| section_lines(notes, name))
         .filter_map(parse_line)
         .collect()
 }
@@ -98,6 +103,14 @@ mod tests {
     fn long_prefix_is_not_an_owner() {
         let items = parse_action_items("## Action Items\n- Follow up on the pricing question: tiers\n");
         assert_eq!(items, vec![item(None, "Follow up on the pricing question: tiers", None)]);
+    }
+
+    #[test]
+    fn reads_the_section_name_each_call_type_uses() {
+        for name in ["Next Steps", "Next", "Follow-ups"] {
+            let items = parse_action_items(&format!("## Summary\nx\n## {name}\n- Sam: send quote — by Friday\n"));
+            assert_eq!(items, vec![item(Some("Sam"), "send quote", Some("Friday"))], "{name}");
+        }
     }
 
     #[test]

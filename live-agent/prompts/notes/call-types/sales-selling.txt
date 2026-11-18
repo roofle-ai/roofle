@@ -17,6 +17,12 @@ objections and pricing.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 What the session is about and the main outcome so far. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated. Not wishes or
+"we could".
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words. A proposal
+under discussion is not a decision.
 ## Key Points
 Only the 2-4 ideas that carry the session and are not plain facts.
 ## Details
@@ -25,16 +31,14 @@ Keep the speaker's strength ("a few thousand", "about 30").
 ## Timeline
 Dates, deadlines, milestones, and what drives them. Keep firmness
 ("ideally", "flexible").
-## Decisions
-Agreed, chosen or ruled out, with the reason in a few words. A proposal
-under discussion is not a decision.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated. Not wishes or
-"we could".
 
 ## EXAMPLE (about the right size)
 ## Summary
 Sales call with a logistics firm evaluating a fleet-tracking tool. Budget exists but needs CFO sign-off; a competitor is also being trialled.
+
+## Action Items
+- Us: send pricing and driver-privacy FAQ — by Friday
+- Buyer: intro to CFO
 
 ## Key Points
 - Buyer's pain is late deliveries, not tracking itself.
@@ -47,7 +51,3 @@ Sales call with a logistics firm evaluating a fleet-tracking tool. Budget exists
 
 ## Timeline
 - Decision by end of quarter; competitor trial ends in three weeks.
-
-## Action Items
-- Us: send pricing and driver-privacy FAQ — by Friday
-- Buyer: intro to CFO

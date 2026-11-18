@@ -20,17 +20,20 @@ the interviewer revealed: role scope, team, tech, process, timeline, pay.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 Role, company if stated, and what the interview has covered so far. No history.
+## Next Steps
+Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
+and date only if stated.
 ## Questions & Answers
 `- Q: question → A: what the user answered`, in the order asked.
 ## About the Role
 What the interviewer said: scope, team, stack, process, compensation, timeline.
-## Next Steps
-Agreed next rounds, deadlines and follow-ups. `Owner: task — by date`. Owner
-and date only if stated.
 
 ## EXAMPLE (about the right size)
 ## Summary
 First-round interview for a platform engineer role. Covered the user's infrastructure background and how the team works; next is a technical round.
+
+## Next Steps
+- Them: send technical round details — by Friday
 
 ## Questions & Answers
 - Q: Experience with Kubernetes? → A: Ran production clusters for 3 years; migrated two services from VMs.
@@ -40,6 +43,3 @@ First-round interview for a platform engineer role. Covered the user's infrastru
 - Team of 6, on-call one week in six.
 - Stack: AWS, Terraform, Go.
 - Salary band not shared yet.
-
-## Next Steps
-- Them: send technical round details — by Friday

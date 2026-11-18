@@ -47,6 +47,12 @@ owner because it seems less relevant to them.
 ## SECTIONS (exact names, this order, omit any with no material)
 ## Summary
 What the session is about and the main outcome so far. No history.
+## Action Items
+`Owner: task — by date`. Owner and date only if stated. Not wishes or
+"we could".
+## Decisions
+Agreed, chosen or ruled out, with the reason in a few words. A proposal
+under discussion is not a decision.
 ## Key Points
 Only the 2-4 ideas that carry the session and are not plain facts.
 ## Details
@@ -55,12 +61,6 @@ Keep the speaker's strength ("a few thousand", "about 30").
 ## Timeline
 Dates, deadlines, milestones, and what drives them. Keep firmness
 ("ideally", "flexible").
-## Decisions
-Agreed, chosen or ruled out, with the reason in a few words. A proposal
-under discussion is not a decision.
-## Action Items
-`Owner: task — by date`. Owner and date only if stated. Not wishes or
-"we could".
 
 ## KEEPING IT TRUE
 - Read the answer before calling something unanswered. A question plus its
